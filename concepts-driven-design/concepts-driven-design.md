@@ -6,12 +6,20 @@ concepts
 crtp
 http://publications.lib.chalmers.se/records/fulltext/local_124669.pdf
 Generic programming with C++ concepts and
-Haskell type classes—a comparison
+Haskell type classesâ€”a comparison
 
 history -> bjarne started 25 years ago
 
 
-http://eel.is/c++draft/
+
+
+---
+
+## Concepts and C++20 draft
+
+http://eel.is/c++draft/temp.constr
+
+![100%](images/templates.png)
 
 ---
 
@@ -641,9 +649,9 @@ mocking
 struct Readable {               | // Readable Implementation
  template<class T>              |
   auto operator()() const {     | struct Reader { // no inheritance
-    MoveConstructible<T> &&    <|> Reader(Reader&&) = default; // ✔
-    MoveAssignable<T> &&       <|> Reader& operator=(Reader&&) = default; // ✔
-    Callable<T, int()>($(read))<|> int read(); // ✔
+    MoveConstructible<T> &&    <|> Reader(Reader&&) = default; // âœ”
+    MoveAssignable<T> &&       <|> Reader& operator=(Reader&&) = default; // âœ”
+    Callable<T, int()>($(read))<|> int read(); // âœ”
   };                     ^      | };
 };               ________/      |
                 /               | static_assert(
