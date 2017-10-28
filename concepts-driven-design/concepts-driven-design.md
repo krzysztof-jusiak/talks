@@ -25,11 +25,12 @@ Meeting C++ 2017
   * Requirements
     * Design by introspection
   * Named `concepts`
+  	* Optional interfaces
 * Concepts emulation (C++17)
 * Concepts driven design
   * Static dispatch based on concepts (`CRTP`)
   * Dynamic dispatch (`type erasure`) based on concepts
-  * Testing with concepts
+  * Mocking concepts for testing
 * Future of concepts (C++2X)
 
 </font>
@@ -76,7 +77,7 @@ https://godbolt.org/g/RTRgg2
     'std::_List_iterator<int>')
  std::__lg(__last - __first) * 2);
            ~~~~~~ ^ ~~~~~~~
-...many lines lines of output...
+...many lines of output f<- library side
 ```
 
 > With concepts
@@ -135,7 +136,7 @@ int main() {
 }
 ```
 
-> Notes: requires-clause is part of the function signature
+> Note: requires-clause is part of the function signature
 
 ---
 
@@ -184,7 +185,7 @@ constexpr auto foo(T&& x)
             //        't.bar()' would be ill-formed
 ```
 
-> Notes: `requires requires`  -> `requires-clause` followed by `requires-expression`
+> Note: `requires requires`  -> `requires-clause` followed by `requires-expression`
 
 ---
 
@@ -328,7 +329,7 @@ template<Fooable T>  // Fooable instead of
 class Bar {};        // typename/class
 ```
 
-> Notes: C++17 - Non-type template arguments
+> Note: C++17 - Non-type template arguments
 ```cpp
 template<auto T> class Bar {}; // For values -> Bar<42>
 ```
@@ -375,14 +376,12 @@ template<class T> concept File =
 > Concept overloading
 
 ```cpp
-template<class T> requires Socket<T>
+template<Socket T> // requires Socket<T>
 /*1*/ void forward(T& t, std::string_view data) {
   t.send(data);
 }
-```
 
-```cpp
-template<class T> requires File<T>
+template<File T> // requires File<T>
 /*2*/ void forward(T& t, std::string_view data) {
   t.write(data);
 }
@@ -390,9 +389,9 @@ template<class T> requires File<T>
 
 ```cpp
 int main() {
- tcp_socket tcp{}; forward(tcp, "tcp data"); // calls 1
- udp_socket udp{}; forward(udp, "udp data"); // calls 1
- file file{}; forward(file, "file data");    // calls 2
+ tcp_socket tcp; forward(tcp, "tcp data"sv); // calls 1
+ udp_socket udp; forward(udp, "udp data"sv); // calls 1
+ file file; forward(file, "file data"sv);    // calls 2
 }
 ```
 
@@ -400,6 +399,7 @@ int main() {
 
 # `Named concepts`
 
+> Concepts overloading
 > `if constexpr` (C++17)
 
 ```cpp
@@ -413,7 +413,7 @@ void forward(T& t, std::string_view data) {
 }
 ```
 
-> Notes: Branch which is not taken is discarded
+> Note: Branch which is not taken is discarded
 > --------- Statement may not compile but syntax has to be valid
 
 ---
@@ -443,6 +443,59 @@ constexpr auto forward =
 
 ---
 
+# `Named concepts`
+> Optional interfaces
+
+Example -> `Stream<T>`
+* Callable member function `write which takes type T
+* Callable member function`read` which returns type T
+* Callable **optional** member function `read_complete`
+* Copy constructible
+* Printable using `std::cout`
+
+---
+
+# `Named concepts`
+> Optional interfaces
+
+> Virtual functions (no expressive enough)
+```cpp
+/**
+ * Implementation requires to be printable and 
+ * copy constructible
+ */
+template<class T>
+class istream {
+public:
+  virtual ~istream() noexcept = default;
+  virtual void write(T) = 0;
+  virtual T read() = 0;
+  // virtual void read_complete() = 0; // [optional]
+};
+```
+
+---
+
+# `Named concepts`
+> Optional interfaces
+
+> Concepts
+```cpp
+template<class T, class TData>
+concept Streamable =
+  CopyConstructible<T> and 
+  requires(T t, std::cout& out) { out << t; } and
+  requires(T t, TData data) { t.write(data); } and (
+    requires(T t) { { t.read(data) } -> TData } and
+    requires(T t) { { t.read_complete(); } }
+  ) or (
+    requires(T t) { { t.read(data) } -> TData }
+  )
+};
+```
+
+---
+
 # Placeholders
 
 | Placeholder | Synopsis |
@@ -468,21 +521,23 @@ Fooable foo3 = Foo<int>{};
 
 ---
 
-## Requirements in the ISO C++ standard
+# Concepts and the C++ ISO standard
+<center>
+  
+![150%](images/std_requirements.png)
+
+</center>
+
+---
+
+# Concepts and the C++ ISO standard
+
 <center>
   
 ![150%](images/std_equality_comparable.png)
 
 </center>
 
-##### Haskell typeclasses
-
-```haskell
-class EqualityComparable a where
-  (==) :: a -> a -> Bool
-```
-
-##### C++ concepts
 ```
 template<class T>
 concept EqualityComparable = requires(T a, T b) {
@@ -490,7 +545,9 @@ concept EqualityComparable = requires(T a, T b) {
 };
 ```
 
-## Concepts - Real life example - Ranges TS
+---
+
+# Concepts - Ranges TS
 
 ```cpp
 template <class I>
@@ -507,15 +564,15 @@ concept InputIterator =
 
 https://github.com/CaseyCarter/cmcstl2
 
-
-
 ---
 
 # Concepts emulation (C++17)
 
 ---
 
-# Substituation Failure Is Not An Error (SFINAE)
+# Concepts emulation (C++17)
+
+> Substituation Failure Is Not An Error (SFINAE)
 
 ```cpp
 template<bool, class = void>
@@ -529,109 +586,32 @@ struct enable_if<true, T> { using type = T; };
 
 ---
 
-What you can't do with concepts
+# Concepts emulation (C++17)
 
-std::vector<Any> v;
+> Dedection idiom (C++20)
+
+```cpp
+template<class T>
+using Fooable = decltype(std::declval<T&>().foo());
+```
+
+```cpp
+struct Foo { void foo(); };
+struct Bar { };
+```
+
+```cpp
+static_assert(not std::is_detected<Fooable, Bar>{});
+static_assert(    std::is_detected<Fooable, Foo>{});
+```
   
-v.push_back("Meeting C++");
-v.push_back(2017);
+https://wg21.link/n4436
 
 ---
 
-## [Virtual concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
+# Concepts emulation (C++17)
 
-```cpp
-template<class T>
-concept EqualityComparable = requires(T a, T b) {
-  // standard
-  { a == b } -> bool;
-};
-```
-
-```cpp
-template<class T>
-concept EqualityComparable = requires() {
-  // NOT standard!
-  auto operator==(const T&, const T&) -> bool;
-};
-```
-
----
-
-type erasure
-
-```cpp
-template<typename T>
-concept Any = requires(T x) {
-  requires DefaultConstructible<T> &&
-    CopyConstructible<T> &&
-    NoThrowMoveConstructible<T> &&
-    CopyAssignable<T> &&
-    NoThrowMoveAssignable<T> &&
-    Destructible<T>;
-};
-```
-
-```cpp
-concept Fooable
-```
-
-```cpp
-std::vector<virtual Any> v;
-v.push_back("Hello"s);
-v.push_back(42);
-```
-
----
-
-Shape
-
-draw(virtual Shape);
-
----
-
-## Syntax
-
-* 1/5
-
-```cpp
-template<class T> requires CONCEPT;
-void foo(T);
-```
-
-* 2/5
-
-```cpp
-template<CONCEPT T>
-void foo(T);
-```
-
-* 3/5
-
-```cpp
-void foo(CONCEPT);
-```
-
-```cpp
-{CONCEPT} void foo(CONCEPT);
-```
-
-But
-
-```cpp
-template<auto X> // ERROR
-```
-
-
-terse template notation
-
-3/5
-
----
-
-## Does the Concepts TS Improve on C++17?
-
-https://wg21.link/P0726R0
+> Does the Concepts TS Improve on C++17?
 
 ```cpp
 template <class F, class... Args, class =  decltype(
@@ -647,41 +627,131 @@ constexpr auto requires(F&&) {
 }
 ```
 
+https://wg21.link/P0726R0
+
 ---
 
+# Concepts emulation (C++17)
 
-
-## Concepts and Metaclasses - https://wg21.link/p0707r0
+> Error message
 
 ```cpp
-template<class T>
-Fooable Foo { };  // static_assert(Fooable<Foo>);
+template<class T, class = std::enable_if_t<Socket<T>>
+void forward(T& t, std::string_view data) {
+  t.send(data);
+}
+```
+
+```cpp
+int main() {
+  tcp_socket tcp; forward(tcp, "tcp data"sv); // Okay
+  file file; forward(file, "file data"sv);
+   // error: no matching function for call to 'forward'
+   // possibly many lines of output <- library side
+}
+```
+
+> Note: No details why function couldn't be called
+
+---
+
+# Concepts emulation (C++17)
+
+> `requires-clause`
+
+```cpp
+struct Foo { void foo(); };
+struct Bar {};
+```
+
+```cpp
+static_assert(
+  requires<Foo>([](auto&& t) ->
+    decltype(t.foo()) {})
+);
+
+static_assert(
+  not requires<Bar>([](auto&& t) ->
+    decltype(t.foo()) {})
+);
 ```
 
 ---
 
-concepts drive design
-is copyable printable etc, can't express that with virutal functions
-> Optional interfaces
+# Concepts emulation (C++17)
+
+> `Named concept`
 
 ```cpp
-template<class T>
-class istream {
-public:
-  virtual ~istream() noexcept = default;
-  virtual void write(T) = 0;
-  virtual T read() = 0;
-  // virtual void read_complete() = 0; // [optional]
-};
+template<class T> constexpr auto Socket = 
+  requires<T>([](auto&& t, std:string_view data)-> 
+    decltype(t.send(data)) {}
+  );
 ```
 
+```cpp
+template<class T> constexpr auto File = 
+  requires<T>([](auto&& t, std:string_view data) -> 
+    decltype(t.write(data)) {}
+  );
+```
+---
 
-type erasure with mocking
-mocking
+# Concepts emulation (C++17)
+
+> Concepts overloading
+
+```cpp
+template<class T, 
+  std::enable_if_t<Socket<T>, int> = 0>
+/*1*/ void forward(T& t, std::string_view data) {
+  t.send(data);
+}
+
+template<class T, 
+  std::enable_if_t<File<T>, int> = 0>
+/*2*/ void forward(T& t, std::string_view data) {
+  t.write(data);
+}
+```
+
+```cpp
+int main() {
+ tcp_socket tcp; forward(tcp, "tcp data"sv); // calls 1
+ udp_socket udp; forward(udp, "udp data"sv); // calls 1
+ file file; forward(file, "file data"sv);    // calls 2
+}
+```
 
 ---
 
-## Concepts driven design - Goals / Dream
+# Concepts emulation (C++17)
+
+> Concept overloading
+> `if constexpr` (C++17)
+
+```cpp
+template<class T>
+void forward(T& t, std::string_view data) {
+  if constexpr(Socket<T>) { // compile-time
+    t.send(data);
+  } else if constexpr(File<T>) {
+    t.write(data);
+  }
+}
+```
+
+> Note: Exactly the same way as with C++20 concepts
+
+---
+
+# Concepts driven design
+
+---
+
+# Concepts driven design
+
+> Goals
 
 | | |
 |-|-|
@@ -690,6 +760,93 @@ mocking
 | Performance | Static dispatch by default <br />(based on concepts) |
 | Flexiblity | Dynamic dispatch using type erasure (based on the same concepts) |
 | Testability | Automatic mocks injection <br />(based on the same concepts) |
+
+---
+
+# Concepts driven design
+> Static dispatch based on concepts
+
+---
+
+# Concepts driven design
+> Dynamic dispatch (`type erasure`) based on concepts
+
+```cpp
+template<class T> concept Any = requires(T) {
+  requires DefaultConstructible<T> and
+    CopyConstructible<T> and
+    NoThrowMoveConstructible<T> and
+    CopyAssignable<T> and
+    NoThrowMoveAssignable<T> and
+    Destructible<T>;
+};
+```
+
+```cpp
+std::vector v1;
+ // error:  class template argument deduction failed
+  
+std::vector<auto> v2; 
+ // error: couldn't deduce template parameter
+ 
+std::vector<Any> v3; 
+ // error: couldn't deduce template parameter
+```
+
+---
+
+# Concepts driven design
+> `Virtual concepts`
+
+```cpp
+std::vector<virtual Any> v;    // Okay (type erasure)
+v.push_back("Meeting C++"sv);  // Okay
+v.push_back(2017);             // Okay
+```
+
+[Virtual concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
+
+> Note: Virtual concepts aren't part of C++20
+
+---
+
+# Concepts driven design
+> Virtual concepts
+
+> Signature requirement
+```cpp
+template<class T>
+concept Fooable = requires() {
+  auto foo(const T&) -> void; // NOT C++20!
+};
+```
+
+---
+
+# Concepts driven design
+> Virtual concepts (dynamic dispatch based on concepts)
+
+```cpp
+template<class T> concept Drawable = 
+  requires Any<T> and 
+  requires(T t) { auto draw() -> void };
+```
+  
+```cpp
+struct Square {
+  void draw(std::ostream& out) { out << "Square"; } };
+
+struct Circle {
+  void draw(std::ostream& out) { out << "Circle"; } };
+
+template<Drawable T>
+void f(const& T d) { d.draw(std::cout); }
+
+int main() {
+  f(Square{}); // prints Square
+  f(Circle{}); // prints Circle
+}
+```
 
 ---
 
@@ -919,17 +1076,7 @@ public:
 
 ---
 
-template<auto> is something else
-
-Notes:
-	* forward(auto, auto);
-	* forward(Socket, Socket);
-
-the same concepts requires the same types!!!
-but it's not true for auto, auto
-
-
-Future
+# Future of concepts (C++2X)
 
 ```cpp
 void foo() requires true {}
@@ -943,12 +1090,32 @@ int main() {
 }
 ```
 
-> Notes: But C++20 requires-clauses on non-templated functions are ill-formed 
+> Note: But C++20 requires-clauses on non-templated functions are ill-formed 
+
+## Concepts and Metaclasses - https://wg21.link/p0707r0
+
+```cpp
+template<class T>
+Fooable Foo { };  // static_assert(Fooable<Foo>);
+```
+template<auto> is something else
+
+Notes:
+	* forward(auto, auto);
+	* forward(Socket, Socket);
+
+the same concepts requires the same types!!!
+but it's not true for auto, auto
+
+terse syntax
+
+##### Haskell typeclasses
+
+```haskell
+class EqualityComparable a where
+  (==) :: a -> a -> Bool
 
 ---
-
----
-
 
 ## Questions?
 
