@@ -1,27 +1,4 @@
-#TODO
-old style
-emulation
-concepts
-
-crtp
-http://publications.lib.chalmers.se/records/fulltext/local_124669.pdf
-Generic programming with C++ concepts and
-Haskell type classesâ€”a comparison
-
-history -> bjarne started 25 years ago
-
-
-
-
----
-
-## Concepts and C++20 draft
-
-http://eel.is/c++draft/temp.constr
-
-![100%](images/templates.png)
-
----
+<!-- story how concepts were removed from C++0x  -->
 
 <!-- footer:  kris@jusiak.net | @krisjusiak | linkedin.com/in/kris-jusiak -->
 
@@ -33,78 +10,464 @@ Meeting C++ 2017
 
 ##### Kris Jusiak, Quantlab
 
-
 ---
-
-<!-- story how concepts were removed from C++0x  -->
 
 <!-- footer: Meeting C++ 2017 | Concepts Driven Design | Kris Jusiak -->
 
-# Concepts - Agenda
+# Agenda
 
-* Why we want/need them?
-* What we didn't get (breifly)
-* What we got (most likeley)
-  * requires-clause
-  * named concepts
-* What can we do with it
-  * design by introspection
-  * optional interfaces
-  * depedency injection
-* Can we live without it?
-  * concepts emulation in C++17?
-* What the feature may bring?
-  * virtual concepts
+<font size="5">
+  
+* Concepts
+  * Motivation
+  * History
+* Type constraints (C++20)
+  * Requirements
+    * Design by introspection
+  * Named `concepts`
+* Concepts emulation (C++17)
+* Concepts driven design
+  * Static dispatch based on concepts (`CRTP`)
+  * Dynamic dispatch (`type erasure`) based on concepts
+  * Testing with concepts
+* Future of concepts (C++2X)
 
----
-
-### C++ Concepts vs Haskell typeclasses
-
-```cpp
-concept Eq<typename T> {
-    bool operator==(T, T);
-}
-```
-
-```haskell
-class Eq a where
-  (==) :: a -> a -> Bool
-```
+</font>
 
 ---
 
 ## Disclaimer
 
-All presented examples compiles with GCC-trunk (7.2).
+Concepts, although, merged into C++20 draft, are still a subject for future changes.
 
-> `g++ -std=c++2a -fconcepts`
+| Compiler | Version | Notes |
+| - | - | - |
+| GCC | 6.1 | Requires `-fconcepts` flag |
+| MSVC | VS2017 15.5 | - |
+| Clang | In progress... | It had C++0x concepts support |
 
-C++20 is still open for alterations.
+Examples in this talk were compiled using
+
+> `g++7.2 -std=c++2a -fconcepts`
 
 ---
 
 <!-- page_number: true -->
 
-## Concepts - History
+# Motivation - Error Novel
 
-> From Frankfurt 2009 to Toronto 2017
+```cpp
+int main() {
+  auto list = std::list{1, 2, 3};
+  std::sort(std::begin(list), std::end(list));
+}
+```
+
+https://godbolt.org/g/RTRgg2
+
+---
+
+# Motivation - Improve error messages
+
+> Without concepts
+```cpp
+ invalid operands to binary expression 
+   ('std::_List_iterator<int>' and 
+    'std::_List_iterator<int>')
+ std::__lg(__last - __first) * 2);
+           ~~~~~~ ^ ~~~~~~~
+...many lines lines of output...
+```
+
+> With concepts
+```cpp
+error: cannot call std::sort
+ note: concept RandomAccessIterator was not satisfied
+since: expression (b-a) will be ill formed
+```
+
+---
+
+# Concepts - History
 
 ![100%](images/history.png)
 
+> Concepts Lite - https://wg21.link/n3701 
+Andrew Sutton, Bjarne Stroustrup, Gabriel Dos Reis
+
+> Concepts TS - https://wg21.link/P0734R0
+Andrew Sutton, Bjarne Stroustrup
+
 ---
 
-## Summer ISO C++ Meeting in Toronto, Canada (July 10th - 15th 2017)
+# Concepts - C++20 draft
 
-<center>
+http://eel.is/c++draft/temp.constr
+
+![100%](images/templates.png)
+
+* Requirements
+  * `requires-clause`, `requires-expression`
+* Constraints
+  * `predicates, conjunctions, disjunctions`
+* Named concepts
+  * `placeholders`, `abbreviated templates`
+
+---
+
+# Requirements
+
+---
+
+# `Requires-clause`
+> Specifies constraints on template arguments or on a function declaration
+> `std::enable_if` on steroids
+
+```cpp
+template<bool Value>
+void foo() requires Value {}
+```
+
+```cpp
+int main() {
+  foo<true>();  // Okay
+  foo<false>(); // Error: constraints not satisfied
+}
+```
+
+> Notes: requires-clause is part of the function signature
+
+---
+
+# `Requires-expression`
+> prvalue expression of type bool
+  `requires ( [parameters] ) { requirements }		`
+
+```cpp
+// type requirement
+requires(T) { typename T::value_type; };
+```
+
+```cpp
+// simple requirement
+requires(T t) { t[typename T::value_type{}]; };
+```
+
+```cpp
+// compound requirement
+requires(T t) { { t.empty() } -> bool;  };
+```
+
+```cpp
+// nested requirement
+requires(T t) {
+  requires std::is_integral_v<typename T::value_type>;
+};
+```
+
+---
+
+# `Requires-clause/Requires-expression`
+
+```cpp
+template<class T>
+constexpr auto foo(T&& x)
+  requires requires(T t) { t.bar(); }
+{ return x.bar(); }
+```
+
+```cpp
+  struct { void bar() {} } bar;
+  foo(bar); // Okay
+  foo(42);  // Error: constraints not satisfied
+            //  note: the required expression 
+            //        't.bar()' would be ill-formed
+```
+
+> Notes: `requires requires`  -> `requires-clause` followed by `requires-expression`
+
+---
+
+# Design by introspection
+
+> Andrei Alexandrescu
+
+[![design_by_introspection](images/design_by_introspection.png)](https://www.youtube.com/watch?v=29h6jGtZD-U)
+
+---
+
+# Design by introspection - D lang
+
+> https://dlang.org/spec/traits.html
+
+```d
+auto foo(T)(T x) {
+  static if(__traits(hasMember, x, "bar")) {
+    return x.bar;
+  } else {
+    return 0;
+  }
+}
+
+void main() {
+  assert(0 == foo(42));
   
-![25%](images/bjarne_concepts.jpg)
+  struct Bar { int bar = 42; }
+  Bar bar;
+  assert(42 == foo(bar));
+}
+```
 
-Concepts TS was merged into draft C++20! https://wg21.link/P0734R0
-
-</center>
+https://godbolt.org/g/wpLXzV
 
 ---
- 
+
+# Design by introspection - C++20
+
+```cpp
+template<class T>
+constexpr auto foo(T x) {
+  if constexpr(requires(T t) { t.bar; }) {
+    return x.bar;
+  } else {
+    return 0;
+  }
+}
+
+int main() {
+  assert(0 == foo(42));
+  
+  struct { int bar{42}; } bar;
+  assert(42 == foo(bar));
+}
+```
+
+https://godbolt.org/g/uot6Bv
+
+---
+
+# Design by introspection - C++
+
+[![100%](images/dbi.png)](https://godbolt.org/g/MFxqWu)
+
+https://godbolt.org/g/MFxqWu
+
+---
+
+# `Named concepts`
+
+> A collection of requirements on a type (variable template)
+
+```cpp
+template<template-parameters>
+concept concept-name = constraint-expression;
+```
+
+> "If you like it then you should have put a name on it", Beyonce rule
+
+---
+
+# `Named concepts`
+
+> Predicate constraints
+
+```cpp
+template<class>
+concept Always = true; // always satisified
+```
+
+```cpp
+template<class T>
+concept Size32 = sizeof(T) == 4;
+```
+
+> Conjunctions, Disjunctions
+```cpp
+template<class T>
+concept SignedIntegral = std::is_integral<T>{} and
+                         std::is_signed<T>{};
+```
+
+---
+
+# `Named concepts`
+
+> Requirements
+
+```cpp
+template<class T>
+concept Fooable =           // named concept
+  requires(T t) {           // collection of
+    typename T::type;       //   type requirement
+    { t.foo() } -> void;    //   compound requirement
+    requires Movable<T> or  //   nested requirement
+             Same<T, int>;  
+  };
+```
+
+---
+
+# `Named concepts`
+
+> 
+
+> Unconstrained class definition
+```cpp
+template<class> class Bar {};
+```
+
+> Requires expression
+```cpp
+template<class T> class Bar 
+  requires Fooable<T> {}; // requires-expression
+```
+
+> Abbreviated templates
+```cpp
+template<Fooable T>  // Fooable instead of
+class Bar {};        // typename/class
+```
+
+> Notes: C++17 - Non-type template arguments
+```cpp
+template<auto T> class Bar {}; // For values -> Bar<42>
+```
+
+---
+
+# `Named concepts`
+
+> Example
+
+```cpp
+struct tcp_socket { void send(std::string_view); };
+struct udp_socket { void send(std::string_view); };
+struct file       { void write(std::string_view); };
+```
+
+>  Everything Cpp 
+>  https://www.youtube.com/watch?v=xsSYPD0v5Mg
+
+---
+
+# `Named concepts`
+
+> Concept definition
+
+```cpp
+template<class T> concept Socket = 
+  requires(T t, std:string_view data) {
+    { t.send(data) } -> void; // compound requirement
+};
+```
+
+```cpp
+template<class T> concept File = 
+  requires(T t, std:string_view data) {
+    { t.write(data) } -> void; // compound requirement
+};
+```
+
+---
+
+# `Named concepts`
+
+> Concept overloading
+
+```cpp
+template<class T> requires Socket<T>
+/*1*/ void forward(T& t, std::string_view data) {
+  t.send(data);
+}
+```
+
+```cpp
+template<class T> requires File<T>
+/*2*/ void forward(T& t, std::string_view data) {
+  t.write(data);
+}
+```
+
+```cpp
+int main() {
+ tcp_socket tcp{}; forward(tcp, "tcp data"); // calls 1
+ udp_socket udp{}; forward(udp, "udp data"); // calls 1
+ file file{}; forward(file, "file data");    // calls 2
+}
+```
+
+---
+
+# `Named concepts`
+
+> `if constexpr` (C++17)
+
+```cpp
+template<class T>
+void forward(T& t, std::string_view data) {
+  if constexpr(Socket<T>) { // compile-time
+    t.send(data);
+  } else if constexpr(File<T>) {
+    t.write(data);
+  }
+}
+```
+
+> Notes: Branch which is not taken is discarded
+> --------- Statement may not compile but syntax has to be valid
+
+---
+
+# `Named concepts`
+
+> `Lambdas`
+
+```cpp
+constexpr auto forward = 
+  [](auto& t, std::string_view data) {
+    using type = std::decay_t<decltype(t)>>;
+    if constexpr(Socket<type>) { t.send(data); } else 
+    if constexpr(File<type>) { t.write(data); }
+  };
+```
+
+> `Generic lambdas` (C++17) - https://wg21.link/P0428r2
+
+```cpp
+constexpr auto forward = 
+  []<class T>(T& t, std::string_view data) { // class T
+    if constexpr(Socket<T>) { t.send(data); } else 
+    if constexpr(File<T>) { t.write(data); }
+  };
+```
+
+---
+
+# Placeholders
+
+| Placeholder | Synopsis |
+|-|-|
+|Unconstrained|`auto`|
+|Constrained|`concept-name<[template-argument-list]>`|
+
+```cpp
+template<class T> class Foo {};
+template<class T> concept Fooable = true;
+```
+
+```cpp
+// auto - weakest placeholder
+auto    foo1 = Foo<int>{};
+
+// C++17 - Constructor Template Argument Deduction
+Foo     foo2 = Foo<int>{};
+
+// C++20 - placeholder
+Fooable foo3 = Foo<int>{};
+```
+
+---
+
 ## Requirements in the ISO C++ standard
 <center>
   
@@ -112,21 +475,20 @@ Concepts TS was merged into draft C++20! https://wg21.link/P0734R0
 
 </center>
 
+##### Haskell typeclasses
+
+```haskell
+class EqualityComparable a where
+  (==) :: a -> a -> Bool
+```
+
+##### C++ concepts
 ```
 template<class T>
 concept EqualityComparable = requires(T a, T b) {
   { a == b } -> bool;
 };
 ```
-
----
-
-Placeholders
-
-vector<auto>
-
-
----
 
 ## Concepts - Real life example - Ranges TS
 
@@ -144,6 +506,26 @@ concept InputIterator =
 ```
 
 https://github.com/CaseyCarter/cmcstl2
+
+
+
+---
+
+# Concepts emulation (C++17)
+
+---
+
+# Substituation Failure Is Not An Error (SFINAE)
+
+```cpp
+template<bool, class = void>
+struct enable_if {};
+ 
+template<class T>
+struct enable_if<true, T> { using type = T; };
+```
+
+* `false` predicates lead to ill-formed code that's discarded
 
 ---
 
@@ -267,353 +649,7 @@ constexpr auto requires(F&&) {
 
 ---
 
-Concepts emulation
 
----
-
-##  Substituation Failure Is Not An Error (SFINAE)
-
-```cpp
-template<bool, class = void>
-struct enable_if {};
- 
-template<class T>
-struct enable_if<true, T> { using type = T; };
-```
-
-* `false` predicates lead to ill-formed code that's discarded
-
----
-
-## Requires-clause
-
-```cpp
-void foo() requires false;
-```
-
----
-
-```cpp
-constexpr auto endian = endian::native;
-```
-
-```cpp
-void foo(std::string_view) // same argument list
-  requires endian = endian::big;
-  
-void foo(std::string_view) // same argument list
-  requires endian = endian::little;
-
-void foo(std::string_view) // same argument list
-  requires endian = endian::native;
-```
-
-* requires-clause is part of the signature
-
----
-
-## Design by introspection - Andrei Alexandrescu
-
-
-[![design_by_introspection](images/design_by_introspection.png)](https://www.youtube.com/watch?v=29h6jGtZD-U)
-
----
-
-D lang
-
-```cpp
-__compiles // __traits
-
-__traits(compiles)
-
-if constexpr(requires (T t) { t.foo(); }) {
-}
-```
-
----
-
-optional interfaces
-
-decorators
-
----
-
-## Error Novel
-
----
-
-## Requires clause
-
----
-
-## Named Concepts
-
-A collection of requirements on a type
-
-> "If you like it then you should have put a name on it", Beyonce rule
-
-```cpp
-template<class T>
-concept Fooable =           // named concept
-  requires(T t) {           // collection of
-    typename T::type;       // requirement
-    { t.foo() } -> void;    // requirement
-    requires Movable<T>;    // requirement
-  };
-```
-
-
----
-
-## Concepts - By Example
-
-[Everything Cpp - C++ Concepts](https://www.youtube.com/watch?v=xsSYPD0v5Mg)
-
-```cpp
-struct tcp_socket { void send(std::string_view); };
-struct udp_socket { void send(std::string_view); };
-```
-
----
-
-## Concepts - By Example - Naive
-
-```cpp
-template<class T>
-void forward(T& socket, std::string_view data) {
-  if (data) {
-    socket.send(data);
-  }
-}
-```
-
-```cpp
-int main() {
-  tcp_socket tcp{}; forward(tcp, "tcp data");
-  udp_socket udp{}; forward(udp, "udp data");
-}
-```
-
----
-
-## Concepts - By Example - Problem
-
-```cpp
-struct file { void write(std::string_view); };
-```
-
-```cpp
-int main() {
-  file f{}; 
-  forward(f, "file data"); // Compile ERROR
-                           // file has no member 'send'
-}
-```
-
-* Notes
-  > Error Novel
-  > leaks to the library code
-  > it might be deep in in the intstanitaion 
-
----
-
-## Concepts - By Example  - SFINAE
-
-SFINAE + enable_if
-
-has_send
-
----
-
-## Concepts - By Example - Requires
-
-```cpp
-template<class TSocket>
-  // YES, requires requires!
-  requires requires(T socket, std::string_view data) { 
-    socket.send(data); 
-  }
-void forward(T& socket, std::string_view data) {
-  socket.send(data);
-}
-```
-
-```cpp
-int main() {
-  file f{}; 
-  forward(f, "file data"); // Compile ERROR
-                           // constraint is not satisfied
-                           // t.send
-}
-```
-
-* Notes
-  * imaginary Socket may not be copyable
-  * a requires-claused followed by a requires expression
-  * Note, noexcept(noexcept)
-
----
-
-## Concepts - By Example - Overloading
-
-```cpp
-template<class TSocket>
-  requires requires(T socket, std::string_view data) { 
-    socket.write(data); 
-  }
-void forward(T& socket, std::string_view data) {
-  socket.write(data);
-}
-```
-
----
-
-## Concepts - By Example - Named concepts
-
-```cpp
-template<class TSocket> concept Socket = 
-  requires(TSocket socket, std:string_view data) {
-    { t.send(data); } -> void;
-};
-```
-
-Notes
-* varaible template
-* no bool required as in the previous designs
-* no function
-
----
-
-syntax concept id in the template parameter list
-instead of class/typename -> concept
-template<Socket>
-  
-terse/natural syntax
-
-not part of the standard
-forward(Socket&);
-* Socket -> placeholder -> tempplate<class T> requires Socket
-  
-auto is a different placehoder -> weakest concept
-
-however
-
-template<auto> is something else
-
-Notes:
-	* forward(auto, auto);
-	* forward(Socket, Socket);
-
-the same concepts requires the same types!!!
-but it's not true for auto, auto
-
----
-
-lambda
-lambda plush <T>
-concepts emulation
-
-
-```cpp
-constexpr auto expr = [] {
-  if constexpr(requires(T t) { t.foo(); }) {
-    return t.foo();
-  }
-};
-```
-
-FIle/Socket
-
-[Everything Cpp - C++ Concepts](https://www.youtube.com/watch?v=xsSYPD0v5Mg)
-
----
-
-## Concepts - Requirements
-
-```cpp
-template<class T> concept Fooable = requires(T) {
-  typename T::value_type; // type requirement
-};
-```
-
-```cpp
-template<class T> concept Fooable = requires(T t) {
-  t[typename T::value_type{}]; // simple requirement
-};
-```
-
-```cpp
-template<class T> concept Fooable = requires(T t) {
-  { t.empty() } -> bool; // compound requirement
-};
-```
-
-```cpp
-template<class T> concept Fooable = requires(T t) {
-  requires std::is_integral_v<typename T::value_type>;
-};
-```
-
----
-
-
-```cpp
-template<class T>
-concept Fooable = requires(T t) {
-};
-```
-
----
-
-## Concepts
-
-```cpp
-auto fooable = Foo{}; // wekeast concept
-```
-
-# TODO template class constructor deduction
-
-std::vector<int> v = {1, 2, 3};
-auto v = make_vector(1, 2, 3); // auto - weakest concept
-std::vector v = {1, 2, 3}; // C++17
-Container v = {1, 2, 3}; // Concepts
-  
-
-```cpp
-Fooable fooable = Foo{};
-```
-
-```cpp
-Pointer fooable = Foo{};
-```
-
----
-
-## Concepts
-
-```cpp
-template<class T>
-```
-
-```cpp
-template<Fooable T>
-```
-
-```cpp
-template<auto T> // Error!
-```
-
----
-
-```cpp
-void foo() requires requires(T t) { t.foo(); } 
-```
-
-
-lambda syntax []<class T>
-vector<auto> placeholders
-
----
 
 ## Concepts and Metaclasses - https://wg21.link/p0707r0
 
@@ -623,6 +659,22 @@ Fooable Foo { };  // static_assert(Fooable<Foo>);
 ```
 
 ---
+
+concepts drive design
+is copyable printable etc, can't express that with virutal functions
+> Optional interfaces
+
+```cpp
+template<class T>
+class istream {
+public:
+  virtual ~istream() noexcept = default;
+  virtual void write(T) = 0;
+  virtual T read() = 0;
+  // virtual void read_complete() = 0; // [optional]
+};
+```
+
 
 type erasure with mocking
 mocking
@@ -867,14 +919,43 @@ public:
 
 ---
 
+template<auto> is something else
+
+Notes:
+	* forward(auto, auto);
+	* forward(Socket, Socket);
+
+the same concepts requires the same types!!!
+but it's not true for auto, auto
+
+
+Future
+
+```cpp
+void foo() requires true {}
+void bar() requires false {}
+```
+
+```cpp
+int main() {
+  foo(); // Okay
+  bar(); // Error: constraints not satisfied
+}
+```
+
+> Notes: But C++20 requires-clauses on non-templated functions are ill-formed 
+
+---
+
+---
+
 
 ## Questions?
 
-|         |  |
+
+|   | ![23%](images/bjarne_concepts.jpg)  |
 | - | - |
-| **Concepts**    | https://wg21.link/P0734R0  | 
-| **Virtual Concepts**    |  https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf | 
-| **Metaclasses**    | https://wg21.link/p0707r0  | 
-| **[Boost].DI**  | https://github.com/boost-experimental/di  |
+| **Concepts**         | https://wg21.link/P0734R0  | 
+| **Virtual Concepts** |  https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf | 
 
 <!-- footer:  kris@jusiak.net | @krisjusiak | linkedin.com/in/kris-jusiak -->
