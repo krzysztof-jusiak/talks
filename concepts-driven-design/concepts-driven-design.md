@@ -812,6 +812,15 @@ concept Fooable = requires() {
 };
 ```
 
+> Note: Can be generated with metaclasses https://wg21.link/p0707r0
+
+```cpp
+template<class T>
+type_erased Foo {
+  auto foo(const T&) -> void;
+};
+```
+
 ---
 
 # Virtual concepts
