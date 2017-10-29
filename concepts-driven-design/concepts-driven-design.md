@@ -8,7 +8,7 @@ Meeting C++ 2017
 
 <hr />
 
-##### Kris Jusiak, Quantlab
+##### Kris Jusiak, Quantlab Financial
 
 ---
 
@@ -19,18 +19,18 @@ Meeting C++ 2017
 <font size="5">
   
 * Concepts
-  * Motivation
-  * History
+  * Motivation / History
 * Type constraints (C++20)
   * Requirements
     * Design by introspection
   * Named `concepts`
   	* Optional interfaces
 * Concepts emulation (C++17)
-* Concepts driven design
-  * Static dispatch based on concepts (`CRTP`)
-  * Dynamic dispatch (`type erasure`) based on concepts
-  * Mocking concepts for testing
+* Virtual concepts (C++2?)
+* Concepts based design
+  * Static polymorphism (`policy design`)
+  * Dynamic polymorphism (`type erasure`) 
+  * Mocking (`automatic mocks injection`)
 * Future of concepts (C++2X)
 
 </font>
@@ -191,9 +191,9 @@ constexpr auto foo(T&& x)
 
 # Design by introspection
 
-> Andrei Alexandrescu
+[![100%](images/design_by_introspection.png)](https://www.youtube.com/watch?v=29h6jGtZD-U)
 
-[![design_by_introspection](images/design_by_introspection.png)](https://www.youtube.com/watch?v=29h6jGtZD-U)
+https://www.youtube.com/watch?v=29h6jGtZD-U
 
 ---
 
@@ -511,13 +511,13 @@ template<class T> concept Fooable = true;
 ```cpp
 // auto - weakest placeholder
 auto    foo1 = Foo<int>{};
-
 // C++17 - Constructor Template Argument Deduction
 Foo     foo2 = Foo<int>{};
-
 // C++20 - placeholder
 Fooable foo3 = Foo<int>{};
 ```
+
+> Note: Placeholders can be used for functions `void f(auto);`
 
 ---
 
@@ -527,6 +527,8 @@ Fooable foo3 = Foo<int>{};
 ![150%](images/std_requirements.png)
 
 </center>
+
+> Note: More concepts to come with Ranges TS
 
 ---
 
@@ -538,11 +540,16 @@ Fooable foo3 = Foo<int>{};
 
 </center>
 
-```
-template<class T>
+```cpp
+template<class T> // C++20 concepts
 concept EqualityComparable = requires(T a, T b) {
   { a == b } -> bool;
 };
+```
+
+```haskell
+class EqualityComparable a where // Haskell typeclasses
+  (==) :: a -> a -> Bool
 ```
 
 ---
@@ -745,32 +752,20 @@ void forward(T& t, std::string_view data) {
 
 ---
 
-# Concepts driven design
+# Virtual concepts
 
 ---
 
-# Concepts driven design
+# Virtual concepts
 
-> Goals
-
-| | |
-|-|-|
-| Expressiveness | Type constraints for better error messages (Design by Introspection) |
-| Loosely coupeled design | Inject all the things! (Policy Design) |
-| Performance | Static dispatch by default <br />(based on concepts) |
-| Flexiblity | Dynamic dispatch using type erasure (based on the same concepts) |
-| Testability | Automatic mocks injection <br />(based on the same concepts) |
+[![100%](images/runtime_polymorphism.png)](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
+https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil
 
 ---
 
-# Concepts driven design
-> Static dispatch based on concepts
+# Virtual concepts
 
----
-
-# Concepts driven design
-> Dynamic dispatch (`type erasure`) based on concepts
-
+> `type erasure` based on concepts
 ```cpp
 template<class T> concept Any = requires(T) {
   requires DefaultConstructible<T> and
@@ -785,18 +780,15 @@ template<class T> concept Any = requires(T) {
 ```cpp
 std::vector v1;
  // error:  class template argument deduction failed
-  
 std::vector<auto> v2; 
  // error: couldn't deduce template parameter
- 
 std::vector<Any> v3; 
  // error: couldn't deduce template parameter
 ```
 
 ---
 
-# Concepts driven design
-> `Virtual concepts`
+# Virtual concepts
 
 ```cpp
 std::vector<virtual Any> v;    // Okay (type erasure)
@@ -804,14 +796,13 @@ v.push_back("Meeting C++"sv);  // Okay
 v.push_back(2017);             // Okay
 ```
 
-[Virtual concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
+[Dynamic Generic Programming with Virtual Concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
 
 > Note: Virtual concepts aren't part of C++20
 
 ---
 
-# Concepts driven design
-> Virtual concepts
+# Virtual concepts
 
 > Signature requirement
 ```cpp
@@ -823,8 +814,8 @@ concept Fooable = requires() {
 
 ---
 
-# Concepts driven design
-> Virtual concepts (dynamic dispatch based on concepts)
+# Virtual concepts
+> Dynamic polymorphism
 
 ```cpp
 template<class T> concept Drawable = 
@@ -839,8 +830,7 @@ struct Square {
 struct Circle {
   void draw(std::ostream& out) { out << "Circle"; } };
 
-template<Drawable T>
-void f(const& T d) { d.draw(std::cout); }
+void f(virtual Drawable& d) { d.draw(std::cout); }
 
 int main() {
   f(Square{}); // prints Square
@@ -850,277 +840,248 @@ int main() {
 
 ---
 
-## Type constraints - [VC](https://github.com/boost-experimental/vc)
+# Concepts based design
 
-#### Non-templated constraints (optional interfaces)
+---
+
+# Concepts based design
+
+> Goals
+
+| | |
+|-|-|
+| Expressiveness | Type constraints for better error messages (Design by Introspection) |
+| Loosely coupeled design | Inject all the things! (Policy Design) |
+| Performance | Static dispatch by default <br />(based on concepts) |
+| Flexiblity | Dynamic dispatch using type erasure (based on the same concepts) |
+| Testability | Automatic mocks injection <br />(based on the same concepts) |
+
+---
+
+# Concepts based design
+> Static polymorphism (`policy design`)
 
 ```cpp
-struct Readable {               | // Readable Implementation
- template<class T>              |
-  auto operator()() const {     | struct Reader { // no inheritance
-    MoveConstructible<T> &&    <|> Reader(Reader&&) = default; // âœ”
-    MoveAssignable<T> &&       <|> Reader& operator=(Reader&&) = default; // âœ”
-    Callable<T, int()>($(read))<|> int read(); // âœ”
-  };                     ^      | };
-};               ________/      |
-                /               | static_assert(
-  /* Lambda expression */       |  is_satisfied_by<Readable, Reader>{}
-  /* exposing a read() call */  | );
-```
-<!-- .element: style="margin-left:0%; width:100%" -->
-
-----
-
-## Inject all the things! - [[Boost].DI](https://github.com/boost-experimental/vc)
-
-#### Policy design
-```cpp
-template<class T = class TException> // `TException` is satisifed by any type
-struct ThrowExceptionPolicy {        //  It's like auto in Concepts-lite
-  void onError(std::string_view msg) { throw T{msg}; }
+template<class T>
+concept ErrorPolicy =
+  requires(T t, std::string_view msg) {
+    requires DefaultConstructible<T>;
+    { t.onError(msg) } -> void;
 };
 ```
-<!-- .element: style="margin-left:0%; width:100%" -->
 
 ```cpp
-template<class TPolicy = class TErrorPolicy>
-class App : TPolicy {
-public:
-  void run() {
-    if (...) { TPolicy::onError("error!"); }
+struct ThrowPolicy {
+  void onError(std::string_view msg) { throw T{msg}; }
+};
+
+struct LogPolicy {
+  void onError(std::string_view msg) { 
+    std::clog << T{msg} << '\n';
   }
 };
 ```
-<!-- .element: style="margin-left:0%; width:100%" -->
+
+---
+
+# Concepts based design
+> Static polymorphism (`policy design`)
+
+```cpp
+template<ErrorPolicy TPolicy = class Policy>
+class App {
+ public: explicit App(TPolicy policy):policy{policy} {}
+  void run() {
+    if (...) { policy.onError("error!"); }
+  }
+ private: TPolicy policy{};
+};
+```
 
 ```cpp
 int main() {
-  const auto injector = di::make_injector(                 // wiring
-   di::bind<class TException>.to<std::runtime_error>(),    // concept->type
-   di::bind<class TErrorPolicy>.to<ThrowExceptionPolicy>() // concept->template
+  const auto injector = di::make_injector(
+    di::bind<class Policy>.to<ThrowPolicy>()
   );
-  di::make<App>(injector).run(); // App is a template!
+  injector.create<App>().run();
 }
 ```
-<!-- .element: style="margin-left:0%; width:100%" -->
 
-----
+https://github.com/boost-experimental/di
 
-## [DI](https://github.com/boost-experimental/vc) - 2-Phase resolving (concepts / ctors) 
+---
+
+# Concepts based design
+> Dynamic polymorphism (`type erasure`) 
+> Virtual concepts (C++2?)
 
 ```cpp
-template<class TReader = Readable, // typename = concept
-         class TPrinter = Printable>
 class App {
-  TReader reader;
-  TPrinter printer;
-
-public:
-  App(TReader reader, TPrinter printer) // constructor
-   : reader(reader), printer(printer)   // parameters deduction
-  { }
-
-  void run() { printer.print(reader.read()); }
+public: 
+ explicit App(virtual ErrorPolicy policy) 
+  : policy{policy}
+ { }
+ 
+  void run() {
+    if (...) { policy.onError("error!"); }
+  }
+  
+private: 
+ virtual Policy policy{};
 };
 ```
 
-#### Concepts based injection (compile time wiring)
+---
+
+# Concepts based design
+> Dynamic polymorphism (`type erasure`) 
+> Virtual concepts emulation (C++17)
+
+```cpp
+template<class T>
+constexpr auto ErrorPolicy = 
+  DefaultConstructible<T> and
+  Callable<void (T::*)()>( $(onError) ); // reflection
+```
+
+```cpp
+class App {
+ public: explicit App(any<ErrorPolicy> policy)
+  : policy{policy} {}
+ void run() {
+   if (...) { policy.onError("error!"); }
+ }
+ private: any<Policy> policy{};
+};
+```
+
+https://github.com/boost-experimental/vc
+
+---
+
+# Concepts based design
+> Dynamic polymorphism (`type erasure`) 
+> Virtual concepts emulation (C++17)
+
 ```cpp
 int main() {
- const auto injector = di::make_injector(
-   di::bind<Readable>.to<FileReader>(),     // concept -> type
-   di::bind<Printable>.to<ConsolePrinter>() // concepts checking
- );                                         // at wiring!
- di::make<App>(injector).run(); // preallocates shared dependencies
-```
-
-----
-
-## type_erasure for dynamic dispatch - [VC](https://github.com/boost-experimental/vc)
-
-```cpp
-template<class TReader = Readable> // type = concept
-class App {
-  TReader reader;
-  any<Printable> printer; // type erasure based on the same concept
-                          // as concepts example
-public:
-  App(TReader reader, any<Printable> printer) // 100% value semantics
-    : reader(reader), printer(printer)
-  { }
-
-  void run() { printer.print(reader.read()); }
-};
-```
-
-#### Dynamic bindings using virtual concepts
-```cpp
-const auto config = [](std::string_view printer) {
-  return di::make_injector(
-    di::bind<Readable>.to<FileReader>(),
-    di::bind<Printable>([&](auto&& _) {
-      return printer == "QT" ?
-        _.to<QtPrinter>() : _.to<ConsolePrinter>();
-    })
+  const auto injector = di::make_injector(
+    di::bind<class Policy>.to<LogPolicy>()
   );
-};
+  injector.create<App>().run();
+}
 ```
 
-----
+> Note: Static, dynamic polimorhpism wiring uses the same syntax
 
-## Automatic / concepts based / mocks injection - [GUnit.GMock](https://github.com/cpp-testing/gunit)
+---
+
+# Concepts based design
+> Mocking (`automatic mocks injection`)
 
 ```cpp
 "should print read text"_test = [] {
- constexpr auto value = 42;
- auto [app, mocks] = testing::make<App>(); // creates System Under Test
-                                           // and Mocks!
+ auto [app, mocks] = testing::make<App>();
 
- InSequence sequence;
- {
-   EXPECT_CALL(mocks<Readable>(), read()).WillOnce(Return(value));
-   EXPECT_CALL(mocks<Printable>(), print(value));
- }
+ EXPECT_CALL(mocks<ErrorPolicy>, onError("error!"));
 
  app.run();
 };
 ```
-#### It works with concepts/type_erasure and interfaces!
 
+> Note: `make` creates mocks based on concepts requirements (reflection)
 
----
-
-## Injecting named concepts - Concepts base design
-
-```cpp
-template<class TFoo = Fooable, class TBar = Barable>
-class Example { 
-public:
-  constexpr Example(TFoo, TBar);
-};
-```
-
-[Boost].DI
-```cpp
-constexpr auto injector = di::make_injector(
-  di::bind<Fooable>.to<Foo>(),
-  di::bind<Barable>.to<Bar>()
-);
-```
-
-```cpp
-auto example = injector.create<Example>();
-```
+https://github.com/cpp-testing/gunit
 
 ---
 
-<!-- page_number: false -->
-
-## Summary
-
-* Simplify enable_if
-* can be emulated in C++14
+# Future of concepts (C++2X)
 
 ---
 
-```cpp
-template <class T>
-concept Readable =
-  CopyConstructible<T> and
-  CopyAssignable<T> and
-  requires(T t) {
-    { t.read() -> int }
-  }
-};
-```
+# Future of concepts (C++2X)
+
+> Terse template syntax
 
 ```cpp
-template <class T>
-constexpr auto Readable =
-  CopyConstructible<T> and
-  CopyAssignable<T> and
-  Callable<T, int()>($(read)); // expose read for mocking!
+void forward(Socket& socket, std::string_view data);
 ```
+
+> same as...
+
+```cpp
+template<Socket T>
+void forward(T& socket, std::string_view data);
+```
+
+> same as...
+
+```cpp
+template<class T> requires Socket<T>
+void forward(T& socket, std::string_view data);
+```
+
+> Note: Problem `f(auto, auto) vs f(Socket, Socket)`
 
 ---
 
+# Future of concepts (C++2X)
+
+> Template-introduction syntax
+
 ```cpp
-Callable<T, int()>($(read)) --> Constraint
-          \_  \_____   \___-> name
-            \       \
-$(name) [](auto t, auto r, auto... args) { // expression
- struct { // inherit from
-  auto name(decltype(args)... args) 
-    -> decltype(self.name(args...)) { 
-   // static polymorphism
-   return static_cast<decltype(t) *>(this)
-     -> template call_<name, decltype(r)>(args...);
-  }
- } _; return _; // local struct
-}
+Concept{A, B, C} void f(A a, B b, C c);
 ```
 
----
+or
 
 ```cpp
-template<class... TConstraints>
-class gmock_impl : decltype(std::declval<TConstraints::expression>()(
-                             TConstraints::args...))... (
-public:
- gmock_impl() = default;
+template<Concept [A, B, C]> void f(A a, B b, C c);
+```
 
- template <class TName, class R, class... TArgs>
- decltype(auto) call_(TArgs &&... args); // calls mocked impl...
-};
+> same as...
+
+```cpp
+template<class A, class B, class C>
+void f(A a, B b, C c) requires Concept<A, B, C>;
 ```
 
 ---
 
 # Future of concepts (C++2X)
 
-```cpp
-void foo() requires true {}
-void bar() requires false {}
-```
-
-```cpp
-int main() {
-  foo(); // Okay
-  bar(); // Error: constraints not satisfied
-}
-```
-
-> Note: But C++20 requires-clauses on non-templated functions are ill-formed 
-
-## Concepts and Metaclasses - https://wg21.link/p0707r0
+> Metaclasses syntax
 
 ```cpp
 template<class T>
 Fooable Foo { };  // static_assert(Fooable<Foo>);
 ```
-template<auto> is something else
 
-Notes:
-	* forward(auto, auto);
-	* forward(Socket, Socket);
+https://wg21.link/p0707r0
 
-the same concepts requires the same types!!!
-but it's not true for auto, auto
+---
 
-terse syntax
+<!-- page_number: false -->
 
-##### Haskell typeclasses
+# Summary
 
-```haskell
-class EqualityComparable a where
-  (==) :: a -> a -> Bool
+> Provides better diagnostics
+
+> Simplify usage of SFINAE/enable_if
+> * Introspection by design
+
+> Can be emulated in C++14/C++17
+> * `variable templates`/`constexpr`/`constexpr if`
+
+> C++20 is just the beginning
+> * `syntax improvements`/`requirements improvements`
+> * `metaclasses`/`static reflection`
 
 ---
 
 ## Questions?
 
-
-|   | ![23%](images/bjarne_concepts.jpg)  |
+|   | ![40%](images/bjarne_concepts.jpg)  |
 | - | - |
 | **Concepts**         | https://wg21.link/P0734R0  | 
 | **Virtual Concepts** |  https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf | 
