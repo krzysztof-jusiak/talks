@@ -228,8 +228,8 @@ https://godbolt.org/g/wpLXzV
 ```cpp
 template<class T>
 constexpr auto foo(T x) {
-  if constexpr(requires(T t) { t.bar; }) {
-    return x.bar;
+  if constexpr(requires(T t) { t.bar; }) { // compile-
+    return x.bar;                          // time if
   } else {
     return 0;
   }
@@ -426,8 +426,8 @@ void forward(T& t, std::string_view data) {
 constexpr auto forward = 
   [](auto& t, std::string_view data) {
     using type = std::decay_t<decltype(t)>>;
-    if constexpr(Socket<type>) { t.send(data); } else 
-    if constexpr(File<type>) { t.write(data); }
+    if constexpr(Socket<type>) { t.send(data);  } else 
+    if constexpr(File<type>)   { t.write(data); }
   };
 ```
 
@@ -435,9 +435,9 @@ constexpr auto forward =
 
 ```cpp
 constexpr auto forward = 
-  []<class T>(T& t, std::string_view data) { // class T
-    if constexpr(Socket<T>) { t.send(data); } else 
-    if constexpr(File<T>) { t.write(data); }
+  []<class T>(T& t, std::string_view data) {
+    if constexpr(Socket<T>) { t.send(data);  } else 
+    if constexpr(File<T>)   { t.write(data); }
   };
 ```
 
@@ -673,14 +673,37 @@ struct Bar {};
 
 ```cpp
 static_assert(
-  requires<Foo>([](auto&& t) ->
-    decltype(t.foo()) {})
+  requires<Foo>([](auto&& t) -> decltype(t.foo()) {})
 );
 
 static_assert(
-  not requires<Bar>([](auto&& t) ->
-    decltype(t.foo()) {})
+  !requires<Bar>([](auto&& t) -> decltype(t.foo()) {})
 );
+```
+
+---
+
+# Concepts emulation (C++17)
+
+> Design by introspection - C++17
+
+```cpp
+template<class T> constexpr auto foo(T x) {
+  if constexpr(requires<T>( // compile-time if
+   [](auto&& t) -> decltype(t.bar) {})) {
+    return x.bar; 
+   } else { 
+    return 0; 
+  }
+}
+```
+
+> Note: Workaround for expression is not a constant expression
+```cpp
+ if constexpr(
+   auto bar = [](auto&& t) -> decltype(t.bar) {}; 
+   requires<T>(bar)
+ )
 ```
 
 ---
@@ -795,6 +818,8 @@ std::vector<virtual Any> v;    // Okay (type erasure)
 v.push_back("Meeting C++"sv);  // Okay
 v.push_back(2017);             // Okay
 ```
+
+> 100% value semantics / Stack based / Small buffer optimization (SBO)
 
 [Dynamic Generic Programming with Virtual Concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
 
@@ -1016,7 +1041,7 @@ int main() {
 "should print read text"_test = [] {
  auto [app, mocks] = testing::make<App>();
 
- EXPECT_CALL(mocks<ErrorPolicy>, onError("error!"));
+ EXPECT_CALL(mocks<ErrorPolicy>, (onError)("error!"));
 
  app.run();
 };
