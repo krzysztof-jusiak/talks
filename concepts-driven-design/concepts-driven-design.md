@@ -812,7 +812,7 @@ concept Fooable = requires() {
 };
 ```
 
-> Note: Can be generated with metaclasses https://wg21.link/p0707r0
+> Note: Can be generated with metaclasses https://wg21.link/p0707r0 (C++2?)
 
 ```cpp
 template<class T>
@@ -950,19 +950,43 @@ private:
 template<class T>
 constexpr auto ErrorPolicy = 
   DefaultConstructible<T> and
-  Callable<void (T::*)()>( $(onError) ); // reflection
+  Callable<void(T::*)()>( $(onError) ); // reflection
 ```
 
 ```cpp
 class App {
- public: explicit App(any<ErrorPolicy> policy)
-  : policy{policy} {}
+public: 
+ explicit App(any<ErrorPolicy> policy):policy{policy}{}
  void run() {
    if (...) { policy.onError("error!"); }
  }
- private: any<Policy> policy{};
+private: 
+  any<Policy> policy{};
 };
 ```
+
+---
+
+# Concepts based design
+> Dynamic polymorphism (`type erasure`) 
+> Virtual concepts emulation (C++17)
+
+```cpp
+Callable<void(T::*)()>( $(onError)) ]
+          \_  \____ \______   \___-> name
+            \      \       \
+$(name) [](auto r, auto t, auto... args) {
+ struct { // inherit from
+  auto name(decltype(args)... args)  -> 
+    decltype(self.name(args...)){} {
+   // static polymorphism
+   return static_cast<decltype(t) *>(this)->template 
+     call<name, typename decltype(r)::type>(args...);
+  }
+ } _; return _;
+}
+```
+
 
 https://github.com/boost-experimental/vc
 
