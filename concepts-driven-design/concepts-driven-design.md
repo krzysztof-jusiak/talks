@@ -456,9 +456,7 @@ Example -> `Stream<T>`
 ---
 
 # `Named concepts`
-> Optional interfaces
-
-> Virtual functions (no expressive enough)
+> Optional interfaces : Virtual functions (not expressive enough)
 ```cpp
 /**
  * Implementation requires to be printable and 
@@ -470,30 +468,57 @@ public:
   virtual ~istream() noexcept = default;
   virtual void write(T) = 0;
   virtual T read() = 0;
-  // virtual void read_complete() = 0; // [optional]
+  
+  // ??? [[optional]] ???
+  virtual void read_complete() = 0;
 };
 ```
 
 ---
 
 # `Named concepts`
-> Optional interfaces
+> Optional interfaces : Concepts
 
-> Concepts
 ```cpp
 template<class T, class TData>
 concept Streamable =
   CopyConstructible<T> and 
-  requires(T t, std::cout& out) { out << t; } and
-  requires(T t, TData data) { t.write(data); } and (
-    requires(T t) { { t.read(data) } -> TData } and
-    requires(T t) { { t.read_complete(); } }
-  ) or (
-    requires(T t) { { t.read(data) } -> TData }
-  )
+  requires(T t, std::cout& out, TData& data) {
+    out << t;           	// Printable
+    t.write(data);      	// Writable
+    { t.read() } -> TData  	// Readable
+  } or requires(T t, std::cout& out, TData& data) {
+    out << t;           	// Printable
+    t.write(data);      	// Writable
+    { t.read() } -> TData  	// Readable 1/2
+    t.read_complete();  	// Readable 2/2
+  }
 };
 ```
 
+---
+
+# `Named concepts`
+> Optional interfaces : Usage
+```cpp
+using data_t = std::array<std::byte, 1024>;
+```
+```cpp
+class FileStream {
+public:
+  void write(data_t&);
+  data_t read();
+  void read_complete();
+};
+```
+```cpp
+int main() {
+  Streamable<data_t> stream = FileStream{};
+  const auto data = stream.read();
+  ...
+  stream.read_complete();
+}
+```
 ---
 
 # Placeholders
