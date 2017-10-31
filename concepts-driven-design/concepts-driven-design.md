@@ -1146,19 +1146,21 @@ https://wg21.link/p0707r0
 
 <!-- page_number: false -->
 
-# Summary
+# Concepts: Summary
 
 > Provides better diagnostics
 
-> Simplify usage of SFINAE/enable_if
-> * Introspection by design
+> Simplify usage of SFINAE / enable_if
+> * Introspection by design / Optional interfaces
+
+> Allows better design
 
 > Can be emulated in C++14/C++17
 > * `variable templates`/`constexpr`/`constexpr if`
 
 > C++20 is just the beginning
 > * `syntax improvements`/`requirements improvements`
-> * `metaclasses`/`static reflection`
+> * `virtual concepts`/`metaclasses`/`static reflection`
 
 ---
 
