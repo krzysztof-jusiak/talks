@@ -1025,8 +1025,8 @@ private:
 Callable<void(T::*)()>( $(onError)) ]
           \_  \____ \______   \___-> name
             \      \       \
-$(name) [](auto r, auto t, auto... args) {
- struct { // inherit from
+$(name) [](auto&& r, auto&& t, auto&&... args) {
+ struct { // base class
   auto name(decltype(args)... args)  -> 
     decltype(self.name(args...)){} {
    // static polymorphism
