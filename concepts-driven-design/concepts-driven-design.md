@@ -26,10 +26,10 @@ Meeting C++ 2017
   * Named `concepts`
   	* Optional interfaces
 * Concepts emulation (C++17)
-* Virtual concepts (C++2?)
 * Concepts based design
   * Static polymorphism (`policy design`)
   * Dynamic polymorphism (`type erasure`) 
+    * Virtual concepts (C++2?)
   * Mocking (`automatic mocks injection`)
 * Future of concepts (C++2X)
 
@@ -447,10 +447,10 @@ constexpr auto forward =
 > Optional interfaces
 
 Example -> `Stream<T>`
-* Callable member function `write which takes type T
+* Copy constructible
+* Callable member function `write` which takes type T
 * Callable member function`read` which returns type T
 * Callable **optional** member function `read_complete`
-* Copy constructible
 * Printable using `std::cout`
 
 ---
@@ -800,105 +800,6 @@ void forward(T& t, std::string_view data) {
 
 ---
 
-# Virtual concepts
-
----
-
-# Virtual concepts
-
-[![100%](images/runtime_polymorphism.png)](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
-https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil
-
----
-
-# Virtual concepts
-
-> `type erasure` based on concepts
-```cpp
-template<class T> concept Any = requires(T) {
-  requires DefaultConstructible<T> and
-    CopyConstructible<T> and
-    NoThrowMoveConstructible<T> and
-    CopyAssignable<T> and
-    NoThrowMoveAssignable<T> and
-    Destructible<T>;
-};
-```
-
-```cpp
-std::vector v1;
- // error:  class template argument deduction failed
-std::vector<auto> v2; 
- // error: couldn't deduce template parameter
-std::vector<Any> v3; 
- // error: couldn't deduce template parameter
-```
-
----
-
-# Virtual concepts
-
-```cpp
-std::vector<virtual Any> v;    // Okay (type erasure)
-v.push_back("Meeting C++"sv);  // Okay
-v.push_back(2017);             // Okay
-```
-
-> 100% value semantics / Stack based / Small buffer optimization (SBO)
-
-[Dynamic Generic Programming with Virtual Concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
-
-> Note: Virtual concepts aren't part of C++20
-
----
-
-# Virtual concepts
-
-> Signature requirement
-```cpp
-template<class T>
-concept Fooable = requires() {
-  auto foo(const T&) -> void; // NOT C++20!
-};
-```
-
-> Note: Can be generated with metaclasses https://wg21.link/p0707r0 (C++2?)
-
-```cpp
-template<class T>
-type_erased Foo {
-  auto foo(const T&) -> void;
-};
-```
-
----
-
-# Virtual concepts
-> Dynamic polymorphism
-
-```cpp
-template<class T> concept Drawable = 
-  requires Any<T> and 
-  requires(T t) { auto draw() -> void };
-```
-  
-```cpp
-struct Square {
-  void draw(std::ostream& out) { out << "Square"; } };
-
-struct Circle {
-  void draw(std::ostream& out) { out << "Circle"; } };
-
-void f(virtual Drawable& d) { d.draw(std::cout); }
-
-int main() {
-  f(Square{}); // prints Square
-  f(Circle{}); // prints Circle
-}
-```
-
----
-
 # Concepts based design
 
 ---
@@ -914,6 +815,32 @@ int main() {
 | Performance | Static dispatch by default <br />(based on concepts) |
 | Flexiblity | Dynamic dispatch using type erasure (based on the same concepts) |
 | Testability | Automatic mocks injection <br />(based on the same concepts) |
+
+---
+
+# Concepts based design
+> Static polymorphism
+
+```cpp
+template<class T> concept Drawable =  requires
+ (T t, std::ostream& out) { { t.draw(out) } -> void; };
+```
+  
+```cpp
+struct Square {
+  void draw(std::ostream& out) { out << "Square"; } };
+
+struct Circle {
+  void draw(std::ostream& out) { out << "Circle"; } };
+
+template<Drawable T>
+void f(T& d) { d.draw(std::cout); }
+
+int main() {
+  f(Square{}); // prints Square
+  f(Circle{}); // prints Circle
+}
+```
 
 ---
 
@@ -971,8 +898,103 @@ https://github.com/boost-experimental/di
 ---
 
 # Concepts based design
-> Dynamic polymorphism (`type erasure`) 
+> Dynamic polymorphism
+
+[![100%](images/runtime_polymorphism.png)](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
+[Inheritance-Is-The-Base-Class-of-Evil](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
+
+---
+
+# Concepts based design
+> Concepts based polymorphism
+```cpp
+template<class T> concept Any = requires(T) {
+  requires DefaultConstructible<T> and
+    CopyConstructible<T> and
+    NoThrowMoveConstructible<T> and
+    CopyAssignable<T> and
+    NoThrowMoveAssignable<T> and
+    Destructible<T>;
+};
+```
+
+```cpp
+std::vector v1;
+ // error:  class template argument deduction failed
+std::vector<auto> v2; 
+ // error: couldn't deduce template parameter
+std::vector<Any> v3; 
+ // error: couldn't deduce template parameter
+```
+
+---
+
+# Concepts based design
 > Virtual concepts (C++2?)
+
+```cpp
+std::vector<virtual Any> v;    // Okay (type erasure)
+v.push_back("Meeting C++"sv);  // Okay
+v.push_back(2017);             // Okay
+```
+
+> 100% value semantics / Stack based / Small buffer optimization (SBO)
+
+[Dynamic Generic Programming with Virtual Concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
+
+> Note: Virtual concepts aren't part of C++20
+
+---
+
+# Concepts based design
+> Virtual concepts (C++2?)
+
+> Signature requirement
+```cpp
+template<class T>
+concept Fooable = requires() {
+  auto T::foo() -> void; // NOT C++20!
+};
+```
+
+> Note: Can be generated with metaclasses https://wg21.link/p0707r0 (C++2?)
+
+```cpp
+template<class T>
+type_erased Foo {
+  auto foo() -> void;
+};
+```
+
+---
+
+# Concepts based design
+> Virtual concepts emulation (C++17)
+
+```cpp
+template<class T> concept Drawable =
+  requires() { auto T::draw(std::ostream&) -> void; };
+```
+  
+```cpp
+struct Square {
+  void draw(std::ostream& out) { out << "Square"; } };
+
+struct Circle {
+  void draw(std::ostream& out) { out << "Circle"; } };
+
+void f(virtual Drawable& d) { d.draw(std::cout); }
+
+int main() {
+  f(Square{}); // prints Square
+  f(Circle{}); // prints Circle
+}
+```
+
+---
+
+# Concepts based design
+> Virtual concepts (C++2?) (`policy design`)
 
 ```cpp
 class App {
@@ -986,46 +1008,46 @@ public:
   }
   
 private: 
- virtual Policy policy{};
+ virtual ErrorPolicy policy{};
 };
 ```
 
 ---
 
 # Concepts based design
-> Dynamic polymorphism (`type erasure`) 
 > Virtual concepts emulation (C++17)
 
 ```cpp
-template<class T>
-constexpr auto ErrorPolicy = 
-  DefaultConstructible<T> and
-  Callable<void(T::*)()>( $(onError) ); // reflection
+template<class T> concept Drawable =
+  // exposed by reflection
+  Callable<void(T::*)(std::ostream&)>( $((draw)) );
 ```
-
+  
 ```cpp
-class App {
-public: 
- explicit App(any<ErrorPolicy> policy):policy{policy}{}
- void run() {
-   if (...) { policy.onError("error!"); }
- }
-private: 
-  any<Policy> policy{};
-};
+struct Square {
+  void draw(std::ostream& out) { out << "Square"; } };
+
+struct Circle {
+  void draw(std::ostream& out) { out << "Circle"; } };
+
+void f(any<$(Drawable)>& d) { d.draw(std::cout); }
+
+int main() {
+  f(Square{}); // prints Square
+  f(Circle{}); // prints Circle
+}
 ```
 
 ---
 
 # Concepts based design
-> Dynamic polymorphism (`type erasure`) 
 > Virtual concepts emulation (C++17)
 
 ```cpp
-Callable<void(T::*)()>( $(onError)) ]
-          \_  \____ \______   \___-> name
-            \      \       \
-$(name) [](auto&& r, auto&& t, auto&&... args) {
+Callable<void(T::*)(std::ostream&)>( $((draw)) ]    
+          \_  \____ \____________        \___-> name
+            \      \             \              
+$((name)) [](auto&& r, auto&& t, auto&&... args) {
  struct { // base class
   auto name(decltype(args)... args)  -> 
     decltype(self.name(args...)){} {
@@ -1037,13 +1059,36 @@ $(name) [](auto&& r, auto&& t, auto&&... args) {
 }
 ```
 
-
 https://github.com/boost-experimental/vc
 
 ---
 
 # Concepts based design
-> Dynamic polymorphism (`type erasure`) 
+> Virtual concepts emulation (C++17)
+
+```cpp
+template<class T>
+constexpr auto ErrorPolicy = 
+  DefaultConstructible<T> and             // exposed by
+  Callable<void(T::*)()>( $((onError)) ); // reflection
+```
+
+```cpp
+class App {
+public: 
+ explicit App(any<$(ErrorPolicy)> policy)
+   : policy{policy} {}
+ void run() {
+   if (...) { policy.onError("error!"); }
+ }
+private: 
+  any<$(ErrorPolicy)> policy{};
+};
+```
+
+---
+
+# Concepts based design
 > Virtual concepts emulation (C++17)
 
 ```cpp
@@ -1055,7 +1100,7 @@ int main() {
 }
 ```
 
-> Note: Static, dynamic polimorhpism wiring uses the same syntax
+> Note: Static, dynamic polimorphism wiring uses the same syntax
 
 ---
 
@@ -1066,7 +1111,7 @@ int main() {
 "should print read text"_test = [] {
  auto [app, mocks] = testing::make<App>();
 
- EXPECT_CALL(mocks<ErrorPolicy>, (onError)("error!"));
+ EXPECT_CALL(mocks<$(ErrorPolicy)>, onError("error!"));
 
  app.run();
 };
