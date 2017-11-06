@@ -27,10 +27,11 @@ Meeting C++ 2017
   	* Optional interfaces
 * Concepts emulation (C++17)
 * Concepts based design
-  * Static polymorphism (`policy design`)
-  * Dynamic polymorphism (`type erasure`) 
+  * Static polymorphism
+  * Dynamic polymorphism
     * Virtual concepts (C++2?)
-  * Mocking (`automatic mocks injection`)
+  * Dependency Injection
+  * Mocking (testing)
 * Future of concepts (C++2X)
 
 </font>
@@ -43,7 +44,7 @@ Concepts, although, merged into C++20 draft, are still a subject for future chan
 
 | Compiler | Version | Notes |
 | - | - | - |
-| GCC | 6.1 | Requires `-fconcepts` flag |
+| GCC | 6.1+ | Requires `-fconcepts` flag |
 | MSVC | VS2017 15.5 | - |
 | Clang | In progress... | It had C++0x concepts support |
 
@@ -845,67 +846,6 @@ int main() {
 ---
 
 # Concepts based design
-> Static polymorphism (`policy design`)
-
-```cpp
-template<class T>
-concept ErrorPolicy =
-  requires(T t, std::string_view msg) {
-    requires DefaultConstructible<T>;
-    { t.onError(msg) } -> void;
-};
-```
-
-```cpp
-struct ThrowPolicy {
-  void onError(std::string_view msg) { throw T{msg}; }
-};
-
-struct LogPolicy {
-  void onError(std::string_view msg) { 
-    std::clog << T{msg} << '\n';
-  }
-};
-```
-
----
-
-# Concepts based design
-> Static polymorphism (`policy design`)
-
-```cpp
-template<ErrorPolicy TPolicy = class Policy>
-class App {
- public: explicit App(TPolicy policy):policy{policy} {}
-  void run() {
-    if (...) { policy.onError("error!"); }
-  }
- private: TPolicy policy{};
-};
-```
-
-```cpp
-int main() {
-  const auto injector = di::make_injector(
-    di::bind<class Policy>.to<ThrowPolicy>()
-  );
-  injector.create<App>().run();
-}
-```
-
-https://github.com/boost-experimental/di
-
----
-
-# Concepts based design
-> Dynamic polymorphism
-
-[![100%](images/runtime_polymorphism.png)](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
-[Inheritance-Is-The-Base-Class-of-Evil](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
-
----
-
-# Concepts based design
 > Concepts based polymorphism
 ```cpp
 template<class T> concept Any = requires(T) {
@@ -930,7 +870,15 @@ std::vector<Any> v3;
 ---
 
 # Concepts based design
-> Virtual concepts (C++2?)
+> Dynamic polymorphism
+
+[![100%](images/runtime_polymorphism.png)](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
+[Inheritance-Is-The-Base-Class-of-Evil](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
+
+---
+
+# Concepts based design
+> Dynamic polymorphism / Virtual concepts (C++2?)
 
 ```cpp
 std::vector<virtual Any> v;    // Okay (type erasure)
@@ -947,7 +895,7 @@ v.push_back(2017);             // Okay
 ---
 
 # Concepts based design
-> Virtual concepts (C++2?)
+> Dynamic polymorphism / Virtual concepts (C++2?)
 
 > Signature requirement
 ```cpp
@@ -969,7 +917,7 @@ type_erased Foo {
 ---
 
 # Concepts based design
-> Virtual concepts emulation (C++17)
+> Dynamic polymorphism / Virtual concepts (C++2?)
 
 ```cpp
 template<class T> concept Drawable =
@@ -994,32 +942,10 @@ int main() {
 ---
 
 # Concepts based design
-> Virtual concepts (C++2?) (`policy design`)
-
-```cpp
-class App {
-public: 
- explicit App(virtual ErrorPolicy policy) 
-  : policy{policy}
- { }
- 
-  void run() {
-    if (...) { policy.onError("error!"); }
-  }
-  
-private: 
- virtual ErrorPolicy policy{};
-};
-```
-
----
-
-# Concepts based design
-> Virtual concepts emulation (C++17)
+> Dynamic polymorphism / Virtual concepts emulation (C++17)
 
 ```cpp
 template<class T> concept Drawable =
-  // exposed by reflection
   Callable<void(T::*)(std::ostream&)>( $((draw)) );
 ```
   
@@ -1059,12 +985,104 @@ $((name)) [](auto&& r, auto&& t, auto&&... args) {
 }
 ```
 
+```cpp
+$(type) decltype(type<...>)
+```
+
 https://github.com/boost-experimental/vc
 
 ---
 
 # Concepts based design
-> Virtual concepts emulation (C++17)
+> Dependency Injection (`policy design`) / `concepts`
+
+```cpp
+template<class T>
+concept ErrorPolicy =
+  requires(T t, std::string_view msg) {
+    requires DefaultConstructible<T>;
+    { t.onError(msg) } -> void;
+};
+```
+
+```cpp
+struct ThrowPolicy {
+  void onError(std::string_view msg) { throw T{msg}; }
+};
+
+struct LogPolicy {
+  void onError(std::string_view msg) { 
+    std::clog << T{msg} << '\n';
+  }
+};
+```
+
+---
+
+# Concepts based design
+> Dependency Injection (`policy design`) / `concepts`
+
+```cpp
+template<ErrorPolicy TPolicy = class Policy>
+class App {
+ public: explicit App(TPolicy policy):policy{policy} {}
+  void run() {
+    if (...) { policy.onError("error!"); }
+  }
+ private: TPolicy policy{};
+};
+```
+
+```cpp
+int main() {
+  const auto injector = di::make_injector(
+    di::bind<class Policy>.to<ThrowPolicy>()
+  );
+  injector.create<App>().run();
+}
+```
+
+https://github.com/boost-experimental/di
+
+---
+
+# Concepts based design
+> Dependency Injection (`policy design`) / `virtual concepts (C++2?)`
+
+```cpp
+class App {
+public: 
+ explicit App(virtual ErrorPolicy policy) 
+  : policy{policy}
+ { }
+ 
+  void run() {
+    if (...) { policy.onError("error!"); }
+  }
+  
+private: 
+ virtual ErrorPolicy policy{};
+};
+```
+
+---
+
+# Concepts based design
+> Dependency Injection (`policy design`) / `virtual concepts (C++2?)`
+
+```cpp
+int main() {
+  const auto injector = di::make_injector(
+    di::bind<virtual ErrorPolicy>.to<LogPolicy>()
+  );
+  injector.create<App>().run();
+}
+```
+
+---
+
+# Concepts based design
+> Dependency Injection (`policy design`) / `virtual concepts emulation (C++17)`
 
 ```cpp
 template<class T>
@@ -1089,24 +1107,48 @@ private:
 ---
 
 # Concepts based design
-> Virtual concepts emulation (C++17)
+> Dependency Injection (`policy design`)  / `virtual concepts emulation (C++17)`
 
 ```cpp
 int main() {
   const auto injector = di::make_injector(
-    di::bind<class Policy>.to<LogPolicy>()
+    di::bind<$(ErrorPolicy)>.to<LogPolicy>()
   );
   injector.create<App>().run();
 }
 ```
 
-> Note: Static, dynamic polimorphism wiring uses the same syntax
+> Note: Same wiring for dynamic/static polymorphism
 
 ---
 
 # Concepts based design
-> Mocking (`automatic mocks injection`)
+> Mocking (testing)
 
+> Interface based mocking
+```cpp
+struct ErrorPolicy {
+ virtual ~ErrorPolicy() = default;
+ virtual void onError(std::string_view) = 0;
+};
+GMock<ErrorPolicy> mock{};
+EXPECT_CALL(mock, onError("interface!")).Times(1);
+mock.onError("interface!");
+```
+
+> Concepts based mocking
+```cpp
+GMock<$(ErrorPolicy)> mock{};
+EXPECT_CALL(mock, onError("concept!")).Times(1);
+object(mock).onError("concept!");
+```
+
+---
+
+# Concepts based design
+> Mocking (testing)
+
+> `automatic mocks injection`
 ```cpp
 "should print read text"_test = [] {
  auto [app, mocks] = testing::make<App>();
@@ -1150,6 +1192,7 @@ void forward(T& socket, std::string_view data);
 ```
 
 > Note: Problem `f(auto, auto) vs f(Socket, Socket)`
+https://wg21.link/p0696r1
 
 ---
 
