@@ -452,7 +452,7 @@ Example -> `Stream<T>`
 * Callable member function `write` which takes type T
 * Callable member function`read` which returns type T
 * Callable **optional** member function `read_complete`
-* Printable using `std::cout`
+* Printable
 
 ---
 
@@ -483,12 +483,12 @@ public:
 ```cpp
 template<class T, class TData>
 concept Streamable =
-  CopyConstructible<T> and 
-  requires(T t, std::cout& out, TData& data) {
+  CopyConstructible<T> and  // CopyConstructible
+  requires(T t, std::ostream& out, TData& data) {
     out << t;           	// Printable
     t.write(data);      	// Writable
     { t.read() } -> TData  	// Readable
-  } or requires(T t, std::cout& out, TData& data) {
+  } or requires(T t, std::ostream& out, TData& data) {
     out << t;           	// Printable
     t.write(data);      	// Writable
     { t.read() } -> TData  	// Readable 1/2
@@ -637,6 +637,9 @@ struct Bar { };
 static_assert(not std::is_detected<Fooable, Bar>{});
 static_assert(    std::is_detected<Fooable, Foo>{});
 ```
+
+> Note: Under the hood, it uses 
+> `template<class...> using void_t = void;`
   
 https://wg21.link/n4436
 
@@ -846,31 +849,23 @@ int main() {
 ---
 
 # Concepts based design
-> Concepts based polymorphism
-```cpp
-template<class T> concept Any = requires(T) {
-  requires DefaultConstructible<T> and
-    CopyConstructible<T> and
-    NoThrowMoveConstructible<T> and
-    CopyAssignable<T> and
-    NoThrowMoveAssignable<T> and
-    Destructible<T>;
-};
-```
+> Static polymorphism
 
 ```cpp
-std::vector v1;
- // error:  class template argument deduction failed
-std::vector<auto> v2; 
- // error: couldn't deduce template parameter
-std::vector<Any> v3; 
- // error: couldn't deduce template parameter
+std::vector v1 = { Square{}, Circle{} };
+ // ERROR: class template argument deduction failed
+ 
+std::vector<auto> v2 = { Square{}, Circle{} };
+ // ERROR: couldn't deduce template parameter
+ 
+std::vector<Drawable> v3 = { Square{}, Circle{} }; 
+ // ERROR: couldn't deduce template parameter
 ```
 
 ---
 
 # Concepts based design
-> Dynamic polymorphism
+> Concepts based polymorphism / Dynamic polymorphism
 
 [![100%](images/runtime_polymorphism.png)](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
 [Inheritance-Is-The-Base-Class-of-Evil](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
@@ -881,16 +876,26 @@ std::vector<Any> v3;
 > Dynamic polymorphism / Virtual concepts (C++2?)
 
 ```cpp
-std::vector<virtual Any> v;    // Okay (type erasure)
-v.push_back("Meeting C++"sv);  // Okay
-v.push_back(2017);             // Okay
+template<class T> concept Drawable =
+  requires() { auto T::draw(std::ostream&) -> void; };
+            // Signature requirement
 ```
+  
+```cpp
+struct Square {
+  void draw(std::ostream& out) { out << "Square"; } };
 
-> 100% value semantics / Stack based / Small buffer optimization (SBO)
+struct Circle {
+  void draw(std::ostream& out) { out << "Circle"; } };
 
-[Dynamic Generic Programming with Virtual Concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
+void f(virtual Drawable& d) { d.draw(std::cout); }
+    // Type erasure
 
-> Note: Virtual concepts aren't part of C++20
+int main() {
+  f(Square{}); // prints Square
+  f(Circle{}); // prints Circle
+}
+```
 
 ---
 
@@ -905,14 +910,9 @@ concept Fooable = requires() {
 };
 ```
 
-> Note: Can be generated with metaclasses https://wg21.link/p0707r0 (C++2?)
+[Dynamic Generic Programming with Virtual Concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
 
-```cpp
-template<class T>
-type_erased Foo {
-  auto foo() -> void;
-};
-```
+> Note: Virtual concepts aren't part of C++20
 
 ---
 
@@ -920,24 +920,23 @@ type_erased Foo {
 > Dynamic polymorphism / Virtual concepts (C++2?)
 
 ```cpp
-template<class T> concept Drawable =
-  requires() { auto T::draw(std::ostream&) -> void; };
+std::vector<virtual Drawable> v; // Okay (type erasure)
+v.push_back(Square{});           // Okay
+v.push_back(Circle{});           // Okay
 ```
-  
+
+> 100% value semantics / Stack based / Small buffer optimization (SBO)
+
+> Note: Might be also generated with Metaclasses (C++2?)
+
 ```cpp
-struct Square {
-  void draw(std::ostream& out) { out << "Square"; } };
-
-struct Circle {
-  void draw(std::ostream& out) { out << "Circle"; } };
-
-void f(virtual Drawable& d) { d.draw(std::cout); }
-
-int main() {
-  f(Square{}); // prints Square
-  f(Circle{}); // prints Circle
-}
+template<class T>           template<class T>
+any Foo                     $any { // metaclass
+  auto foo() -> void;         constexpr { ... }
+};                          };
 ```
+
+> https://wg21.link/p0707r0
 
 ---
 
@@ -945,7 +944,7 @@ int main() {
 > Dynamic polymorphism / Virtual concepts emulation (C++17)
 
 ```cpp
-template<class T> concept Drawable =
+template<class T> constexpr auto Drawable =
   Callable<void(T::*)(std::ostream&)>( $((draw)) );
 ```
   
@@ -1000,7 +999,7 @@ https://github.com/boost-experimental/vc
 template<class T>
 concept ErrorPolicy =
   requires(T t, std::string_view msg) {
-    requires DefaultConstructible<T>;
+    requires CopyConstructible<T>;
     { t.onError(msg) } -> void;
 };
 ```
@@ -1087,7 +1086,7 @@ int main() {
 ```cpp
 template<class T>
 constexpr auto ErrorPolicy = 
-  DefaultConstructible<T> and             // exposed by
+  CopyConstructible<T> and                // exposed by
   Callable<void(T::*)()>( $((onError)) ); // reflection
 ```
 
