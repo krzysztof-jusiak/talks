@@ -3,16 +3,16 @@
 
 
 
-        									                  Concepts Lite -> Concepts TS
-            Sophia Antipolis, France        /                     \
-             2008            \             /                       \ Ranges TS
-                              \           /                         \
-                     C++0x -> Concepts -> X                          \
-                       / \                \                           \
-          Templates   /   \               Frankfurt, Germany           \ Toronto, Canada
-            /        /     \_________      2009                         \ July 10th-15th 2017
-           /        /                \                                   \
-          C++98 -> 03        		     C++11  ->  C++14   ->   C++17  ->  C++20
+
+                Sophia Antipolis, France   Concepts Lite -> Concepts TS
+                       2008  \             /                    \
+                              \           /                      \ Ranges TS
+                   Aims for  C++0x -> Concepts -> X               \
+                   / \            /  \             \               \
+                  /  Templates   /    \      Frankfurt, Germany   Toronto, Canada
+                 /     /        /      \___        2009         July 10th-15th 2017
+                /     /        /           \                                 \
+               1987  C++98 -> 03          C++11  ->  C++14   ->   C++17  ->  C++20
 
 
 

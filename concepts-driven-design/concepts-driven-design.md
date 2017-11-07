@@ -94,11 +94,12 @@ since: expression (b-a) will be ill formed
 
 ![100%](images/history.png)
 
+> Requirements analysis
 > Concepts Lite - https://wg21.link/n3701 
-Andrew Sutton, Bjarne Stroustrup, Gabriel Dos Reis
-
 > Concepts TS - https://wg21.link/P0734R0
-Andrew Sutton, Bjarne Stroustrup
+
+> Alex Stepanow, Andrew Lumsdaine, Sean Parent,
+> Andrew Sutton, Bjarne Stroustrup, Gabriel Dos Reis
 
 ---
 
@@ -535,7 +536,7 @@ template<class T> concept Fooable = true;
 ```
 
 ```cpp
-// auto - weakest placeholder
+// auto - least constrained concept
 auto    foo1 = Foo<int>{};
 // C++17 - Constructor Template Argument Deduction
 Foo     foo2 = Foo<int>{};
