@@ -98,8 +98,8 @@ since: expression (b-a) will be ill formed
 > Concepts Lite - https://wg21.link/n3701 
 > Concepts TS - https://wg21.link/P0734R0
 
-> Alex Stepanow, Andrew Lumsdaine, Sean Parent,
-> Andrew Sutton, Bjarne Stroustrup, Gabriel Dos Reis
+> Bjarne Stroustrup, Andrew Sutton, Gabriel Dos Reis
+> Alex Stepanow, Andrew Lumsdaine, Sean Parent, ...
 
 ---
 
@@ -670,30 +670,6 @@ https://wg21.link/P0726R0
 
 # Concepts emulation (C++17)
 
-> Error message
-
-```cpp
-template<class T, class = std::enable_if_t<Socket<T>>
-void forward(T& t, std::string_view data) {
-  t.send(data);
-}
-```
-
-```cpp
-int main() {
-  tcp_socket tcp; forward(tcp, "tcp data"sv); // Okay
-  file file; forward(file, "file data"sv);
-   // error: no matching function for call to 'forward'
-   // possibly many lines of output <- library side
-}
-```
-
-> Note: No details why function couldn't be called
-
----
-
-# Concepts emulation (C++17)
-
 > `requires-clause`
 
 ```cpp
@@ -755,6 +731,30 @@ template<class T> constexpr auto File =
     decltype(t.write(data)) {}
   );
 ```
+---
+
+# Concepts emulation (C++17)
+
+> Error message
+
+```cpp
+template<class T, class = std::enable_if_t<Socket<T>>
+void forward(T& t, std::string_view data) {
+  t.send(data);
+}
+```
+
+```cpp
+int main() {
+  tcp_socket tcp; forward(tcp, "tcp data"sv); // Okay
+  file file; forward(file, "file data"sv);
+   // error: no matching function for call to 'forward'
+   // possibly many lines of output <- library side
+}
+```
+
+> Note: No details why function couldn't be called
+
 ---
 
 # Concepts emulation (C++17)
@@ -874,6 +874,32 @@ std::vector<Drawable> v3 = { Square{}, Circle{} };
 ---
 
 # Concepts based design
+> Dynamic polymorphism / type erasure
+
+```cpp
+class Drawable {
+  void* ptr_{}; // ??? Small Buffer Optimization (SBO)
+  const struct vtable {
+    void (*draw)(void*);
+    void (*delete)(void*);
+  } const* vptr_{};
+  
+public:
+  template<class T> Drawable(T t) // non explicit
+   : ptr_{new T{t}}, vptr_{
+      [](void* self) { static_cast<T*>(self)->draw(); }
+      [](void* self) { delete static_cast<T*>(self); }
+     }
+  }
+  ~Drawable() { vptr_->delete(ptr_); }
+  
+  void draw(std::ostream& os) { vptr_->draw(os); }
+};
+```
+
+---
+
+# Concepts based design
 > Dynamic polymorphism / Virtual concepts (C++2?)
 
 ```cpp
@@ -977,7 +1003,7 @@ $((name)) [](auto&& r, auto&& t, auto&&... args) {
  struct { // base class
   auto name(decltype(args)... args)  -> 
     decltype(self.name(args...)){} {
-   // static polymorphism
+   // static polymorphism (CRTP)
    return static_cast<decltype(t) *>(this)->template 
      call<name, typename decltype(r)::type>(args...);
   }
@@ -1177,22 +1203,49 @@ https://github.com/cpp-testing/gunit
 void forward(Socket& socket, std::string_view data);
 ```
 
-> same as...
+> long form
 
 ```cpp
 template<Socket T>
 void forward(T& socket, std::string_view data);
 ```
 
-> same as...
+> longer form
 
 ```cpp
 template<class T> requires Socket<T>
 void forward(T& socket, std::string_view data);
 ```
 
-> Note: Problem `f(auto, auto) vs f(Socket, Socket)`
-https://wg21.link/p0696r1
+---
+
+# Future of concepts (C++2X)
+
+> Terse template syntax - https://wg21.link/p0696r1
+
+```cpp
+void forward(Socket, Socket);
+```
+
+> long form
+
+```cpp
+template<class T>
+void forward(T, T);
+```
+
+> **vs**
+
+```cpp
+void forward(auto, auto);
+```
+
+> long form
+
+```cpp
+template<class T, class U>
+void forward(T, U);
+```
 
 ---
 
@@ -1201,31 +1254,39 @@ https://wg21.link/p0696r1
 > Template-introduction syntax
 
 ```cpp
-Concept{A, B, C} void f(A a, B b, C c);
+Socket{T} void forward(T, auto);
 ```
 
-or
+> **or**
 
 ```cpp
-template<Concept [A, B, C]> void f(A a, B b, C c);
+template<Socket [T]> void forward(T, auto);
 ```
 
-> same as...
+> long form
 
 ```cpp
-template<class A, class B, class C>
-void f(A a, B b, C c) requires Concept<A, B, C>;
+template<class T, class U>
+void forward(T, U) requires Socket<T>;
 ```
 
 ---
 
 # Future of concepts (C++2X)
 
+```cpp
+template<class T>
+struct tcp_socket { 
+  static_assert(Socket<tcp_socket>); 
+  // always fail, tcp_socket is incomplete
+};
+```
+
 > Metaclasses syntax
 
 ```cpp
 template<class T>
-Fooable Foo { };  // static_assert(Fooable<Foo>);
+Socket tcp_socket { };
 ```
 
 https://wg21.link/p0707r0
