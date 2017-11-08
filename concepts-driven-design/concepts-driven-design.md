@@ -49,7 +49,7 @@ Meeting C++ 2017
 | - | - | - |
 | GCC | 6.1+ | Requires `-fconcepts` flag |
 | MSVC | VS2017 15.5 | - |
-| Clang | In progress... | It had C++0x concepts support |
+| Clang | In progress... | - |
 
 > Examples in this talk were compiled using
 > `g++7.2 -std=c++2a -fconcepts`
@@ -67,11 +67,13 @@ const T& min(const T& a, const T& b) {
 }
 ```
 
-> What's are the syntax requirements of `T`?
-	* compile-time - ___**concepts**___
+> Precise documentation
+
+> * What's are the syntax requirements of `T`?
+>	* compile-time - ___**concepts**___
     
-> What's are the semantics requirements for `min`?
-	* run-time - contracts, tests, manuals
+> * What's are the semantics requirements for `min`?
+>	* run-time - contracts, tests, manuals
 
 ---
 
@@ -278,6 +280,28 @@ https://godbolt.org/g/MFxqWu
 
 ---
 
+# `Requires`
+
+> Readability?
+
+```cpp
+template<class T>
+auto bar(T& t) 
+  requires requires(T t) {           
+    typename T::type;      
+    { t.foo() } -> void;  
+    requires Movable<T> or Same<T, int>;
+  } {
+  return t.foo();
+}
+```
+
+---
+
+# `Named concepts`
+
+---
+
 # `Named concepts`
 
 > A collection of requirements on a type (variable template)
@@ -343,16 +367,16 @@ concept Fooable =           // named concept
 template<class> class Bar {};
 ```
 
-> Requires expression
+> Requires expression (Long form)
 ```cpp
-template<class T> class Bar 
-  requires Fooable<T> {}; // requires-expression
+template<class T> requires Fooable<T>;
+class Bar { };
 ```
 
 > Abbreviated templates
 ```cpp
-template<Fooable T>  // Fooable instead of
-class Bar {};        // typename/class
+template<Fooable T>
+class Bar {};
 ```
 
 > Note: C++17 - Non-type template arguments
@@ -475,8 +499,8 @@ constexpr auto forward =
 
 Example -> `Stream<T>`
 * Copy constructible
-* Callable member function `write` which takes type T
-* Callable member function`read` which returns type T
+* Callable member function `write` which takes type `T&`
+* Callable member function`read` which returns type `T`
 * Callable **optional** member function `read_complete`
 * Printable
 
@@ -493,7 +517,7 @@ template<class T>
 class istream {
 public:
   virtual ~istream() noexcept = default;
-  virtual void write(T) = 0;
+  virtual void write(T&) = 0;
   virtual T read() = 0;
   
   // ??? [[optional]] ???
@@ -509,7 +533,7 @@ public:
 ```cpp
 template<class T, class TData>
 concept Streamable =
-  CopyConstructible<T> and  // CopyConstructible
+  CopyConstructible<T> and      // CopyConstructible
   requires(T t, std::ostream& out, TData& data) {
     out << t;           	// Printable
     t.write(data);      	// Writable
@@ -635,7 +659,7 @@ https://github.com/CaseyCarter/cmcstl2
 
 ```cpp
 template<bool, class = void>
-struct enable_if {};
+struct enable_if {}; // no type alias
  
 template<class T>
 struct enable_if<true, T> { using type = T; };
@@ -904,21 +928,20 @@ std::vector<Drawable> v3 = { Square{}, Circle{} };
 ```cpp
 class Drawable {
   void* ptr_{}; // ??? Small Buffer Optimization (SBO)
-  const struct vtable {
-    void (*draw)(void*);
-    void (*delete)(void*);
-  } const* vptr_{};
+  struct {
+    void (*draw)(std::ostream&);
+    void (*delete_ptr)(void*);
+  } const* const vptr_{};
   
 public:
-  template<class T> Drawable(T t) // non explicit
-   : ptr_{new T{t}}, vptr_{
-      [](void* self) { static_cast<T*>(self)->draw(); }
-      [](void* self) { delete static_cast<T*>(self); }
-     }
-  }
-  ~Drawable() { vptr_->delete(ptr_); }
+ template<class T> Drawable(T t) // non explicit
+  : ptr_{new T{t}}, vptr_{
+    [](void* self) { static_cast<T*>(self)->draw(); },
+    [](void* self) { delete static_cast<T*>(self); } } 
+ { }
+ ~Drawable() { vptr_->delete_ptr(ptr_); }
   
-  void draw(std::ostream& os) { vptr_->draw(os); }
+ void draw(std::ostream& os) { vptr_->draw(os); }
 };
 ```
 
@@ -1022,8 +1045,8 @@ int main() {
 
 ```cpp
 Callable<void(T::*)(std::ostream&)>( $((draw)) ]    
-          \_  \____ \____________        \___-> name
-            \      \             \              
+          \_  \________     \________    \___-> name
+            \          \             \              
 $((name)) [](auto&& r, auto&& t, auto&&... args) {
  struct { // base class
   auto name(decltype(args)... args)  -> 
@@ -1074,26 +1097,27 @@ struct LogPolicy {
 > Dependency Injection (`policy design`) / `concepts`
 
 ```cpp
-template<ErrorPolicy TPolicy = class Policy>
-class App {
- public: explicit App(TPolicy policy):policy{policy} {}
-  void run() {
-    if (...) { policy.onError("error!"); }
-  }
- private: TPolicy policy{};
+template<ErrorPolicy TPolicy = class Policy> // inject
+struct App {
+  TPolicy policy{};
+  void run() { if (...) { policy.onError("error!"); } }
 };
 ```
 
+> Bindings / Injection
+
 ```cpp
-int main() {
-  const auto injector = di::make_injector(
-    di::bind<class Policy>.to<ThrowPolicy>()
-  );
-  injector.create<App>().run();
-}
+Creatable injector = di::injector{
+  di::bind<class Policy>.to<ThrowPolicy>()
+};
+injector.create<App>().run();
 ```
 
-https://github.com/boost-experimental/di
+> Same as...
+
+```
+App{ThrowPolicy{}}.run();
+```
 
 ---
 
@@ -1122,13 +1146,19 @@ private:
 > Dependency Injection (`policy design`) / `virtual concepts (C++2?)`
 
 ```cpp
-int main() {
-  const auto injector = di::make_injector(
-    di::bind<virtual ErrorPolicy>.to<LogPolicy>()
-  );
-  injector.create<App>().run();
-}
+Creatable injector = di::make_injector(
+  di::bind<virtual ErrorPolicy>.to<LogPolicy>()
+);
+injector.create<App>().run();
 ```
+
+> Same as...
+
+```cpp
+App{LogPolicy{}}.run();
+```
+
+https://github.com/boost-experimental/di
 
 ---
 
@@ -1138,20 +1168,14 @@ int main() {
 ```cpp
 template<class T>
 constexpr auto ErrorPolicy = 
-  CopyConstructible<T> and                // exposed by
-  Callable<void(T::*)()>( $((onError)) ); // reflection
+  CopyConstructible<T> and
+  Callable<void(T::*)()>( $((onError)) ); // expose
 ```
 
 ```cpp
-class App {
-public: 
- explicit App(any<$(ErrorPolicy)> policy)
-   : policy{policy} {}
- void run() {
-   if (...) { policy.onError("error!"); }
- }
-private: 
+struct App {
   any<$(ErrorPolicy)> policy{};
+  void run() { if (...) { policy.onError("error!"); } }
 };
 ```
 
@@ -1161,15 +1185,19 @@ private:
 > Dependency Injection (`policy design`)  / `virtual concepts emulation (C++17)`
 
 ```cpp
-int main() {
-  const auto injector = di::make_injector(
-    di::bind<$(ErrorPolicy)>.to<LogPolicy>()
-  );
-  injector.create<App>().run();
-}
+Creatable injector = di::make_injector(
+  di::bind<$(ErrorPolicy)>.to<LogPolicy>()
+);
+injector.create<App>().run();
 ```
 
-> Note: Same wiring for dynamic/static polymorphism
+> Same as...
+
+```cpp
+App{LogPolicy{}}.run();
+```
+
+> Note: Same wiring for static/dynamic polymorphism
 
 ---
 
