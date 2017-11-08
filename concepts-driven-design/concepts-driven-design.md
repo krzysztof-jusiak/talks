@@ -14,7 +14,7 @@ Meeting C++ 2017
 
 <!-- footer: Meeting C++ 2017 | Concepts Driven Design | Kris Jusiak -->
 
-# Agenda
+# Overview
 
 <font size="5">
   
@@ -38,7 +38,7 @@ Meeting C++ 2017
 
 ---
 
-## Disclaimer
+# Disclaimer
 
 > This talk is from user perspective
 > See Andrew Sutton talks for more details about concepts!
@@ -61,11 +61,17 @@ Meeting C++ 2017
 # Motivation - Well Specified Interfaces
 
 ```cpp
-template<class TRandomIt>
-void sort(TRandomIt first, TRandomIt last);
+template<class T>
+const T& min(const T& a, const T& b) {
+  return b < a ? b : a;
+}
 ```
 
-> Note: What can be passed as `TRandomIt`?
+> What's are the syntax requirements of `T`?
+	* compile-time - ___**concepts**___
+    
+> What's are the semantics requirements for `min`?
+	* run-time - contracts, tests, manuals
 
 ---
 
@@ -82,7 +88,7 @@ https://godbolt.org/g/RTRgg2
 
 ---
 
-# Motivation - Improve error messages
+# Motivation - Compiler diagnostics
 
 > Without concepts
 ```cpp
@@ -91,7 +97,7 @@ https://godbolt.org/g/RTRgg2
     'std::_List_iterator<int>')
  std::__lg(__last - __first) * 2);
            ~~~~~~ ^ ~~~~~~~
-...many lines of output f<- library side
+...many lines of templates instantiation call stack...
 ```
 
 > With concepts
@@ -101,9 +107,11 @@ error: cannot call std::sort
 since: expression (b-a) will be ill formed
 ```
 
+> Note: Constraints are checked at the point of use
+
 ---
 
-# Concepts - History
+# History
 
 ![100%](images/history.png)
 
@@ -116,7 +124,7 @@ since: expression (b-a) will be ill formed
 
 ---
 
-# Concepts - C++20 draft
+# C++20 draft
 
 http://eel.is/c++draft/temp.constr
 
@@ -171,7 +179,7 @@ requires(T t) { // simple requirement
 
 ```cpp
 requires(T t) { // compound requirement
-  { t.empty() } -> bool; };
+  { t.empty() } -> bool; }; // convertible to bool
 ```
 
 ```cpp
@@ -243,8 +251,8 @@ https://godbolt.org/g/wpLXzV
 ```cpp
 template<class T>
 constexpr auto foo(T x) {
-  if constexpr(requires(T t) { t.bar; }) { // compile-
-    return x.bar;                          // time if
+  if constexpr(requires(T t) { t.bar; }) { // SFINAE
+    return x.bar;                          // context
   } else {
     return 0;
   }
@@ -321,6 +329,9 @@ concept Fooable =           // named concept
   };
 ```
 
+> Note: Concepts are never instantiatied 
+> (therefore the concept keyword)
+
 ---
 
 # `Named concepts`
@@ -395,7 +406,6 @@ template<Socket T> // requires Socket<T>
 /*1*/ void forward(T& t, std::string_view data) {
   t.send(data);
 }
-
 template<File T> // requires File<T>
 /*2*/ void forward(T& t, std::string_view data) {
   t.write(data);
@@ -409,6 +419,8 @@ int main() {
  file file; forward(file, "file data"sv);    // calls 2
 }
 ```
+
+> Note: If multiple are satisifed the most constrainted is chosen
 
 ---
 
