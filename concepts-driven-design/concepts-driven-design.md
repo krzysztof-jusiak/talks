@@ -40,7 +40,10 @@ Meeting C++ 2017
 
 ## Disclaimer
 
-Concepts, although, merged into C++20 draft, are still a subject for future changes.
+> This talk is from user perspective
+> See Andrew Sutton talks for more details about concepts!
+
+> Concepts, although, merged into C++20 draft, are still a subject for future changes.
 
 | Compiler | Version | Notes |
 | - | - | - |
@@ -48,13 +51,23 @@ Concepts, although, merged into C++20 draft, are still a subject for future chan
 | MSVC | VS2017 15.5 | - |
 | Clang | In progress... | It had C++0x concepts support |
 
-Examples in this talk were compiled using
-
+> Examples in this talk were compiled using
 > `g++7.2 -std=c++2a -fconcepts`
 
 ---
 
 <!-- page_number: true -->
+
+# Motivation - Well Specified Interfaces
+
+```cpp
+template<class TRandomIt>
+void sort(TRandomIt first, TRandomIt last);
+```
+
+> Note: What can be passed as `TRandomIt`?
+
+---
 
 # Motivation - Error Novel
 
@@ -147,26 +160,26 @@ int main() {
   `requires ( [parameters] ) { requirements }		`
 
 ```cpp
-// type requirement
-requires(T) { typename T::value_type; };
+requires(T) { // type requirement
+  typename T::value_type;  };
 ```
 
 ```cpp
-// simple requirement
-requires(T t) { t[typename T::value_type{}]; };
+requires(T t) { // simple requirement
+  t[typename T::value_type{}]; };
 ```
 
 ```cpp
-// compound requirement
-requires(T t) { { t.empty() } -> bool;  };
+requires(T t) { // compound requirement
+  { t.empty() } -> bool; };
 ```
 
 ```cpp
-// nested requirement
-requires(T t) {
-  requires std::is_integral_v<typename T::value_type>;
-};
+requires(T t) { // nested requirement
+  requires std::is_enum_v<typename T::value_type>; };
 ```
+
+> Note: Parameters -> `declvals`
 
 ---
 
