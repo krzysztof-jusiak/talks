@@ -18,21 +18,31 @@ Meeting C++ 2017
 
 <font size="5">
   
-* Concepts
+<table>
+<tr><td>
+  
+* **Concepts**
   * Motivation / History
-* Type constraints (C++20)
+* **Type constraints** (C++20)
   * Requirements
     * Design by introspection
   * Named `concepts`
   	* Optional interfaces
-* Concepts emulation (C++17)
-* Concepts based design
+* **Concepts emulation** (C++17)
+
+</td>
+<td>
+  
+* **Concepts based design**
   * Static polymorphism
   * Dynamic polymorphism
     * Virtual concepts (C++2?)
   * Dependency Injection
   * Mocking (testing)
-* Future of concepts (C++2X)
+* **Future of concepts** (C++2X)
+
+</tr>
+</table>
 
 </font>
 
@@ -369,8 +379,6 @@ concept Fooable =           // named concept
 
 # `Named concepts`
 
-> 
-
 > Unconstrained class definition
 ```cpp
 template<class> class Bar {};
@@ -378,14 +386,12 @@ template<class> class Bar {};
 
 > Requires expression (long form)
 ```cpp
-template<class T> requires Fooable<T>;
-class Bar { };
+template<class T> requires Fooable<T> class Bar { };
 ```
 
 > Abbreviated templates
 ```cpp
-template<Fooable T>
-class Bar {};
+template<Fooable T> class Bar {};
 ```
 
 > Note: C++17 - Non-type template arguments
@@ -403,6 +409,12 @@ template<auto T> class Bar {}; // For values -> Bar<42>
 struct tcp_socket { void send(std::string_view); };
 struct udp_socket { void send(std::string_view); };
 struct file       { void write(std::string_view); };
+```
+
+```cpp
+template<class T> void forward(T& t, std::string_view data) {
+  t.???(data); // send/write
+}
 ```
 
 >  Everything Cpp 
@@ -879,8 +891,8 @@ void forward(T& t, std::string_view data) {
 > Static polymorphism
 
 ```cpp
-template<class T> concept Drawable =  requires
- (T t, std::ostream& out) { { t.draw(out) } -> void; };
+template<class T> concept Drawable =
+  requires (T t, std::ostream& out) { { t.draw(out) } -> void; };
 ```
   
 ```cpp
