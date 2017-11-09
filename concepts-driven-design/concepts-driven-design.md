@@ -812,14 +812,11 @@ int main() {
 > Concepts overloading
 
 ```cpp
-template<class T, 
-  std::enable_if_t<Socket<T>, int> = 0>
+template<class T, std::enable_if_t<Socket<T>, int> = 0>
 /*1*/ void forward(T& t, std::string_view data) {
   t.send(data);
 }
-
-template<class T, 
-  std::enable_if_t<File<T>, int> = 0>
+template<class T  std::enable_if_t<File<T>, int> = 0>
 /*2*/ void forward(T& t, std::string_view data) {
   t.write(data);
 }
@@ -832,6 +829,8 @@ int main() {
  file file; forward(file, "file data"sv);    // calls 2
 }
 ```
+
+> Note: Default template pramaters aren't part of the function signature (no SFINAE)
 
 ---
 
