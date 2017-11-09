@@ -1,4 +1,4 @@
-<!-- story how concepts were removed from C++0x  -->
+<!-- $size: 16:9 -->
 
 <!-- footer:  kris@jusiak.net | @krisjusiak | linkedin.com/in/kris-jusiak -->
 
@@ -115,11 +115,17 @@ since: expression (b-a) will be ill formed
 
 # History
 
+<center> 
+  
 ![100%](images/history.png)
 
-> Requirements analysis
-> Concepts Lite - https://wg21.link/n3701 
-> Concepts TS - https://wg21.link/P0734R0
+</center> 
+
+| | |
+|-|-|
+| Requirements analysis | https://wg21.link/n3351 |
+| Concepts Lite | https://wg21.link/n3701 |
+| Concepts TS | https://wg21.link/P0734R0 |
 
 > Bjarne Stroustrup, Andrew Sutton, Gabriel Dos Reis
 > Alex Stepanow, Andrew Lumsdaine, Sean Parent, ...
@@ -128,16 +134,12 @@ since: expression (b-a) will be ill formed
 
 # C++20 draft
 
+
+> Requirements
+> Constraints
+> Named concepts
+
 http://eel.is/c++draft/temp.constr
-
-![100%](images/templates.png)
-
-* Requirements
-  * `requires-clause`, `requires-expression`
-* Constraints
-  * `predicates, conjunctions, disjunctions`
-* Named concepts
-  * `placeholders`, `abbreviated templates`
 
 ---
 
@@ -197,7 +199,7 @@ requires(T t) { // nested requirement
 
 ```cpp
 template<class T>
-constexpr auto foo(T&& x) // SFINAE context
+constexpr auto foo(T&& x) // immediate context (SFINAE friendly)
   requires requires(T t) { t.bar(); }
 { return x.bar(); }
 ```
@@ -216,9 +218,13 @@ constexpr auto foo(T&& x) // SFINAE context
 
 # Design by introspection
 
+<center>
+
 [![100%](images/design_by_introspection.png)](https://www.youtube.com/watch?v=29h6jGtZD-U)
 
 https://www.youtube.com/watch?v=29h6jGtZD-U
+
+</center>
 
 ---
 
@@ -253,8 +259,8 @@ https://godbolt.org/g/wpLXzV
 ```cpp
 template<class T>
 constexpr auto foo(T x) {
-  if constexpr(requires(T t) { t.bar; }) { // SFINAE
-    return x.bar;                          // context
+  if constexpr(requires(T t) { t.bar; }) { // immediate context
+    return x.bar;
   } else {
     return 0;
   }
@@ -274,9 +280,13 @@ https://godbolt.org/g/uot6Bv
 
 # Design by introspection - C++
 
+<center>
+
 [![100%](images/dbi.png)](https://godbolt.org/g/MFxqWu)
 
 https://godbolt.org/g/MFxqWu
+
+</center>
 
 ---
 
@@ -332,8 +342,7 @@ concept Size32 = sizeof(T) == 4;
 > Conjunctions, Disjunctions
 ```cpp
 template<class T>
-concept SignedIntegral = std::is_integral<T>{} and
-                         std::is_signed<T>{};
+concept SignedIntegral = std::is_integral_v<T> and std::is_signed_v<T>;
 ```
 
 ---
@@ -427,13 +436,10 @@ template<class T> concept File =
 
 ```cpp
 template<Socket T> // requires Socket<T>
-/*1*/ void forward(T& t, std::string_view data) {
-  t.send(data);
-}
+/*1*/ void forward(T& t, std::string_view data) { t.send(data); }
+
 template<File T> // requires File<T>
-/*2*/ void forward(T& t, std::string_view data) {
-  t.write(data);
-}
+/*2*/ void forward(T& t, std::string_view data) { t.write(data); }
 ```
 
 ```cpp
@@ -507,7 +513,7 @@ Example -> `Stream<T>`
 ---
 
 # `Named concepts`
-> Optional interfaces : Virtual functions (not expressive enough)
+> Optional interfaces : Inheritance / virtual functions (not expressive enough)
 ```cpp
 /**
  * Implementation requires to be printable and 
@@ -598,10 +604,10 @@ Fooable foo3 = Foo<int>{};
 
 ---
 
-# Concepts and the C++ ISO standard
+# Concepts in the C++ ISO standard
 <center>
   
-![150%](images/std_requirements.png)
+![1000%](images/std_requirements.png)
 
 </center>
 
@@ -813,13 +819,10 @@ int main() {
 
 ```cpp
 template<class T, std::enable_if_t<Socket<T>, int> = 0>
-/*1*/ void forward(T& t, std::string_view data) {
-  t.send(data);
-}
+/*1*/ void forward(T& t, std::string_view data) { t.send(data); }
+
 template<class T  std::enable_if_t<File<T>, int> = 0>
-/*2*/ void forward(T& t, std::string_view data) {
-  t.write(data);
-}
+/*2*/ void forward(T& t, std::string_view data) { t.write(data); }
 ```
 
 ```cpp
@@ -864,7 +867,7 @@ void forward(T& t, std::string_view data) {
 
 | | |
 |-|-|
-| Expressiveness | Type constraints for better error messages (Design by Introspection) |
+| Expressiveness | Type constraints for better error messages |
 | Loosely coupeled design | Inject all the things! (Policy Design) |
 | Performance | Static dispatch by default <br />(based on concepts) |
 | Flexiblity | Dynamic dispatch using type erasure (based on the same concepts) |
@@ -917,8 +920,12 @@ std::vector<Drawable> v3 = { Square{}, Circle{} };
 # Concepts based design
 > Concepts based polymorphism / Dynamic polymorphism
 
-[![100%](images/runtime_polymorphism.png)](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
+<center>
+  
+[![70%](images/runtime_polymorphism.png)](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
 [Inheritance-Is-The-Base-Class-of-Evil](https://channel9.msdn.com/Events/GoingNative/2013/Inheritance-Is-The-Base-Class-of-Evil)
+
+</center>
 
 ---
 
@@ -1085,9 +1092,7 @@ struct ThrowPolicy {
 };
 
 struct LogPolicy {
-  void onError(std::string_view msg) { 
-    std::clog << T{msg} << '\n';
-  }
+  void onError(std::string_view msg) {  std::clog << T{msg} << '\n'; }
 };
 ```
 
@@ -1168,8 +1173,7 @@ https://github.com/boost-experimental/di
 ```cpp
 template<class T>
 constexpr auto ErrorPolicy = 
-  CopyConstructible<T> and
-  Callable<void(T::*)()>( $((onError)) ); // expose
+  CopyConstructible<T> and Callable<void(T::*)()>( $((onError)) ); // expose
 ```
 
 ```cpp
@@ -1330,8 +1334,7 @@ void forward(T, U) requires Socket<T>;
 ```cpp
 template<class T>
 struct tcp_socket { 
-  static_assert(Socket<tcp_socket>); 
-  // always fail, tcp_socket is incomplete
+  static_assert(Socket<tcp_socket>); // always fail, tcp_socket is incomplete
 };
 ```
 
@@ -1355,7 +1358,7 @@ https://wg21.link/p0707r0
 > Simplify usage of SFINAE / enable_if
 > * Introspection by design / Optional interfaces
 
-> Allows better design
+> Well specified interfaces (precised documentation)
 
 > Can be emulated in C++14/C++17
 > * `variable templates`/`constexpr`/`constexpr if`
@@ -1368,9 +1371,21 @@ https://wg21.link/p0707r0
 
 ## Questions?
 
-|   | ![40%](images/bjarne_concepts.jpg)  |
+<table>
+<tr><td>
+
+| | |
 | - | - |
+| **C++20 draft**       | http://eel.is/c++draft/temp.constr |
 | **Concepts**         | https://wg21.link/P0734R0  | 
-| **Virtual Concepts** |  https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf | 
+| **Virtual Concepts** | https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf | 
+
+</td>
+<td>
+  
+![1000%](images/bjarne_concepts.jpg)
+
+</tr>
+</table>
 
 <!-- footer:  kris@jusiak.net | @krisjusiak | linkedin.com/in/kris-jusiak -->
