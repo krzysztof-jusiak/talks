@@ -24,7 +24,7 @@ Meeting C++ 2017
 * **Type constraints** (C++20)
   * Requirements
     * Design by introspection
-  * Named `concepts`
+  * Named concepts
   	* Optional interfaces
 * **Concepts emulation** (C++17)
 
@@ -68,7 +68,7 @@ Meeting C++ 2017
 
 ```cpp
 template<class T>
-const T& min(const T& a, const T& b) {
+constexpr const T& min(const T& a, const T& b) {
   return b < a ? b : a;
 }
 ```
@@ -187,7 +187,7 @@ bar<false>(); // Error: constraints not satisfied
 
 ```cpp
 // type requirement
-requires(T) { typename T::value_type;  };
+requires(T) { typename T::value_type;  }; // type has to be accessible/visible
 ```
 
 ```cpp
@@ -205,7 +205,7 @@ requires(T t) { { t.empty() } -> bool; }; // convertible to bool
 requires(T t) { requires std::is_enum_v<typename T::value_type>; };
 ```
 
-> Note: Parameters -> `declvals`
+> Note: Parameters -> `declvals` (converts any type to a reference type)
 
 ---
 
@@ -273,7 +273,7 @@ https://godbolt.org/g/wpLXzV
 ```cpp
 template<class T>
 constexpr auto foo(T x) {
-  if constexpr(requires(T t) { t.bar; }) { // immediate context
+  if constexpr(requires(T t) { t.bar; }) {
     return x.bar;
   } else {
     return 0;
@@ -310,14 +310,12 @@ https://godbolt.org/g/MFxqWu
 
 ```cpp
 template<class T>
-auto bar(T& t) 
+class Bar 
   requires requires(T t) {           
     typename T::type;      
     { t.foo() } -> void;  
     requires Movable<T> or Same<T, int>;
-  } {
-  return foo(t);
-}
+  };
 ```
 
 ---
@@ -398,10 +396,7 @@ template<class T> requires Fooable<T> class Bar { };
 template<Fooable T> class Bar {};
 ```
 
-> Note: C++17 - Non-type template arguments
-```cpp
-template<auto T> class Bar {}; // For values -> Bar<42>
-```
+> Note: More simplifying syntaxes to come
 
 ---
 
@@ -413,10 +408,11 @@ template<auto T> class Bar {}; // For values -> Bar<42>
 struct tcp_socket { void send(std::string_view); };
 struct udp_socket { void send(std::string_view); };
 struct file       { void write(std::string_view); };
+...
 ```
 
 ```cpp
-template<class T> void forward(T& t, std::string_view data) {
+template<class T> void forward(T& t, std::string_view data) { // generic
   t.???(data); // send/write
 }
 ```
@@ -521,10 +517,10 @@ constexpr auto forward =
 
 Example -> `Stream<T>`
 * Copy constructible
+* Printable
 * Callable member function `write` which takes type `T&`
 * Callable member function`read` which returns type `T`
-* Callable **optional** member function `read_complete`
-* Printable
+* Callable either with a member function `read_complete` or `commit_read`
 
 ---
 
@@ -542,8 +538,9 @@ public:
   virtual void write(T&) = 0;
   virtual T read() = 0;
   
-  // ??? [[optional]] ???
+  /// ??? one of
   virtual void read_complete() = 0;
+  virtual void commit_read() = 0;
 };
 ```
 
@@ -557,14 +554,15 @@ template<class T, class TData>
 concept Streamable =
   CopyConstructible<T> and      // CopyConstructible
   requires(T t, std::ostream& out, TData& data) {
-    out << t;           	// Printable
-    t.write(data);      	// Writable
-    { t.read() } -> TData  	// Readable
+    out << t;                   // Printable
+    t.write(data);              // Writable
+    { t.read() } -> TData;      // Readable
+    t.commit_read();  	        // Readable 2/2
   } or requires(T t, std::ostream& out, TData& data) {
-    out << t;           	// Printable
-    t.write(data);      	// Writable
-    { t.read() } -> TData  	// Readable 1/2
-    t.read_complete();  	// Readable 2/2
+    out << t;                   // Printable
+    t.write(data);              // Writable
+    { t.read() } -> TData;      // Readable 1/2
+    t.read_complete();          // Readable 2/2
   }
 };
 ```
@@ -577,19 +575,19 @@ concept Streamable =
 using data_t = std::array<std::byte, 1024>;
 ```
 ```cpp
-class FileStream {
-public:
-  void write(data_t&);
-  data_t read();
-  void read_complete();
-};
+class FileStream {           class MemoryStream {
+public:                      public:
+  void write(data_t&);         void write(data_t&);
+  data_t read();               data_t read();
+  void commit_read();          void read_complete();
+};                           };
 ```
 ```cpp
 int main() {
-  Streamable<data_t> stream = FileStream{};
+  Streamable<data_t> stream = FileStream/MemoryStream{};
   const auto data = stream.read();
   ...
-  stream.read_complete();
+  stream.commit_read/read_complete();
 }
 ```
 
@@ -597,23 +595,20 @@ int main() {
 
 # Placeholders
 
-| Placeholder | Synopsis |
-|-|-|
-|Unconstrained|`auto`|
-|Constrained|`concept-name<[template-argument-list]>`|
-
 ```cpp
-template<class T> class Foo {};
 template<class T> concept Fooable = true;
+template<class T> struct Foo { Foo(T); };
 ```
 
 ```cpp
-// auto - least constrained concept
-auto    foo1 = Foo<int>{};
-// C++17 - Constructor Template Argument Deduction
-Foo     foo2 = Foo<int>{};
-// C++20 - placeholder
-Fooable foo3 = Foo<int>{};
+auto    foo1 = Foo{42}; // C++11 - auto -> least constrained concept
+Foo     foo2 = Foo{42}; // C++17 - Constructor Template Argument Deduction
+Fooable foo3 = Foo{42}; // C++20 - placeholder
+```
+
+> Note: C++17 - Non-type template arguments
+```cpp
+template<auto T> class Bar {}; // For values -> Bar<42>
 ```
 
 > Note: Placeholders can be used for functions `void f(auto);`
@@ -694,7 +689,7 @@ struct enable_if<true, T> { using type = T; };
 
 # Concepts emulation (C++17)
 
-> Dedection idiom (C++20)
+> Dedection idiom (C++17)
 
 ```cpp
 template<class T>
@@ -724,11 +719,13 @@ https://wg21.link/n4436
 
 ```cpp
 template <class F, class... Args, class =  decltype(
-  std::declval<F&&>()(std::declval<Args&&>()...))>
-constexpr auto requires_impl(int) { return true; }
-
-template <class F, class... Args>
-constexpr auto requires_impl(...) { return false; }
+  std::declval<F&&>()(std::declval<Args&&>()...))> // if is well-formed return
+constexpr auto requires_impl(int) { return true; } // true otherwise remove
+                                                   // the candidate from the 
+                                                   // overload set
+template <class...>
+constexpr auto requires_impl(...) { return false; } // the last man standing
+                                                    // return false
 
 template <class... Args, class F>
 constexpr auto requires(F&&) {
@@ -886,7 +883,7 @@ void forward(T& t, std::string_view data) {
 | Expressiveness | Type constraints for better error messages |
 | Loosely coupeled design | Inject all the things! (Policy Design) |
 | Performance | Static dispatch by default <br />(based on concepts) |
-| Flexiblity | Dynamic dispatch using type erasure (based on the same concepts) |
+| Flexiblity | Dynamic dispatch using type-erasure (based on the same concepts) |
 | Testability | Automatic mocks injection <br />(based on the same concepts) |
 
 ---
@@ -896,7 +893,7 @@ void forward(T& t, std::string_view data) {
 
 ```cpp
 template<class T> concept Drawable =
-  requires (T t, std::ostream& out) { { t.draw(out) } -> void; };
+  requires(T t, std::ostream& out) { { t.draw(out) } -> void; };
 ```
   
 ```cpp
@@ -904,11 +901,11 @@ struct Square { void draw(std::ostream& out) { out << "Square"; } };
 struct Circle { void draw(std::ostream& out) { out << "Circle"; } };
 
 template<Drawable T>
-void f(T d) { d.draw(std::cout); }
+void print(T const& d) { d.draw(std::cout); }
 
 int main() {
-  f(Square{}); // prints Square
-  f(Circle{}); // prints Circle
+  print(Square{}); // prints Square
+  print(Circle{}); // prints Circle
 }
 ```
 
@@ -943,7 +940,7 @@ std::vector<Drawable> v3 = { Square{}, Circle{} };
 ---
 
 # Concepts based design
-> Dynamic polymorphism / type erasure
+> Dynamic polymorphism / type-erasure
 
 ```cpp
 class Drawable {
@@ -968,15 +965,21 @@ public:
 ---
 
 # Concepts based design
-> Dynamic polymorphism / type erasure
+> Dynamic polymorphism / type-erasure
 
 ```cpp
-void f(Drawable d) { d.draw(std::cout); }
+void print(Drawable const& d) { d.draw(std::cout); }
 
 int main() {
-  f(Square{}); // prints Square
-  f(Circle{}); // prints Circle
+  print(Square{}); // prints Square
+  print(Circle{}); // prints Circle
 }
+```
+
+```cpp
+std::vector<Drawable> v; // Okay
+v.push_back(Square{});   // Okay
+v.push_back(Circle{});   // Okay
 ```
 
 ---
@@ -994,12 +997,12 @@ template<class T> concept Drawable =
 struct Square { void draw(std::ostream& out) { out << "Square"; } };
 struct Circle { void draw(std::ostream& out) { out << "Circle"; } };
 
-void f(virtual Drawable d) { d.draw(std::cout); }
- // ~~~^~~~~ type erasure
+void print(virtual Drawable const& d) { d.draw(std::cout); }
+     // ~~~^~~~~ type-erasure
 
 int main() {
-  f(Square{}); // prints Square
-  f(Circle{}); // prints Circle
+  print(Square{}); // prints Square
+  print(Circle{}); // prints Circle
 }
 ```
 
@@ -1009,7 +1012,7 @@ int main() {
 > Dynamic polymorphism / Virtual concepts (C++2?)
 
 ```cpp
-std::vector<virtual Drawable> v; // Okay (type erasure)
+std::vector<virtual Drawable> v; // Okay (type-erasure)
 v.push_back(Square{});           // Okay
 v.push_back(Circle{});           // Okay
 ```
@@ -1037,7 +1040,7 @@ $class any { // type-erasure metaclass
       void (*delete_ptr)(void*);
       for... (const auto f: $any.functions()) { 
         -> {
-          f.ret_type() (*f.name())(void*, f.args()); 
+          idexpr(f).ret_type() (*idexpr(f)())(void*, idexpr(f).args()); 
         } 
       }
     } 
@@ -1060,11 +1063,11 @@ template<class T> constexpr auto Drawable =
 struct Square { void draw(std::ostream& out) { out << "Square"; } };
 struct Circle { void draw(std::ostream& out) { out << "Circle"; } };
 
-void f(any<$(Drawable)>& d) { d.draw(std::cout); }
+void print(any<$(Drawable)> const& d) { d.draw(std::cout); }
 
 int main() {
-  f(Square{}); // prints Square
-  f(Circle{}); // prints Circle
+  print(Square{}); // prints Square
+  print(Circle{}); // prints Circle
 }
 ```
 
@@ -1372,14 +1375,14 @@ https://wg21.link/p0707r0
 
 # Summary
 
+> Allows well specified interfaces (precised documentation)
+
 > Provides better diagnostics
 
 > Simplify usage of SFINAE / enable_if
 > * Introspection by design / Optional interfaces
 
-> Well specified interfaces (precised documentation)
-
-> Can be emulated in C++14/C++17
+> Can be emulated in C++14/C++17 (So far!)
 > * `variable templates`/`constexpr`/`constexpr if`
 
 > C++20 is just the beginning
