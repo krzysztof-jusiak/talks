@@ -162,15 +162,22 @@ http://eel.is/c++draft/temp.constr
 > `std::enable_if` on steroids
 
 ```cpp
-template<bool Value>
-void foo() requires Value {}
+template<class> requires false
+void foo() {}
 ```
 
 ```cpp
-int main() {
-  foo<true>();  // Okay
-  foo<false>(); // Error: constraints not satisfied
-}
+foo<class AnyType>(); // Error: constraints not satisfied
+```
+
+```cpp
+template<bool Value> requires Value
+void bar() {}
+```
+
+```cpp
+bar<true>();  // Okay
+bar<false>(); // Error: constraints not satisfied
 ```
 
 > Note: requires-clause is part of the function signature
@@ -300,7 +307,7 @@ https://godbolt.org/g/MFxqWu
 
 ---
 
-# `Requires`
+# Requirements
 
 > Readability?
 
@@ -312,7 +319,7 @@ auto bar(T& t)
     { t.foo() } -> void;  
     requires Movable<T> or Same<T, int>;
   } {
-  return t.foo();
+  return foo(t);
 }
 ```
 
@@ -1299,8 +1306,7 @@ void forward(Socket, Socket);
 > long form
 
 ```cpp
-template<class T>
-void forward(T, T);
+template<class T> void forward(T, T);
 ```
 
 > **vs**
@@ -1312,8 +1318,7 @@ void forward(auto, auto);
 > long form
 
 ```cpp
-template<class T, class U>
-void forward(T, U);
+template<class T, class U> void forward(T, U);
 ```
 
 ---
@@ -1335,8 +1340,7 @@ template<Socket [T]> void forward(T, auto);
 > long form
 
 ```cpp
-template<class T, class U>
-void forward(T, U) requires Socket<T>;
+template<class T, class U> void forward(T, U) requires Socket<T>;
 ```
 
 ---
@@ -1353,8 +1357,7 @@ struct tcp_socket {
 > Metaclasses syntax
 
 ```cpp
-template<class T>
-Socket tcp_socket { };
+template<class T> Socket tcp_socket { };
 ```
 
 https://wg21.link/p0707r0
