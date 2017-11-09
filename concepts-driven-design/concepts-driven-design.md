@@ -43,7 +43,7 @@ Meeting C++ 2017
 > This talk is from user perspective
 > See Andrew Sutton talks for more details about concepts!
 
-> Concepts, although, merged into C++20 draft, are still a subject for future changes.
+> Concepts, although, merged into C++20 draft, are still a subject for future changes
 
 | Compiler | Version | Notes |
 | - | - | - |
@@ -58,7 +58,7 @@ Meeting C++ 2017
 
 <!-- page_number: true -->
 
-# Motivation - Well Specified Interfaces
+# Motivation - Well specified interfaces
 
 ```cpp
 template<class T>
@@ -69,15 +69,15 @@ const T& min(const T& a, const T& b) {
 
 > Precise documentation
 
-> * What's are the syntax requirements of `T`?
->	* compile-time - ___**concepts**___
+> * What's are the syntax requirements for `T`?
+>	* compile-time / ___**concepts**___
     
 > * What's are the semantics requirements for `min`?
->	* run-time - contracts, tests, manuals
+>	* run-time / contracts, tests, manuals
 
 ---
 
-# Motivation - Error Novel
+# Motivation - Compiler diagnostics
 
 ```cpp
 int main() {
@@ -166,7 +166,7 @@ int main() {
 ---
 
 # `Requires-expression`
-> prvalue expression of type bool
+> Expression of type bool
   `requires ( [parameters] ) { requirements }		`
 
 ```cpp
@@ -197,7 +197,7 @@ requires(T t) { // nested requirement
 
 ```cpp
 template<class T>
-constexpr auto foo(T&& x)
+constexpr auto foo(T&& x) // SFINAE context
   requires requires(T t) { t.bar(); }
 { return x.bar(); }
 ```
@@ -354,7 +354,7 @@ concept Fooable =           // named concept
 ```
 
 > Note: Concepts are never instantiatied 
-> (therefore the concept keyword)
+> (therefore the `concept` keyword)
 
 ---
 
@@ -367,7 +367,7 @@ concept Fooable =           // named concept
 template<class> class Bar {};
 ```
 
-> Requires expression (Long form)
+> Requires expression (long form)
 ```cpp
 template<class T> requires Fooable<T>;
 class Bar { };
@@ -570,6 +570,7 @@ int main() {
   stream.read_complete();
 }
 ```
+
 ---
 
 # Placeholders
@@ -1348,7 +1349,7 @@ https://wg21.link/p0707r0
 
 <!-- page_number: false -->
 
-# Concepts: Summary
+# Summary
 
 > Provides better diagnostics
 
