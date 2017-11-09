@@ -16,8 +16,6 @@ Meeting C++ 2017
 
 # Overview
 
-<font size="5">
-  
 <table>
 <tr><td>
   
@@ -43,8 +41,6 @@ Meeting C++ 2017
 
 </tr>
 </table>
-
-</font>
 
 ---
 
@@ -188,24 +184,25 @@ bar<false>(); // Error: constraints not satisfied
 > Expression of type bool
   `requires ( [parameters] ) { requirements }		`
 
+
 ```cpp
-requires(T) { // type requirement
-  typename T::value_type;  };
+// type requirement
+requires(T) { typename T::value_type;  };
 ```
 
 ```cpp
-requires(T t) { // simple requirement
-  t[typename T::value_type{}]; };
+// simple requirement
+requires(T t) { t[typename T::value_type{}]; };
 ```
 
 ```cpp
-requires(T t) { // compound requirement
-  { t.empty() } -> bool; }; // convertible to bool
+// compound requirement
+requires(T t) { { t.empty() } -> bool; }; // convertible to bool
 ```
 
 ```cpp
-requires(T t) { // nested requirement
-  requires std::is_enum_v<typename T::value_type>; };
+// nested requirement
+requires(T t) { requires std::is_enum_v<typename T::value_type>; };
 ```
 
 > Note: Parameters -> `declvals`
@@ -903,14 +900,11 @@ template<class T> concept Drawable =
 ```
   
 ```cpp
-struct Square {
-  void draw(std::ostream& out) { out << "Square"; } };
-
-struct Circle {
-  void draw(std::ostream& out) { out << "Circle"; } };
+struct Square { void draw(std::ostream& out) { out << "Square"; } };
+struct Circle { void draw(std::ostream& out) { out << "Circle"; } };
 
 template<Drawable T>
-void f(T& d) { d.draw(std::cout); }
+void f(T d) { d.draw(std::cout); }
 
 int main() {
   f(Square{}); // prints Square
@@ -955,26 +949,40 @@ std::vector<Drawable> v3 = { Square{}, Circle{} };
 class Drawable {
   void* ptr_{}; // ??? Small Buffer Optimization (SBO)
   struct {
-    void (*draw)(std::ostream&);
+    void (*draw)(void*, std::ostream&);
     void (*delete_ptr)(void*);
-  } const* const vptr_{};
+  } const vptr_{}; // ??? Usually a pointer
   
 public:
  template<class T> Drawable(T t) // non explicit
   : ptr_{new T{t}}, vptr_{
-    [](void* self) { static_cast<T*>(self)->draw(); },
-    [](void* self) { delete static_cast<T*>(self); } } 
- { }
- ~Drawable() { vptr_->delete_ptr(ptr_); }
+      [](void* self, std::ostream& os) { static_cast<T*>(self)->draw(os); },
+      [](void* self) { delete static_cast<T*>(self); } 
+    } { }
+ ~Drawable() { vptr_.delete_ptr(ptr_); }
   
- void draw(std::ostream& os) { vptr_->draw(os); }
+ void draw(std::ostream& os) { vptr_.draw(ptr_, os); }
 };
 ```
 
 ---
 
 # Concepts based design
-> Dynamic polymorphism / Virtual concepts (C++2?)
+> Dynamic polymorphism / type erasure
+
+```cpp
+void f(Drawable d) { d.draw(std::cout); }
+
+int main() {
+  f(Square{}); // prints Square
+  f(Circle{}); // prints Circle
+}
+```
+
+---
+
+# Concepts based design
+> Dynamic polymorphism / Virtual concepts (C++2?) - [Dynamic Generic Programming with Virtual Concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
 
 ```cpp
 template<class T> concept Drawable =
@@ -983,14 +991,11 @@ template<class T> concept Drawable =
 ```
   
 ```cpp
-struct Square {
-  void draw(std::ostream& out) { out << "Square"; } };
+struct Square { void draw(std::ostream& out) { out << "Square"; } };
+struct Circle { void draw(std::ostream& out) { out << "Circle"; } };
 
-struct Circle {
-  void draw(std::ostream& out) { out << "Circle"; } };
-
-void f(virtual Drawable& d) { d.draw(std::cout); }
-    // Type erasure
+void f(virtual Drawable d) { d.draw(std::cout); }
+ // ~~~^~~~~ type erasure
 
 int main() {
   f(Square{}); // prints Square
@@ -1003,41 +1008,43 @@ int main() {
 # Concepts based design
 > Dynamic polymorphism / Virtual concepts (C++2?)
 
-> Signature requirement
-```cpp
-template<class T>
-concept Fooable = requires() {
-  auto T::foo() -> void; // NOT C++20!
-};
-```
-
-[Dynamic Generic Programming with Virtual Concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)
-
-> Note: Virtual concepts aren't part of C++20
-
----
-
-# Concepts based design
-> Dynamic polymorphism / Virtual concepts (C++2?)
-
 ```cpp
 std::vector<virtual Drawable> v; // Okay (type erasure)
 v.push_back(Square{});           // Okay
 v.push_back(Circle{});           // Okay
 ```
 
-> 100% value semantics / Stack based / Small buffer optimization (SBO)
+> No inheritance
+> No heap
+> 100% value semantics
+> Might be inlined (Small buffer optimization - SBO)
 
-> Note: Might be also generated with Metaclasses (C++2?)
+---
+
+# Concepts based design
+> Dynamic polymorphism / Metaclasses (C++2?) - https://wg21.link/p0707r0
+
 
 ```cpp
-template<class T>           template<class T>
-any Foo                     $any { // metaclass
-  auto foo() -> void;         constexpr { ... }
-};                          };
+any Square { void draw(std::ostream& out) { out << "Square"; } };
 ```
 
-> https://wg21.link/p0707r0
+```cpp
+$class any { // type-erasure metaclass
+  void* ptr_{};
+  struct { 
+    constexpr {
+      void (*delete_ptr)(void*);
+      for... (const auto f: $any.functions()) { 
+        -> {
+          f.ret_type() (*f.name())(void*, f.args()); 
+        } 
+      }
+    } 
+  } const vptr_{};
+  ...
+};
+```
 
 ---
 
@@ -1050,11 +1057,8 @@ template<class T> constexpr auto Drawable =
 ```
   
 ```cpp
-struct Square {
-  void draw(std::ostream& out) { out << "Square"; } };
-
-struct Circle {
-  void draw(std::ostream& out) { out << "Circle"; } };
+struct Square { void draw(std::ostream& out) { out << "Square"; } };
+struct Circle { void draw(std::ostream& out) { out << "Circle"; } };
 
 void f(any<$(Drawable)>& d) { d.draw(std::cout); }
 
