@@ -239,7 +239,7 @@ to<Concept>(); //  👍 Okay
         keyboard: true,
 
         // Enable the slide overview mode
-        overview: true,
+        overview: false,
 
         // Vertical centering of slides
         center: true,
@@ -282,7 +282,7 @@ to<Concept>(); //  👍 Okay
         hideAddressBar: true,
 
         // Opens links in an iframe preview overlay
-        previewLinks: true,
+        previewLinks: false,
 
         // Transition style
         transition: 'convex', // none/fade/slide/convex/concave/zoom
@@ -320,6 +320,20 @@ to<Concept>(); //  👍 Okay
 				]
 			});
 
+      window.addEventListener("mousedown", handleClick, false);
+      window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
 		</script>
 
 	</body>
