@@ -51,45 +51,237 @@ Kris Jusiak, Quantlab Financial
 
 ----
 
-### Disclaimer: All prestented code compiles right now with a modern C++ compiler 👍
+### C++17 - Immediately-invoked function expression (IIFE)
+
+```cpp
+template <char... Cs>
+[[nodiscard]] constexpr auto operator""_c() {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return []<auto... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    return std::integral_constant<int,
+      ((std::pow(10, sizeof...(Ns) - Ns - 1) * (Cs - '0')) + ...)
+    >{};
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  } (std::make_index_sequence<sizeof...(Cs)>{});
+}
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+static_assert(std::is_same_v<std::integral_constant<int, 42>,
+              decltype(42_c)>);
+
+static_assert(42 == 42_c);
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+https://godbolt.org/z/SIH1FE
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+----
+
+### C++17 - Compile time interface
+
+```cpp
+template<class... Ts>
+struct tuple : std::tuple<Ts...> {
+  using std::tuple<Ts...>::tuple;
+
+  template<class I>
+  [[nodiscard]] constexpr decltype(auto) operator[](const I) const {
+    return std::get<I{}>(*this); 
+  }
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+template<class... Ts> tuple(Ts...) -> tuple<Ts...>;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  constexpr tuple t{42, [](auto x){ return x; }};
+  static_assert(42 == t[0_c]);
+  static_assert(42 == t[1_c](42));
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+https://godbolt.org/z/w3U1x4
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+boost::mp11
+
+```cpp
+template<class... Ts>
+constexpr auto unique_event_ptrs = list<Ts...>
+  | unique
+  | filter<is_base_of<event>>
+  | transform<add_pointer>;
+```
+
+```cpp
+struct event {};
+class foo : event {};
+class bar {};
+```
+
+```cpp
+static_assert(unique_event_ptrs<foo, bar> == list<foo*>);
+```
+
+https://godbolt.org/z/e8pMyp
 
 ----
 
 ### C++17 - Reflection
 
-<img src="images/cpp17_to_struct.png" style="width: 60%; background:none; border:none; box-shadow:none;" />
+```cpp
+struct any_type {
+  template<class T> constexpr operator T(); // non explicit
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-https://t.co/WvhxVdl4Rk
+```cpp
+template<class T>
+[[no_discard]] constexpr auto to_tuple(T&& t) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
-----
+```cpp
+  if constexpr(is_braces_constructible<T, any_type, any_type>{}) {
+    auto&& [p1, p2] = std::forward<T>(t);
+    return std::tuple(p1, p2);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
-### C++20 - compile-time interface
+```cpp
+  } else if constexpr(is_braces_constructible<type, any_type>{}) {
+    auto&& [p1] = std::forward<T>(t);
+    return std::tuple(p1);
+  } else {
+    return std::tuple{};
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
-<img src="images/cpp20_tuple_if.jpg" style="width: 75%; background:none; border:none; box-shadow:none;" />
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
-https://t.co/1Frs2RbNHJ
+```cpp
+struct foo {
+  int p1{};
+  short p2{};
+};
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
+auto tuple = to_tuple(foo{1, 2});
+static_assert(std::is_same<std::tuple<int, short>, decltype(tuple)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
+https://godbolt.org/z/BJH2SR
+<!-- .element: class="fragment" data-fragment-index="7" -->
 
 ----
 
 ### C++20 concepts - design by introspection 
 
-<img src="images/cpp20_design_by_introspection.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+```cpp
+template<class T>
+constexpr auto foo(T t) {
+  if constexpr(requires{ t.foo; }) {
+    return t.foo;
+  } else {
+    return 0;
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-https://t.co/dCn3lPG0Du
+```cpp
+constexpr struct { int foo{42}; } f;
+static_assert(42 == foo(f));
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+constexpr struct { int bar{42}; } b;
+static_assert(0 == foo(b));
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+https://godbolt.org/z/6HUiIu
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
-C++20 3. immediately invoked lambda with index_sequence and if constexpr
+###
+
+```cpp
+template<class T>
+struct foo_value {
+  static constexpr auto value = [] {
+    if constexpr(requires{ T{}.value; }) {
+      return T{}.value;
+    } else {
+      return 0;
+    }
+  }();
+};
+
+```cpp
+struct foo { int value{42}; };
+struct bar {};
+```
+
+```cpp
+static_assert(42 == foo_value<foo>::value);
+static_assert(0 == foo_value<bar>::value);
+```
+
+https://godbolt.org/z/j96MoL
 
 ----
 
-C++2X 4. jit<"decltype([]{})">
-Maybe: nicer mp11 interface with |
-Maybe: typename()
+### No macros testing framework
+
+```cpp
+int main() {
+  "should be zero"_test = [] {
+    expect("equal") << 42 == 99;
+  };
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+#### Output
+```cpp
+example.cpp:85[should be zero] equal [42 == 99]
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+https://godbolt.org/z/Eqv4-N
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
-## Let's embrace postmodern C++!
+## Let's embrace postmodern meta C++!
 
 ---
 
