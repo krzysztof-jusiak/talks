@@ -1,23 +1,23 @@
 <!doctype html>
 <html>
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-		<title>Postmodern Meta C++</title>
+    <title>Postmodern Meta C++</title>
 
-		<link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
     <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
     <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
     <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
     <link rel="stylesheet" href="extensions/css/custom.css">
 
-		<script>
-			var link = document.createElement( 'link' );
-			link.rel = 'stylesheet';
-			link.type = 'text/css';
-			link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
-			document.getElementsByTagName( 'head' )[0].appendChild( link );
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
 
       function set_address(self, remote, local) {
         if (window.location.search.match("local")) {
@@ -26,21 +26,21 @@
           self.href = remote;
         }
       }
-		</script>
+    </script>
 
-		<meta name="description" content="Dependency Injection - a 25-dollar term for a 5-cent concept">
-		<meta name="author" content="Kris Jusiak">
-		<meta name="apple-mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	</head>
+    <meta name="description" content="Dependency Injection - a 25-dollar term for a 5-cent concept">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
 
-	<body>
-		<div class="reveal">
-			<div class="slides">
+  <body>
+    <div class="reveal">
+      <div class="slides">
           <section data-markdown=""
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
-					<script type="text/template">
+          <script type="text/template">
 #### CppCon 2019
 
 # POSTMODERN META C++
@@ -51,178 +51,118 @@ Kris Jusiak, Quantlab Financial
 
 ----
 
-### C++17 - Immediately-invoked function expression (IIFE)
+### Disclaimer - All presented examples are valid/working 👍
 
-```cpp
-template <char... Cs>
-[[nodiscard]] constexpr auto operator""_c() {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+---
 
-```cpp
-  return []<auto... Ns>(std::index_sequence<Ns...>) {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+##### Powered by
 
-```cpp
-    return std::integral_constant<int,
-      ((std::pow(10, sizeof...(Ns) - Ns - 1) * (Cs - '0')) + ...)
-    >{};
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  } (std::make_index_sequence<sizeof...(Cs)>{});
-}
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-static_assert(std::is_same_v<std::integral_constant<int, 42>,
-              decltype(42_c)>);
-
-static_assert(42 == 42_c);
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-https://godbolt.org/z/SIH1FE
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
-----
-
-### C++17 - Compile time interface
-
-```cpp
-template<class... Ts>
-struct tuple : std::tuple<Ts...> {
-  using std::tuple<Ts...>::tuple;
-
-  template<class I>
-  [[nodiscard]] constexpr decltype(auto) operator[](const I) const {
-    return std::get<I{}>(*this); 
-  }
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-template<class... Ts> tuple(Ts...) -> tuple<Ts...>;
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-  constexpr tuple t{42, [](auto x){ return x; }};
-  static_assert(42 == t[0_c]);
-  static_assert(42 == t[1_c](42));
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-https://godbolt.org/z/w3U1x4
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-boost::mp11
-
-```cpp
-template<class... Ts>
-constexpr auto unique_event_ptrs = list<Ts...>
-  | unique
-  | filter<is_base_of<event>>
-  | transform<add_pointer>;
-```
-
-```cpp
-struct event {};
-class foo : event {};
-class bar {};
-```
-
-```cpp
-static_assert(unique_event_ptrs<foo, bar> == list<foo*>);
-```
-
-https://godbolt.org/z/e8pMyp
+<img src="images/cpp_logo.png" style="width: 10%; background:none; border:none; box-shadow:none;" />
+<img src="images/godbolt.jpg" style="width: 11%; background:none; border:none; box-shadow:none;" />
 
 ----
 
 ### C++17 - Reflection
 
 ```cpp
-struct any_type {
-  template<class T> constexpr operator T(); // non explicit
+struct foo {
+  int i{};
+  double d{};
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-template<class T>
-[[no_discard]] constexpr auto to_tuple(T&& t) {
+auto tuple = to_tuple(foo{.i = 4, .d = 2.});
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  if constexpr(is_braces_constructible<T, any_type, any_type>{}) {
-    auto&& [p1, p2] = std::forward<T>(t);
-    return std::tuple(p1, p2);
+static_assert(std::is_same_v<
+                std::tuple<int, double>,
+                decltype(tuple)
+              >);
+
+static_assert(4  == std::get<0>(tuple));
+static_assert(2. == std::get<1>(tuple));
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  } else if constexpr(is_braces_constructible<type, any_type>{}) {
-    auto&& [p1] = std::forward<T>(t);
-    return std::tuple(p1);
-  } else {
-    return std::tuple{};
-  }
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-struct foo {
-  int p1{};
-  short p2{};
-};
-```
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
-```cpp
-auto tuple = to_tuple(foo{1, 2});
-static_assert(std::is_same<std::tuple<int, short>, decltype(tuple)>{});
-```
-<!-- .element: class="fragment" data-fragment-index="6" -->
 
 https://godbolt.org/z/BJH2SR
 <!-- .element: class="fragment" data-fragment-index="7" -->
 
 ----
 
-### C++20 concepts - design by introspection 
+### C++17 - Compile time interface
+
+#### std::tuple
 
 ```cpp
-template<class T>
-constexpr auto foo(T t) {
-  if constexpr(requires{ t.foo; }) {
-    return t.foo;
-  } else {
-    return 0;
-  }
-}
+static_assert(4  == tuple[0_c] == tuple[int{}]);
+static_assert(2. == tuple[1_c] == tuple[double{}]);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+https://godbolt.org/z/w3U1x4
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+### C++17 - Compile time interface
+
+#### boost::mp11
+
+```cpp
+template<class... Ts>
+constexpr auto unique_foo_ptrs = list<Ts...>
+  | unique
+  | filter<is_same<foo>>
+  | transform<add_pointer>;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-constexpr struct { int foo{42}; } f;
-static_assert(42 == foo(f));
+class foo {};
+class bar {};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-constexpr struct { int bar{42}; } b;
-static_assert(0 == foo(b));
+static_assert(unique_foo_ptrs<foo, bar, foo> == list<foo*>);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+https://godbolt.org/z/e8pMyp
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+### C++20 concepts - design by introspection 
+
+```cpp
+constexpr auto f_i = [](auto t) -> int {
+  if constexpr (requires{ t.i; }) {
+    return t.i;
+  } else {
+    return {};
+  }
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+struct foo {
+  int i{};
+};
+static_assert(42 == f_i(foo{.i = 42}));
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+struct bar {
+  // int i{}; // no i
+};
+static_assert(0 == f_i(bar{}));
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -231,40 +171,12 @@ https://godbolt.org/z/6HUiIu
 
 ----
 
-###
-
-```cpp
-template<class T>
-struct foo_value {
-  static constexpr auto value = [] {
-    if constexpr(requires{ T{}.value; }) {
-      return T{}.value;
-    } else {
-      return 0;
-    }
-  }();
-};
-
-```cpp
-struct foo { int value{42}; };
-struct bar {};
-```
-
-```cpp
-static_assert(42 == foo_value<foo>::value);
-static_assert(0 == foo_value<bar>::value);
-```
-
-https://godbolt.org/z/j96MoL
-
-----
-
-### No macros testing framework
+### C++20 - No macros testing framework
 
 ```cpp
 int main() {
-  "should be zero"_test = [] {
-    expect("equal") << 42 == 99;
+  "should not be equal"_test = [] {
+    expect("diff") << 42 == 99;
   };
 }
 ```
@@ -272,7 +184,7 @@ int main() {
 
 #### Output
 ```cpp
-example.cpp:85[should be zero] equal [42 == 99]
+example.cpp:85[should not be equal] diff [42 == 99]
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -281,25 +193,69 @@ https://godbolt.org/z/Eqv4-N
 
 ----
 
-## Let's embrace postmodern meta C++!
+### C++20 - Immediately-invoked function expression (IIFE)
+
+```cpp
+constexpr auto sum = [](auto... args) {
+  return (0 + ... +
+    []<template<class...> class T, class... Ts>(T<Ts...> t) { 
+      return (0 + ... + t[Ts{}].i); 
+    }(to_tuple(args) |
+      filter([](auto t) { return requires { t.i; }; }) |
+      unique
+    ));
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+### C++20 - Immediately-invoked function expression (IIFE)
+
+```cpp
+struct foo {
+  struct { int i{}; } bar1;
+  struct { } bar2;
+  struct { int i{}; } bar3; 
+};
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+int main() {
+  "should sum over unique structs with i"_test = [] {
+    static_expect(4 + 2 == 
+      sum(foo{.bar1 = {.i = 4}, .bar3 = {.i = 2}})
+    );
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+https://godbolt.org/z/IEs3lF
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+## Let's embrace Postmodern Meta C++!
 
 ---
 
 #### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
-					</script>
-				</section>
+          </script>
+        </section>
 
-			</div>
-		</div>
+      </div>
+    </div>
 
-		<script src="reveal.js/lib/js/head.min.js"></script>
-		<script src="reveal.js/js/reveal.js"></script>
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
 
-		<script>
+    <script>
 
-			// Full list of configuration options available at:
-			// https://github.com/hakimel/reveal.js#configuration
-			Reveal.initialize({
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
 
         // Display controls in the bottom right corner
         controls: true,
@@ -386,17 +342,17 @@ https://godbolt.org/z/Eqv4-N
         parallaxBackgroundHorizontal: null,
         parallaxBackgroundVertical: null,
 
-				// Optional reveal.js plugins
-				dependencies: [
-					{ src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
-					{ src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
-					{ src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
-					{ src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
-					{ src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
-					{ src: 'reveal.js/plugin/notes/notes.js', async: true },
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
           { src: 'extensions/plugin/line-numbers/line-numbers.js' }
-				]
-			});
+        ]
+      });
 
       window.addEventListener("mousedown", handleClick, false);
       window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);
@@ -412,7 +368,7 @@ https://godbolt.org/z/Eqv4-N
         if(e.button === 0) Reveal.next();
         if(e.button === 2) Reveal.prev();
       }
-		</script>
+    </script>
 
-	</body>
+  </body>
 </html>
