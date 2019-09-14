@@ -98,12 +98,12 @@ https://godbolt.org/z/BJH2SR
 #### std::tuple
 
 ```cpp
-static_assert(4  == tuple[0_c] == tuple[int{}]);
-static_assert(2. == tuple[1_c] == tuple[double{}]);
+static_assert(4  == tuple[0_c] and 4  == tuple[int{}]);
+static_assert(2. == tuple[1_c] and 2. == tuple[double{}]);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-https://godbolt.org/z/w3U1x4
+https://godbolt.org/z/Mcdj1h
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
@@ -115,9 +115,9 @@ https://godbolt.org/z/w3U1x4
 ```cpp
 template<class... Ts>
 constexpr auto unique_foo_ptrs = list<Ts...>
-  | unique
   | filter<is_same<foo>>
   | transform<add_pointer>;
+  | unique
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -171,7 +171,7 @@ https://godbolt.org/z/6HUiIu
 
 ----
 
-### C++20 - No macros testing framework
+### C++20 - Testing framework (no macros)
 
 ```cpp
 int main() {
@@ -197,13 +197,36 @@ https://godbolt.org/z/Eqv4-N
 
 ```cpp
 constexpr auto sum = [](auto... args) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
   return (0 + ... +
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
     []<template<class...> class T, class... Ts>(T<Ts...> t) { 
       return (0 + ... + t[Ts{}].i); 
-    }(to_tuple(args) |
+    }
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+    (
+      to_tuple(args) |
       filter([](auto t) { return requires { t.i; }; }) |
       unique
-    ));
+    )
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  );
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -224,15 +247,15 @@ struct foo {
 ```cpp
 int main() {
   "should sum over unique structs with i"_test = [] {
-    static_expect(4 + 2 == 
-      sum(foo{.bar1 = {.i = 4}, .bar3 = {.i = 2}})
+    static_expect(
+      4 + 2 == sum(foo{.bar1 = {.i = 4}, .bar3 = {.i = 2}})
     );
   }
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
-https://godbolt.org/z/IEs3lF
+https://godbolt.org/z/5zEnBB
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
