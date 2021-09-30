@@ -5,7 +5,7 @@
 // (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 //
-#include <https://raw.githubusercontent.com/boost-experimental/ut/master/include/boost/ut.hpp>
+#include <boost/ut.hpp>
 #include <algorithm>
 #include <type_traits>
 #include <any>
@@ -31,41 +31,27 @@ using map_lookup = decltype(detail::map_lookup<TDefault, TKey, TPair>(static_cas
 
 template<class... Ts> struct inherit : Ts... {};
 
-
-template<class T>
-struct any_get : T {
-  using T::T;
-
-  template<class U>
-  constexpr U get() const {
-    return std::any_cast<U>(*this);
-  }
+struct any : std::any {
+  using std::any::any;
+  template<class U> constexpr explicit(false) operator U() const { return std::any_cast<U>(*this); }
 };
 
-template<fixed_string Str, class TValue = any_get<std::any>>
+template<fixed_string Str, class TValue>
 struct arg {
   static constexpr auto str = Str;
   TValue value{};
   template<class T> constexpr auto operator=(const T& t) { return arg<Str, T>{.value = t}; }
 };
 
-template<fixed_string Str> constexpr auto operator""_t() { return arg<Str, any_get<std::any>>{}; }
+template<fixed_string Str> constexpr auto operator""_t() { return arg<Str, any>{}; }
 
 template<class... Ts>
 struct namedtuple : std::tuple<Ts...> {
   using std::tuple<Ts...>::tuple;
-
-  template<class T> constexpr const auto& operator[](const T) const requires (not std::is_void_v<map_lookup<inherit<Ts...>, T::str, void, arg>>) {
-    using type = map_lookup<inherit<Ts...>, T::str, void, arg>;
-    return std::get<type>(*this).value;
-  }
-
-  template<class T> constexpr auto& operator[](const T) requires (not std::is_void_v<map_lookup<inherit<Ts...>, T::str, void, arg>>) {
-    using type = map_lookup<inherit<Ts...>, T::str, void, arg>;
-    return std::get<type>(*this).value;
-  }
+  template<class T, class TArg = map_lookup<inherit<Ts...>, T::str, void, arg>> constexpr const auto& operator[](const T) const requires (not std::is_void_v<TArg>) { return std::get<TArg>(*this).value; }
+  template<class T, class TArg = map_lookup<inherit<Ts...>, T::str, void, arg>> constexpr auto& operator[](const T) requires (not std::is_void_v<TArg>) { return std::get<TArg>(*this).value; }
 };
-template<class... Ts> namedtuple(Ts&&...) -> namedtuple<Ts...>;
+template<class... Ts> namedtuple(Ts...) -> namedtuple<Ts...>;
 
 int main() {
   using namespace boost::ut;
@@ -95,7 +81,7 @@ int main() {
       auto nt = namedtuple{"price"_t, "size"_t};
       nt["price"_t] = 12;
       nt["size"_t] = 34u;
-      expect(12_i == nt["price"_t].get<int>() and 34_u == nt["size"_t].get<unsigned int>());
+      expect(12_i == int(nt["price"_t]) and 34_u == unsigned(nt["size"_t]));
     };
   };
 }
