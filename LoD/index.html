@@ -43,7 +43,6 @@
       <div class="slides">
           <section data-markdown="">
           <script type="text/template">
-
 <a href="https://cppcon.org/"><img src="images/cppcon2021.png" style="width: 35%; background:none; border:none; box-shadow:none;" /></a>
 
 ---
@@ -53,7 +52,6 @@
 ---
 
 ###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
-
           </script>
           </section>
           <section data-markdown=""
@@ -85,9 +83,68 @@
 
 ==============================================================================
 
+Tell, don't ask!
+
+// bad
+```cpp
+singleton.get(); // service locator via signleton
+```
+
+service locator
+aka
+registry
+locator
+context
+manager
+handler
+...
+
+LoD - $25 dollars
+
+The Law of Demeter: Do Not Accept Candy From Strangers
+https://dzone.com/articles/demeters-lawhttps://dzone.com/articles/demeters-law
+
+
+Dot Counting Is Not The Point
+* https://haacked.com/archive/2009/07/14/law-of-demeter-dot-counting.aspx/
+
+
+goes well with DI
+
+DI - $25 dollater term for 5 cents concept
+
+Hollywood principle
+
+small tests
+testing -> TDD
+
+Carrying dependencies
+you should not know about anything you don't need
+
+don't copule to DI framework
+
+
+// testing
+mocking
+
+//carrying dependencies
+
+stupid vs solid
+
+//single responsiblity
+
+
+//depndency injection
+
+The Clean Code Talks - Don't Look For Things!
+* https://www.youtube.com/watch?v=RlfLCWKxHJ0
+
+
+==============================================================================
+
 ---
 
-## Let's !"only talk to our immediate friends"!
+## Let's !"only talk to our immediate friends"
 
 ---
 
