@@ -64,7 +64,7 @@
 
 * #### Motivation
 <!-- .element: class="fragment" data-fragment-index="1" -->
-* #### Implementation (Simplified / C++20)
+* #### Implementation
 <!-- .element: class="fragment" data-fragment-index="2" -->
 * #### Summary
 <!-- .element: class="fragment" data-fragment-index="5" -->
@@ -84,16 +84,82 @@
 
 ### Motivation
 
-```cpp
-```
-<!-- .element: class="fragment" -->
+> Python’s namedtuple was created to improve code readability by providing a way to access values using descriptive field names instead of integer indices, which most of the time don’t provide any context on what the values are. This feature also makes the code cleaner and more maintainable.
 
 ----
+
+Issues
+
+```cpp
+const auto x = 4;
+const auto y = 2;
+
+const auto t = std::tuple{x, y};
+```
+
+```cpp
+const auto x = std::get<int>(t); // compilation error
+```
+
+```cpp
+const auto y = std::get<0>(t);   // wrong value
+const auto x = std::get<1>(t);   // wrong value
+```
+
+```cpp
+const auto [y, x] = t;           // wrong values
+```
+
+Dreams
+
+```cpp
+std::cout << t;
+```
+
+```sh
+{x:4,y:2}
+```
+
+----
+
+```cpp
+to_json(t);
+```
+
+```json
+{
+  'x' : 4,
+  'y' : 2
+}
+```
+
+----
+
+```cpp
+std::vector<decltype(t)> ts{t};
+
+db.query("SELECT x, y FROM points", ts);
+```
+
+```sh
+id,x,y
+ 0,4,2
+```
+
+----
+
+```cpp
+const auto z = 'z';
+sizeof(std::tuple{x, z, y}); // sizeof(int, char, int) - 12
+sizeof(std::tuple{z, x, y}); // sizeof(char, int, int) -8
+```
+
+==============================================================================
 
 ### The Goal
 
 ```cpp
-01 const auto tuple = namedtuple{"price"_t = 42, "size"_t = 1'000};
+01 const auto tuple = named_tuple{"price"_t = 42, "size"_t = 1'000};
 ```
 <!-- .element: class="fragment" -->
 
@@ -109,6 +175,60 @@
    );
 ```
 <!-- .element: class="fragment" -->
+
+
+```cpp
+namedtuple point<"Point">("x, y"_t);
+Point = ("x"_t = 42, "y"_t = 99);
+```
+
+```cpp
+std::cout << Point; // x:42, y:99
+```
+
+----
+
+```cpp
+to_json(Point);
+```
+
+```cpp
+std::get<0>(t);
+std::get<1>(t);
+auto [x,y] = t;
+```
+
+```cpp
+flexebility
+namedtuple Person("name children"_);
+Person john{"John", std::array{"Mike", "Jane"}};
+
+----
+
+composition
+
+```cpp
+namedtuple t("a"_t, othertuple)
+```
+
+----
+
+namedtuple<default<variant<int, double>>("a, b, c"_t, default = std::variant<int, double>);
+
+namedtuple t("a, b, c"_ts, default = 42);
+last = (args...);
+```
+
+----
+
+performance
+
+```cpp
+namedtuple t1("a"_t = bool{}, b" = int{});
+namedtuple t2("a"_t = int{}, b" = bool{});
+```
+
+----
 
 ==============================================================================
 
@@ -237,7 +357,7 @@ template<class... Ts> namedtuple(Ts&&...) -> namedtuple<Ts...>;
 
 #### Full implementation at:
 
-* #### https://godbolt.org/z/G3d6anEsr
+* #### https://godbolt.org/z/753d8M6Wx
 <!-- .element: class="fragment" -->
 
 ==============================================================================
