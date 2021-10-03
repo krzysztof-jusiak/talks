@@ -60,14 +60,14 @@
 ### Circle - https://www.circle-lang.org
 
 ```cpp
-template<class... Ts> auto foo() {
+template<class... Ts> auto print_types() {
   ((std::cout << @type_string(Ts) << '\n'), ...);
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-foo<bool, int, float>();
+print_types<bool, int, float>();
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -97,7 +97,7 @@ int main() {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  foo<@pack_type(types)...>(); // bool int float
+  print_types<@pack_type(types)...>(); // bool int float
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -109,7 +109,7 @@ int main() {
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
 ```cpp
-  foo<@pack_type(types)...>(); // int float bool
+  print_types<@pack_type(types)...>(); // int float bool
 ```
 <!-- .element: class="fragment" data-fragment-index="6" -->
 
@@ -120,13 +120,17 @@ int main() {
 
 ----
 
-### That's a `<@meta>` rotate!
+---
 
 <img src="images/meta-rotate.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+---
+
+###### https://www.circle-lang.org | https://godbolt.org/z/qbE5xv7oG
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-### Let's @meta all the types!
-<!-- .element: class="fragment" data-fragment-index="2" -->
+
           </script>
         </section>
 

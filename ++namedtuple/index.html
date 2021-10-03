@@ -419,7 +419,186 @@ fixed_string(char const (&)[Size]) -> fixed_string<Size - 1>;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+----
+
+### Achievement Unlocked (First goal)
+
+### 👍
+
+<!-- .slide: data-background="green" -->
+
+----
+
+#### Concepts / C++20 / [C++draft/concepts](http://eel.is/c++draft/concepts)
+
+---
+
+* #### Type constraints (act like documentation for interfaces)
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+* #### Better error messages (Point Of Instantiation - POI)
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+* #### Faster compilation times (In comparison to Substitution Failure is Not an Error - SFINAE)
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+template<class T>
+concept Auto = true; // the least constraint concept (same as auto)
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+#### Design By Introspection - https://d.godbolt.org/z/n8e4de
+
+```cpp
+constexpr auto foo(auto v) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  if constexpr (requires{ v.foo; }) {
+    return v.foo;
+  } else {
+    return 0;
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+constexpr struct { int foo{42}; } f;
+static_assert(42 == foo(f));
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+constexpr struct { int bar{42}; } b;
+static_assert(0 == foo(b));
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+---
+
+##### Andrei Alexandrescu - https://www.youtube.com/watch?v=HdzwvY8Mo-w
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+Class Types in Non-Type Template Parameters
+http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0732r2.pdf
+
+----
+
+#### User Defined Literals (`UDL`) - [C++draft/over.literal](http://eel.is/c++draft/over.literal)
+
+<img src="images/over.literal.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+
+---
+
+```cpp
+constexpr auto operator""_i(int) -> int;
+```
+<!-- .element: class="fragment" -->
+
+<pre> -> <font color="salmon">error: invalid literal operator parameter type 'int',
+      did you mean 'unsigned long long'?</font></pre>
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+#### ut::""_i - User Defined Literals (`UDL`) - https://godbolt.org/z/cZsSK3
+
+```cpp
+template <char... Cs>
+[[nodiscard]] constexpr auto operator""_i() { // int
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return []<auto... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    return std::integral_constant<int,
+      ((std::pow(10, sizeof...(Ns) - Ns - 1)) * (Cs - '0')) + ...)
+    >{};
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }(std::make_index_sequence<sizeof...(Cs)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+static_assert(0_i  == 0);
+static_assert(42_i == 42);
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Immediately-Invoked Function Expression (`IIFE`) - https://godbolt.org/z/aM58T1
+
+```cpp
+template<auto N>
+constexpr auto unroll = [](auto expr) {
+  [expr]<auto ...Is>(std::index_sequence<Is...>) {
+    ((expr(), void(Is)), ...);
+  }(std::make_index_sequence<N>{});
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+int main() {
+  unroll<2>([]{ std::puts("C++Now 2021!"); });
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+.LC0: .string "C++Now 2021!"
+main:
+  sub     rsp, 8
+  mov     edi, OFFSET FLAT:.LC0
+  call    puts
+  mov     edi, OFFSET FLAT:.LC0
+  call    puts
+  xor     eax, eax
+  add     rsp, 8
+  ret
+```
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
 C++ 20 feature
+design by introspection
 
 ----
 
@@ -471,17 +650,12 @@ using map_lookup = decltype(detail::map_lookup<TDefault, TKey, TArg>(static_cast
 
 ```cpp
 namespace detail {
-template <class TDefault, fixed_string, template <fixed_string, class> class>
-auto map_lookup(...) -> TDefault;
-template <class, fixed_string TKey, template <fixed_string, class> class TArg,
-          class TValue>
-auto map_lookup(TArg<TKey, TValue>*) -> TArg<TKey, TValue>;
+  template <class TDefault, fixed_string, template <fixed_string, class> class>
+  auto map_lookup(...) -> TDefault;
 
-template <class TDefault, class, template <class, class> class>
-auto map_lookup(...) -> TDefault;
-template <class, class TKey, template <class, class> class TArg, class TValue>
-auto map_lookup(TArg<TKey, TValue>*) -> TArg<TKey, TValue>;
-}  // namespace detail
+  template <class, fixed_string TKey, template <fixed_string, class> class TArg, class TValue>
+  auto map_lookup(TArg<TKey, TValue>*) -> TArg<TKey, TValue>;
+}
 ```
 
 ----
@@ -616,7 +790,7 @@ struct tuple_element<N, namedtuple<Name, Ts...>> {
 ### Showcase
 
 ```cpp
-constexpr auto employee = namedtuple<"Employee">("name"_t, "age"_t, "title"_t);
+constexpr auto attendee = namedtuple<"Attendee">("name"_t, "age"_t, "title"_t);
 ```
 <!-- .element: class="fragment" -->
 
