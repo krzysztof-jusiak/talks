@@ -101,7 +101,7 @@ const auto t = std::tuple{x, y};
 <!-- .element: class="fragment" -->
 
 ```cpp
-const auto x = std::get<int>(t); // compilation error!
+const auto x = std::get<int>(t); // error, ambigious type!
 ```
 <!-- .element: class="fragment" -->
 
@@ -121,7 +121,7 @@ const auto [y, x] = t;           // wrong values!
 #### std::tuple | Issues
 
 ```cpp
-std::get<2>(t);                  // missing SFINAE friendiness!
+std::get<2>(t);                  // error, not SFINAE friendly!
 ```
 <!-- .element: class="fragment" -->
 
@@ -130,6 +130,7 @@ std::get<2>(t);                  // missing SFINAE friendiness!
 ```cpp
 constexpr auto t1 = std::tuple(42,  2, 'z');
 constexpr auto t2 = std::tuple(42, 'z', 2);
+
 static_assert(8 == sizeof(t1));
 static_assert(12 == sizeof(t2)); // oops, not packed!
 ```
@@ -141,15 +142,15 @@ static_assert(12 == sizeof(t2)); // oops, not packed!
 
 ```cpp
 constexpr auto t = tuple(x = 42, y = 2);
-static_assert(4 == t.x);
-static_assert(2 == t.y);
+static_assert(4 == t.x);         // access by name!
+static_assert(2 == t.y);         // access by name!
 ```
 <!-- .element: class="fragment" -->
 
 ---
 
 ```cpp
-std::cout << t;
+std::cout << t;                  // print it!
 ```
 <!-- .element: class="fragment" -->
 
@@ -163,7 +164,7 @@ std::cout << t;
 #### std::tuple | Dream
 
 ```cpp
-to_json(t);
+to_json(std::cout, t);           // json it!
 ```
 <!-- .element: class="fragment" -->
 
@@ -176,7 +177,7 @@ to_json(t);
 <!-- .element: class="fragment" -->
 
 ```cpp
-std::vector<decltype(t)> ts{t};
+std::vector<decltype(t)> ts{t};  // query it!
 
 db.query("SELECT x, y FROM points", ts);
 ```
@@ -193,7 +194,7 @@ id,x,y
 #### std::tuple | Dream
 
 ```cpp
-static_assert(requires { t.x; });
+static_assert(requires { t.x; }); // SFINAE friendly it!
 static_assert(requires { t.y; });
 static_assert(not requires { t.z; });
 ```
@@ -202,7 +203,8 @@ static_assert(not requires { t.z; });
 ```cpp
 constexpr auto t1 = tuple(x = 42, y = 2,   z = 'z');
 constexpr auto t2 = tuple(x = 42, z = 'z', y = 2);
-static_assert(8 == sizeof(t1));
+
+static_assert(8 == sizeof(t1));   // pack it!
 static_assert(8 == sizeof(t2));
 ```
 <!-- .element: class="fragment" -->
@@ -213,8 +215,10 @@ static_assert(8 == sizeof(t2));
 
 ```cpp
 constexpr auto t = tuple(x, y);
-t.x = 4;
-t.y = 2;
+
+t.x = 4; // modify it by name!
+t.y = 2; // modify it by name!
+
 static_assert(4 == t.x);
 static_assert(2 == t.y);
 ```
@@ -223,7 +227,8 @@ static_assert(2 == t.y);
 ---
 
 ```cpp
-constexpr auto t2 = tuple(t, z = 10);
+constexpr auto t2 = tuple(t, z = 10); // extend it!
+
 static_assert(4 == t.x);
 static_assert(2 == t.y);
 static_assert(10 == t.z);
@@ -249,8 +254,8 @@ constexpr auto t = namedtuple{"x"_t = 4, "y"_t = 2};
 <!-- .element: class="fragment" -->
 
 ```cpp
-static_assert(4 == t["x"_t]);
-static_assert(2 == t["y"_t]);
+static_assert(4 == t["x"_t]); // accsessable by name 👍
+static_assert(2 == t["y"_t]); // accsessable by name 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -259,7 +264,7 @@ static_assert(2 == t["y"_t]);
 #### The Goal vs the Reality
 
 ```cpp
-std::cout << t;
+std::cout << t;               // printable 👍
 ```
 
 <!-- .element: class="fragment" -->
@@ -273,7 +278,7 @@ std::cout << t;
 
 ```cpp
 constexpr auto t = namedtuple<"Point">{"x"_t = 4, "y"_t = 2};
-std::cout << t;
+std::cout << t;               // even nicer 👍
 ```
 
 <!-- .element: class="fragment" -->
@@ -288,7 +293,7 @@ Point{x:4,y:2}
 #### The Goal vs the Reality
 
 ```cpp
-to_json(t);
+to_json(std::cout, t);        // jsonable 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -307,13 +312,13 @@ to_json(t);
 #### The Goal vs the Reality
 
 ```cpp
-std::get<0>(t);  // still works but issues remain!
-std::get<1>(t);  // still works but issues remain!
+std::get<0>(t);  // still works but issues remain 👎
+std::get<1>(t);  // still works but issues remain 👎
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-auto [x, y] = t; // still works but issues remain!
+auto [x, y] = t; // still works but issues remain 👎
 ```
 <!-- .element: class="fragment" -->
 
@@ -323,8 +328,10 @@ auto [x, y] = t; // still works but issues remain!
 
 ```cpp
 constexpr auto t = namedtuple("x"_t, "y"_t);
-t["x"_t] = 4;
-t["y"_t] = 2;
+
+t["x"_t] = 4; // modifable by name 👍
+t["y"_t] = 2; // modifable by name 👍
+
 static_assert(4 == t["x"_t]);
 static_assert(2 == t["y"_t]);
 ```
@@ -334,9 +341,10 @@ static_assert(2 == t["y"_t]);
 
 ```cpp
 constexpr auto t2 = namedtuple(t, "z"_t = 10);
-static_assert(4 == t["x"_t]);
-static_assert(2 == t["y"_t);
-static_assert(10 == t["z"_t]);
+
+static_assert(4 == t["x"_t]);  // extendable 👍
+static_assert(2 == t["y"_t);   // extendable 👍
+static_assert(10 == t["z"_t]); // extendable 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -346,7 +354,7 @@ static_assert(10 == t["z"_t]);
 
 ```cpp
 static_assert(not [](auto tuple) {
-   return requires { t["z"_t];}(tuple) // SFINAE friendly!
+   return requires { t["z"_t];}(tuple) // SFINAE friendly 👍
 );
 ```
 <!-- .element: class="fragment" -->
@@ -356,8 +364,9 @@ static_assert(not [](auto tuple) {
 ```cpp
 constexpr auto t1 = namedtuple("x"_t = 42, "y"_t = 2,   "z"_t = 'z');
 constexpr auto t2 = namedtuple("x"_t = 42, "z"_t = 'z', "y"_t = 2);
-static_assert(8 == sizeof(t1));
-static_assert(8 == sizeof(t2));
+
+static_assert(8 == sizeof(t1)); // packed 👍
+static_assert(8 == sizeof(t2)); // packed 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -370,25 +379,33 @@ static_assert(8 == sizeof(t2));
 
 ----
 
+#### namedtuple
+
 ```cpp
 constexpr auto nt = namedtuple();
 static_assert(1u == sizeof(nt));
 ```
 <!-- .element: class="fragment" -->
 
+---
+
 ```cpp
 template<class... Ts>
-using namedtuple = std::tuple<Ts...>;
+using namedtuple = std::tuple<Ts...>; // ✔️
 ```
 <!-- .element: class="fragment" -->
 
 ----
+
+#### "name"_t
 
 ```cpp
 static_assert("name"sv == "name"_t);
 static_assert(not std::is_same_v<decltype("x"_t), decltype("y"_t)>);
 ```
 <!-- .element: class="fragment" -->
+
+---
 
 ```cpp
 template <auto Name>
@@ -403,17 +420,23 @@ error: template parameter list for literal operator must be 'char...'
 
 ----
 
-#### Class Types in Non-Type Template Parameters - [http://wg21.link/p0732]
+#### Class Types in Non-Type Template Parameters - [ https://wg21.link/p0732 ]
 
 <img src="images/udl.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
 
+<!-- .slide: data-background="darkblue" -->
+
 ----
+
+#### fixed_string
 
 ```cpp
 static_assert(""sv     == fixed_string(""));
 static_assert("name"sv == fixed_string("name"));
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
 
 ```cpp
 template <auto Size>
@@ -447,19 +470,29 @@ fixed_string(char const (&)[Size]) -> fixed_string<Size - 1>;
 
 ----
 
+#### "name"_t
+
 ```cpp
 template <fixed_string Name>
 constexpr auto operator""_t() { return Name; }
 ```
 <!-- .element: class="fragment" -->
 
+---
+
 ```cpp
-static_assert("name"sv == "name"_t);
-static_assert(not std::is_same_v<decltype("x"_t), decltype("y"_t)>);
+static_assert("name"sv == "name"_t); // ✔️
+
+static_assert(not std::is_same_v<
+                decltype("x"_t),
+                decltype("y"_t)
+              >); // ✔️
 ```
 <!-- .element: class="fragment" -->
 
 ----
+
+#### "name"_t = value
 
 ```cpp
 constexpr auto arg = ("name"_t = 42);
@@ -467,6 +500,8 @@ static_assert("name"sv == arg.name);
 static_assert(42 == arg.value);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
 
 ```cpp
 template<fixed_string Name, class TValue>
@@ -499,12 +534,16 @@ constexpr auto operator""_t() {
 
 ----
 
+#### namedtuple(...)
+
 ```cpp
 constexpr auto nt = namedtuple("x"_t = 42, "y"_t = 100);
-static_assert(42 == nt["x"_t]);
+static_assert(42  == nt["x"_t]);
 static_assert(100 == nt["y"_t]);
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
 
 ```cpp
 template <class... Ts>
@@ -514,8 +553,8 @@ struct namedtuple : Ts... { // since all Ts... will be unique
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  template <class T> constexpr auto& operator[](const T&); // modification
-  template <class T> constexpr const auto& operator[](const T&) const; // access
+  constexpr auto& operator[](const auto&);             // modification
+  constexpr const auto& operator[](const auto&) const; // access
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -528,10 +567,29 @@ namedtuple(Ts...) -> namedtuple<Ts...>;
 
 ----
 
+#### namedtuple[name]
+
 ```cpp
-template<class... Ts> struct inherit : Ts... {};
+[[nodiscard]] constexpr const auto& operator[](const auto& name) const {
+  // ... ?
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  static_cast<
+    const find_by_name_t<decltype(name), Ts...>&
+  >(*this).value;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### find_by_name_t : map_lookup / boost::mp11::map_find
 
 ```cpp
 static_assert(
@@ -544,7 +602,18 @@ static_assert(
     map_lookup<inherit<arg<"x", int>>, "x", void>
   >);
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+template<class... Ts> struct inherit : Ts... {};
+```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### map_lookup
 
 ```cpp
 template <class TDefault, fixed_string>
@@ -567,24 +636,30 @@ using map_lookup = decltype(
 
 Consider using `boost::mp11::mp_map_find` when dealing only with types
 
-#### Universal Template Parameters - [http://wg21.link/p1985]
+#### Universal Template Parameters - [ http://wg21.link/p1985 ]
+
+<!-- .slide: data-background="darkblue" -->
 
 ----
+
+#### namedtuple[name]
 
 ```cpp
 template <class T,
   class TArg = map_lookup<namedtuple, T::name, void>>
     requires(not std::is_void_v<TArg>) {
-[[nodiscard]] constexpr const auto& operator[](const T) const {
+[[nodiscard]] constexpr const auto& operator[](const T&) const {
   return static_cast<const TArg&>(*this).value;
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+---
+
 ```cpp
 constexpr auto nt = namedtuple("x"_t = 42, "y"_t = 100);
-static_assert(42 == nt["x"_t]);
-static_assert(100 == nt["y"_t]);
+static_assert(42  == nt["x"_t]); // ✔️
+static_assert(100 == nt["y"_t]); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -598,41 +673,59 @@ static_assert(100 == nt["y"_t]);
 
 ----
 
-#### Free features
+#### Just works...
 
 ```cpp
 constexpr auto nt1 = namedtuple("z"_t = 1'000);
 constexpr auto nt2 = namedtuple("x"_t = 42,
                                 "y"_t = 100, nt1); // composition
-static_assert(42    == nt["x"_t]);
-static_assert(100   == nt["y"_t]);
-static_assert(1'000 == nt["z"_t]);
+
+static_assert(42    == nt["x"_t]); // ✔️
+static_assert(100   == nt["y"_t]); // ✔️
+static_assert(1'000 == nt["z"_t]); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
 
 ```cpp
 constexpr auto nt1 = namedtuple("z"_t = 1'000);
 constexpr auto nt2 = namedtuple("x"_t = 42,
                                 "y"_t = 100,
                                 "nested"_t = nt1); // nesting
-static_assert(42    == nt["x"_t]);
-static_assert(100   == nt["y"_t]);
-static_assert(1'000 == nt[nested"_t]["z"_t]);
+
+static_assert(42    == nt["x"_t]);             // ✔️
+static_assert(100   == nt["y"_t]);             // ✔️
+static_assert(1'000 == nt["nested"_t]["z"_t]); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
+----
+
+#### Just works...
+
 ```cpp
 static_assert(not [](auto tuple) {
-   return requires { ["x"_t];}(tuple) // false -> SFINAE friendly
-)(nt1);
+  return requires { ["x"_t];}(tuple) // false -> SFINAE friendly
+)(nt1); // ✔️
 
 static_assert([](auto tuple) {
-   return requires { ["z"_t];}(tuple) // true -> SFINAE friendly
-)(nt1);
+  return requires { ["z"_t];}(tuple) // true -> SFINAE friendly
+)(nt1); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
+
+### Achievement Unlocked
+
+### 👍
+
+<!-- .slide: data-background="green" -->
+
+----
+
+#### Not working...
 
 ```cpp
 constexpr auto [x, y] = namedtuple("x"_t = 4, "y"_t = 2);
@@ -642,12 +735,27 @@ static_assert(2 == y);
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```sh
-error: cannot decompose class type 'nt::namedtuple<...>'
+error: cannot decompose class type 'namedtuple<...>'
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
+---
+
+```cpp
+constexpr auto nt = namedtuple("x"_t = 4, "y"_t = 2);
+static_assert(4 == nt.get<0>());
+static_assert(2 == nt.get<1>());
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```sh
+error: not method `get` found in namedtuple
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
+
+#### auto [x, y] = namedtuple
 
 ```cpp
 namespace std {
@@ -664,7 +772,7 @@ struct tuple_size<namedtuple<Ts...>>
 ```cpp
 template <std::size_t N, class... Ts>
 struct tuple_element<N, namedtuple<Ts...>> {
-  using type =
+  using type = // missing get
     decltype(std::declval<namedtuple<Ts...>>().template get<N>());
 };
 ```
@@ -677,6 +785,8 @@ struct tuple_element<N, namedtuple<Ts...>> {
 
 
 ----
+
+#### namedtuple.get
 
 ```cpp
 template<class... Ts>
@@ -693,8 +803,8 @@ struct namedtuple : Ts... {
       (std::make_index_sequence<sizeof...(Ts)>{})
     );
 
-    return static_cast<typename 
-      map_lookup<decltype(id_type), N, void>())::value_type&
+    return static_cast<
+      typename map_lookup<decltype(id_type), N, void>())::value_type&
     >(*this).value;
   }
 ```
@@ -707,9 +817,11 @@ struct namedtuple : Ts... {
 
 ----
 
+#### auto [x, y] = namedtuple / namedtuple.get
+
 ```cpp
-static_assert(4 == nt.get<0>());
-static_assert(2 == nt.get<1>());
+static_assert(4 == nt.get<0>()); // ✔️
+static_assert(2 == nt.get<1>()); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -717,210 +829,10 @@ static_assert(2 == nt.get<1>());
 
 ```cpp
 constexpr auto [x, y] = namedtuple("x"_t = 4, "y"_t = 2);
-static_assert(4 == x); // ok
-static_assert(2 == y); // ok
+static_assert(4 == x); // ✔️
+static_assert(2 == y); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-```cpp
-constexpr auto nt = namedtuple<"Point">("x"_t = 4, "y"_t = 2);
-std::cout << t;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```sh
-error: no match for 'operator<<'
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-```cpp
-template<fixed_string Name, class... Ts>
-struct namedtuple : Ts... {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  friend std::ostream&
-  operator<<(std::ostream& os, const namedtuple& nt) {
-    os << std::string_view{Name} << '{';
-    [&]<auto... Ns>(std::index_sequence<Ns...>) {
-      ((os << (Ns ? "," : "")
-           << std::string_view{Ts::name} << ':'
-           << static_cast<
-                const map_lookup<namedtuple, Ts::name, void>&
-              >(nt).value),
-       ...);
-    }
-    (std::make_index_sequence<sizeof...(Ts)>{});
-    os << '}';
-    return os;
-  }
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-```cpp
-constexpr auto nt = namedtuple<"Point">("x"_t = 4, "y"_t = 2);
-std::cout << t;
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```sh
-Point{x:4,y:2}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-
-```cpp
-constexpr auto t1 = namedtuple("x"_t = 42, "y"_t = 2,   "z"_t = 'z');
-constexpr auto t2 = namedtuple("x"_t = 42, "z"_t = 'z', "y"_t = 2);
-static_assert(8 == sizeof(t1));
-static_assert(8 == sizeof(t2));
-```
-<!-- .element: class="fragment" -->
-
-packed - exercisie for the reader
-
-tip - boost::mp11::mp_sort
-
-----
-
-#### Concepts / C++20 / [C++draft/concepts](http://eel.is/c++draft/concepts)
-
----
-
-* #### Type constraints (act like documentation for interfaces)
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-* #### Better error messages (Point Of Instantiation - POI)
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-* #### Faster compilation times (In comparison to Substitution Failure is Not an Error - SFINAE)
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-template<class T>
-concept Auto = true; // the least constraint concept (same as auto)
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-----
-
-#### Design By Introspection - https://d.godbolt.org/z/n8e4de
-
-```cpp
-constexpr auto foo(auto v) {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  if constexpr (requires{ v.foo; }) {
-    return v.foo;
-  } else {
-    return 0;
-  }
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-constexpr struct { int foo{42}; } f;
-static_assert(42 == foo(f));
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-```cpp
-constexpr struct { int bar{42}; } b;
-static_assert(0 == foo(b));
-```
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
----
-
-##### Andrei Alexandrescu - https://www.youtube.com/watch?v=HdzwvY8Mo-w
-<!-- .element: class="fragment" data-fragment-index="6" -->
-
-<!-- .slide: data-background="darkblue" -->
-
-----
-
-
-----
-
-#### User Defined Literals (`UDL`) - [C++draft/over.literal](http://eel.is/c++draft/over.literal)
-
-<img src="images/over.literal.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-
----
-
-```cpp
-constexpr auto operator""_i(int) -> int;
-```
-<!-- .element: class="fragment" -->
-
-<pre> -> <font color="salmon">error: invalid literal operator parameter type 'int',
-      did you mean 'unsigned long long'?</font></pre>
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background="darkblue" -->
-
-----
-
-#### ut::""_i - User Defined Literals (`UDL`) - https://godbolt.org/z/cZsSK3
-
-```cpp
-template <char... Cs>
-[[nodiscard]] constexpr auto operator""_i() { // int
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  return []<auto... Ns>(std::index_sequence<Ns...>) {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    return std::integral_constant<int,
-      ((std::pow(10, sizeof...(Ns) - Ns - 1)) * (Cs - '0')) + ...)
-    >{};
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  }(std::make_index_sequence<sizeof...(Cs)>{});
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-static_assert(0_i  == 0);
-static_assert(42_i == 42);
-```
-<!-- .element: class="fragment" -->
 
 ----
 
@@ -963,67 +875,196 @@ main:
 
 ----
 
-C++ 20 feature
-design by introspection
+#### cout << namedtuple
+
+```cpp
+constexpr auto nt = namedtuple<"Point">("x"_t = 4, "y"_t = 2);
+std::cout << t;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```sh
+error: no match for 'operator<<'
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
-#### Full implementation at:
+#### cout << namedtuple
 
-* #### https://godbolt.org/z/753d8M6Wx
+```cpp
+template<fixed_string Name, class... Ts>
+struct namedtuple : Ts... {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  friend std::ostream&
+  operator<<(std::ostream& os, const namedtuple& nt) {
+    os << std::string_view{Name} << '{';
+    [&]<auto... Ns>(std::index_sequence<Ns...>) {
+      ((os << (Ns ? "," : "")
+           << std::string_view{Ts::name} << ':'
+           << static_cast<
+                const map_lookup<namedtuple, Ts::name, void>&
+              >(nt).value),
+       ...);
+    }
+    (std::make_index_sequence<sizeof...(Ts)>{});
+    os << '}';
+    return os;
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### cout << namedtuple
+
+```cpp
+constexpr auto nt = namedtuple<"Point">("x"_t = 4, "y"_t = 2);
+std::cout << t;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```sh
+Point{x:4,y:2}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+### Achievement Unlocked
+
+### 👍
+
+<!-- .slide: data-background="green" -->
+
+----
+
+#### packed:namedtuple
+
+```cpp
+constexpr auto t1 = namedtuple("x"_t = 42, "y"_t = 2,   "z"_t = 'z');
+constexpr auto t2 = namedtuple("x"_t = 42, "z"_t = 'z', "y"_t = 2);
+static_assert(8 == sizeof(t1));
+static_assert(8 == sizeof(t2));
+```
+<!-- .element: class="fragment" -->
+
+> Exercisie for the reader!
+<!-- .element: class="fragment" -->
+
+> TIP - boost::mp11::mp_sort by the sizeof of args...
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+#### Full implementation at
+
+ #### https://godbolt.org/z/753d8M6Wx
 <!-- .element: class="fragment" -->
 
 ==============================================================================
 
 ### Showcase
 
+----
+
 ```cpp
-constexpr auto attendee = namedtuple<"Attendee">("name"_t, "age"_t, "title"_t);
+auto employee = namedtuple<"Employee">("name"_t, "age"_t, "title"_t);
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
 std::vector<decltype(employee)> employees{};
-employees.emplace_back("John", 24, "Software Engineer");
-employees.emplace_back("Mike", 36, "Senior Software Engineer");
+employees.emplace_back("John", 22, "Software Engineer");
+employees.emplace_back("Michael", 36, "Senior Software Engineer");
 ```
 <!-- .element: class="fragment" -->
 
+----
+
 ```cpp
-to_json(employees);
+to_json(std::cout, employees);
 ```
 <!-- .element: class="fragment" -->
+
+---
 
 ```json
-{
-  [
-    "Employee" : {
-      "name"  : "John",
-      "age"   : 24,
-      "title" : "Software Engineer"
-    },
-    "Employee" : {
-      "name"  : "Mike",
-      "age"   : 36,
-      "title" : "Senior Software Engineer"
-    }
-  ]
-}
+[
+  {
+		"Employee": {
+			"name": "John",
+			"age": 22,
+			"title": "Software Engineer"
+		}
+	},
+	{
+		"Employee": {
+			"name": "Michael",
+			"age": 36,
+			"title": "Senior Software Engineer"
+		}
+	}
+]
 ```
 <!-- .element: class="fragment" -->
+
+----
 
 ```cpp
-constexpr auto employee = namedtuple<"Employee">(employee, "department"_t);
-employee
+constexpr auto to_json(std::ostream& os, const auto& vs) {
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
+```cpp
+  std::cout << '{' << '[';
+  for (const auto& v : vs) {
+    [&]<fixed_string Name, class... Ts>(
+      const nt::namedtuple<Name, Ts...>& nt) {
+      std::cout << "{\"" << std::string_view{Name} << "\" : {";
+      ((std::cout << '\"' << std::string_view{static_cast<const Ts&>(nt).name}
+                  << "\" :" << static_cast<const Ts&>(nt).value << ','), ...);
+      std::cout << '}';
+    }(v);
+    [&]<auto... Ns>(std::index_sequence<Ns...>) {
+      ((os << (Ns ? "," : "")
+           << std::string_view{Ts::name} << ':'
+           << static_cast<
+                const map_lookup<namedtuple, Ts::name, void>&
+              >(nt).value),
+       ...);
+    }
+    (std::make_index_sequence<sizeof...(Ts)>{});
+  }
+  std::cout << "]}";
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ==============================================================================
 
 ### Summary
 
 * #### Python-style namedtuple's are powerful and flexible
+<!-- .element: class="fragment" -->
+
+* #### Adding a feature from a scripting language to a system language imposes challenges
 <!-- .element: class="fragment" -->
 
 * #### C++20 simplifies template meta-programming
