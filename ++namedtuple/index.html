@@ -980,6 +980,8 @@ static_assert(8 == sizeof(t2));
 
 ----
 
+#### namedtuple
+
 ```cpp
 auto employee = namedtuple<"Employee">("name"_t, "age"_t, "title"_t);
 ```
@@ -992,7 +994,26 @@ employees.emplace_back("Michael", 36, "Senior Software Engineer");
 ```
 <!-- .element: class="fragment" -->
 
+---
+
+```cpp
+employees[0]["age"_t] = 23; // modify
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+assert(2u       == std::size(employees));   // ✔️
+assert("John"sv == employees[0]["name"_t]); // ✔️
+assert(23       == employees[0]["age"_t]);  // ✔️
+...
+```
+<!-- .element: class="fragment" -->
+
+
+
 ----
+
+#### namedtuple / to_json
 
 ```cpp
 to_json(std::cout, employees);
@@ -1006,7 +1027,7 @@ to_json(std::cout, employees);
   {
 		"Employee": {
 			"name": "John",
-			"age": 22,
+			"age": 23,
 			"title": "Software Engineer"
 		}
 	},
@@ -1023,32 +1044,42 @@ to_json(std::cout, employees);
 
 ----
 
+#### namedtuple / to_json
+
 ```cpp
 constexpr auto to_json(std::ostream& os, const auto& vs) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  std::cout << '{' << '[';
+  os << '{' << '[';
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
   for (const auto& v : vs) {
-    [&]<fixed_string Name, class... Ts>(
-      const nt::namedtuple<Name, Ts...>& nt) {
-      std::cout << "{\"" << std::string_view{Name} << "\" : {";
-      ((std::cout << '\"' << std::string_view{static_cast<const Ts&>(nt).name}
-                  << "\" :" << static_cast<const Ts&>(nt).value << ','), ...);
-      std::cout << '}';
-    }(v);
+    os << v.name << ": {";
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
     [&]<auto... Ns>(std::index_sequence<Ns...>) {
       ((os << (Ns ? "," : "")
-           << std::string_view{Ts::name} << ':'
-           << static_cast<
-                const map_lookup<namedtuple, Ts::name, void>&
-              >(nt).value),
+           << std::string_view{v.template get<Ns>().name} << ':'
+           << v.tempalte get<Ns>().value),
        ...);
-    }
-    (std::make_index_sequence<sizeof...(Ts)>{});
+    }(std::make_index_sequence<decltype(v)::size>{});
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+    os << "}";
   }
-  std::cout << "]}";
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  os << "]}";
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1056,6 +1087,14 @@ constexpr auto to_json(std::ostream& os, const auto& vs) {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+### Achievement Unlocked
+
+### 👍
+
+<!-- .slide: data-background="green" -->
 
 ==============================================================================
 
