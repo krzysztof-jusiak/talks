@@ -1066,9 +1066,9 @@ constexpr auto to_json(std::ostream& os, const auto& vs) {
     [&]<auto... Ns>(std::index_sequence<Ns...>) {
       ((os << (Ns ? "," : "")
            << std::string_view{v.template get<Ns>().name} << ':'
-           << v.tempalte get<Ns>().value),
+           << v.template get<Ns>().value),
        ...);
-    }(std::make_index_sequence<decltype(v)::size>{});
+    }(std::make_index_sequence<decltype(v)::size>{}); // std::apply?
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
