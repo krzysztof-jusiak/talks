@@ -1025,19 +1025,19 @@ to_json(std::cout, employees);
 ```json
 [
   {
-		"Employee": {
-			"name": "John",
-			"age": 23,
-			"title": "Software Engineer"
-		}
-	},
-	{
-		"Employee": {
-			"name": "Michael",
-			"age": 36,
-			"title": "Senior Software Engineer"
-		}
-	}
+    "Employee": {
+      "name": "John",
+      "age": 23,
+      "title": "Software Engineer"
+    }
+  },
+  {
+    "Employee": {
+      "name": "Michael",
+      "age": 36,
+      "title": "Senior Software Engineer"
+    }
+  }
 ]
 ```
 <!-- .element: class="fragment" -->
@@ -1052,34 +1052,33 @@ constexpr auto to_json(std::ostream& os, const auto& vs) {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  os << '{' << '[';
+  os << "[";
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
   for (const auto& v : vs) {
-    os << v.name << ": {";
+    os << '{' << v.name << ": {";
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-    [&]<auto... Ns>(std::index_sequence<Ns...>) {
-      ((os << (Ns ? ", " : "")
-           << v.template get<Ns>().name << ':'
-           << v.template get<Ns>().value), // that's why std::get!
-       ...);
-    }(std::make_index_sequence<decltype(v)::size>{}); // std::apply?
+    std::apply(
+      [&](const auto&... args) {
+        ((os << args.name << ':' << args.value), ...);
+      }, v
+    );
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
-    os << "}";
+    os << "}}";
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  os << "]}";
+  os << "]";
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
