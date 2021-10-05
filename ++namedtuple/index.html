@@ -1064,9 +1064,9 @@ constexpr auto to_json(std::ostream& os, const auto& vs) {
 
 ```cpp
     [&]<auto... Ns>(std::index_sequence<Ns...>) {
-      ((os << (Ns ? "," : "")
-           << std::string_view{v.template get<Ns>().name} << ':'
-           << v.template get<Ns>().value),
+      ((os << (Ns ? ", " : "")
+           << v.template get<Ns>().name << ':'
+           << v.template get<Ns>().value), // that's why std::get!
        ...);
     }(std::make_index_sequence<decltype(v)::size>{}); // std::apply?
 ```
