@@ -194,9 +194,9 @@ id,x,y
 #### std::tuple | Dream
 
 ```cpp
-static_assert(requires { t.x; }); // SFINAE friendly it!
-static_assert(requires { t.y; });
-static_assert(not requires { t.z; });
+static_assert(requires{ t.x; }); // SFINAE friendly it!
+static_assert(requires{ t.y; });
+static_assert(not requires{ t.z; });
 ```
 <!-- .element: class="fragment" -->
 
@@ -354,7 +354,7 @@ static_assert(10 == t["z"_t]); // extendable 👍
 
 ```cpp
 static_assert(not [](auto tuple) {
-   return requires { t["z"_t];}(tuple) // SFINAE friendly 👍
+   return requires{ t["z"_t]; }(tuple) // SFINAE friendly 👍
 );
 ```
 <!-- .element: class="fragment" -->
@@ -706,11 +706,11 @@ static_assert(1'000 == nt["nested"_t]["z"_t]); // ✔️
 
 ```cpp
 static_assert(not [](auto tuple) {
-  return requires { ["x"_t];}(tuple) // false -> SFINAE friendly
+  return requires{ ["x"_t]; }(tuple) // false -> SFINAE friendly
 )(nt1); // ✔️
 
 static_assert([](auto tuple) {
-  return requires { ["z"_t];}(tuple) // true -> SFINAE friendly
+  return requires{ ["z"_t]; }(tuple) // true -> SFINAE friendly
 )(nt1); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -971,7 +971,7 @@ static_assert(8 == sizeof(t2));
 
 #### Full implementation at
 
- #### https://godbolt.org/z/753d8M6Wx
+ #### https://godbolt.org/z/MfYKbnfW5
 <!-- .element: class="fragment" -->
 
 ==============================================================================
@@ -1052,13 +1052,13 @@ constexpr auto to_json(std::ostream& os, const auto& vs) {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  os << "[";
+  os << '[';
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
   for (const auto& v : vs) {
-    os << '{' << v.name << ": {";
+    os << '{' << v.name << ":{";
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -1078,7 +1078,7 @@ constexpr auto to_json(std::ostream& os, const auto& vs) {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  os << "]";
+  os << ']';
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
