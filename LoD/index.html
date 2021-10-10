@@ -212,30 +212,64 @@ class cppcon_talk {
 * Discover useful patterns/principles
 <!-- .element: class="fragment" -->
 
+==============================================================================
+
+#### What's the issue with `cppcon_talk` example?
+
+```
+obj1.obj2.obj3.objN...
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+aka
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+Manager::speakers().get_speakers().get(speaker).join(session);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+> Is breaking the law!
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+---
+
+> The law of demeter
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
 ----
 
-#### Goal - Flexible
+### SOLID vs 'STUPID'
 
-> "Nothing is certain in Software Development except for bugs and constatly changing requirements", Franklin rule
+<table><tr>
+ <td>
+  <table>
+    <tr><td><b>S</b></td><td><u>Single Responsibility</u></td></tr>
+    <tr><td><b>O</b></td><td>Open-close</td></tr>
+    <tr><td><b>L</b></td><td>Liskov substitution</td></tr>
+    <tr><td><b>I</b></td><td>Interface segregation</td></tr>
+    <tr><td><b>D</b></td><td><u>Dependency inversion</u></td></tr>
+  </table>
+ </td>
+
+ <td>
+  <table>
+    <tr><td><b>S</b></td><td><u>Singleton</u></td></tr>
+    <tr><td><b>T</b></td><td><u>Tight Coupling</u></td></tr>
+    <tr><td><b>U</b></td><td><u>Untestability</u></td></tr>
+    <tr><td><b>P</b></td><td>Premature Optimization</td></tr>
+    <tr><td><b>I</b></td><td>Indescriptive Naming</td></tr>
+    <tr><td><b>D</b></td><td>Duplication</td></tr>
+  </table>
+ </td>
+
+ </tr>
+</table>
 <!-- .element: class="fragment" -->
-
-----
-
-#### Goal - Scalable
-> Easy to extend, maintain, reuse
-<!-- .element: class="fragment" -->
-
-<img src="images/large_scale.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-----
-
-#### Goal - Testable
 
 > "If you liked it then you should have put a test on it", Beyonce rule
-<!-- .element: class="fragment" -->
 
-==============================================================================
+----
 
 ### BDD - REFACTOR
 
@@ -289,34 +323,6 @@ class cppcon_talk {
 <!-- .slide: data-background="green" -->
 
 ----
-
-### SOLID vs 'STUPID'
-
-<table><tr>
- <td>
-  <table>
-    <tr><td><b>S</b></td><td><u>Single Responsibility</u></td></tr>
-    <tr><td><b>O</b></td><td>Open-close</td></tr>
-    <tr><td><b>L</b></td><td>Liskov substitution</td></tr>
-    <tr><td><b>I</b></td><td>Interface segregation</td></tr>
-    <tr><td><b>D</b></td><td><u>Dependency inversion</u></td></tr>
-  </table>
- </td>
-
- <td>
-  <table>
-    <tr><td><b>S</b></td><td><u>Singleton</u></td></tr>
-    <tr><td><b>T</b></td><td><u>Tight Coupling</u></td></tr>
-    <tr><td><b>U</b></td><td><u>Untestability</u></td></tr>
-    <tr><td><b>P</b></td><td>Premature Optimization</td></tr>
-    <tr><td><b>I</b></td><td>Indescriptive Naming</td></tr>
-    <tr><td><b>D</b></td><td>Duplication</td></tr>
-  </table>
- </td>
-
- </tr>
-</table>
-<!-- .element: class="fragment" -->
 
 
 
