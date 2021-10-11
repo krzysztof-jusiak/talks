@@ -65,21 +65,20 @@
 <!-- .element: class="fragment" -->
 * #### Loose Coupling
 <!-- .element: class="fragment" -->
-    * #### Single Responsibility
-<!-- .element: class="fragment" -->
-    * #### Dependency Inversion/Injection
-<!-- .element: class="fragment" -->
     * #### Law of Demeter
-<!-- .element: class="fragment" -->
+  <!-- .element: class="fragment" -->
+      * #### [S]ingle Responsibility
+  <!-- .element: class="fragment" -->
+      * #### <i>[O][L][I]*</i>
+  <!-- .element: class="fragment" -->
+      * #### [D]ependency Inversion/Injection
+  <!-- .element: class="fragment" -->
 * #### Summary
 <!-- .element: class="fragment" -->
 
 ---
 
 ##### <p style="background-color:darkblue">`darkblue background - something to remember ✓`</p>
-<!-- .element: class="fragment" -->
-
-##### <p align="left" style="background-color:green">&nbsp;&nbsp;&nbsp;&nbsp;`green background - achivement unlocked 👍`</p>
 <!-- .element: class="fragment" -->
 
 ==============================================================================
@@ -136,14 +135,14 @@ class cppcon_talk {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-    // Untestability
-    Manager::speakers().get_speakers().get(speaker).join(session);
+   // Untestability
+   Manager::speakers().get_speakers().get(speaker).join(session);
 
-    // Duplication
-    (Manager::attendees().get_attendees().get(attendees).join(session),
-     ...);
+   // Duplication
+   (Manager::attendees().get_attendees().get(attendees).join(session),
+    ...);
 
-    return session.run();
+   return session.run();
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -214,14 +213,14 @@ class cppcon_talk {
 
 ==============================================================================
 
-#### What's the issue with `cppcon_talk` example?
+#### So, what's the issue with `cppcon_talk` example?
 
 ```
 obj1.obj2.obj3.objN...
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-aka
+##### `aka`
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
@@ -236,6 +235,51 @@ Manager::speakers().get_speakers().get(speaker).join(session);
 
 > The law of demeter
 <!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+### Law of demeter
+
+> Only talk to your immediate friends!
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+Manager::speakers().get_speakers().get(speaker).join(session); // 👎
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+```cpp
+speaker.join(session); // 👍
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+> Why that's so bad?
+
+* Tightly coupled
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+* Almost impossible to test
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+* Really hard to extend/reuse
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+> How to fix it?
+
+---
+
+* By applying `SOLID` principles the proper way!
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+* By applying Test Driven Development (TDD) / Behaviour Driven Development (BDD)!
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -258,8 +302,8 @@ Manager::speakers().get_speakers().get(speaker).join(session);
     <tr><td><b>T</b></td><td><u>Tight Coupling</u></td></tr>
     <tr><td><b>U</b></td><td><u>Untestability</u></td></tr>
     <tr><td><b>P</b></td><td>Premature Optimization</td></tr>
-    <tr><td><b>I</b></td><td>Indescriptive Naming</td></tr>
-    <tr><td><b>D</b></td><td>Duplication</td></tr>
+    <tr><td><b>I</b></td><td><u>Indescriptive Naming</u></td></tr>
+    <tr><td><b>D</b></td><td><u>Duplication</u></td></tr>
   </table>
  </td>
 
@@ -267,40 +311,12 @@ Manager::speakers().get_speakers().get(speaker).join(session);
 </table>
 <!-- .element: class="fragment" -->
 
-> "If you liked it then you should have put a test on it", Beyonce rule
-
 ----
 
-### BDD - REFACTOR
+### TDD/BDD
 
-```cpp
-class cppcon_talk {
- public:
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  auto run() {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    const auto before = attendees_ask();
-    speaker_talk("Kris", "Dependency Injection");
-    const auto after = attendees_ask();
-    return after - before;
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  }
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+> "If you liked it then you should have put a test on it", Beyonce rule
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -313,19 +329,6 @@ class cppcon_talk {
 <!-- .element: class="fragment" -->
 
 ----
-
-----
-
-### Achievement Unlocked
-
-### 👍
-
-<!-- .slide: data-background="green" -->
-
-----
-
-
-
 
 ### Let's make it `more` flexible 👌
 
@@ -427,14 +430,14 @@ class cppcon_talk {
 <!-- .element: class="fragment" -->
 ----
 
-### Dependency Injection (DI) ?
+### Dependency Injection (DI)?
 
 <img src="images/scared.jpeg" style="width: 60%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
 ----
 
-### Dependency Injection (DI) ?
+### Dependency Injection (DI)?
 
 ---
 
@@ -1252,45 +1255,20 @@ SOLID >> `STUPID`
 
 ----
 
-### Dependency Injection
+### Law of demeter
 
-* #### (+) Loosely coupled code
+* #### Promotes loosely coupled code
 <!-- .element: class="fragment" -->
-* #### (+) Easy to test code
+* #### Makes testing easier
 <!-- .element: class="fragment" -->
-* #### (-) Wiring Mess
+* #### TDD/BDD, Single Responsibility, Dependency Injecition/Inversion is the way to go!
 <!-- .element: class="fragment" -->
-
-----
-
-### Dependency Injection Libraries
-
-* #### (+) Promotes loosely coupled code
-<!-- .element: class="fragment" -->
-* #### (+) Removes / Cleanup the wiring mess
-<!-- .element: class="fragment" -->
-* #### (+) Simplify refactoring / Adding new features
-<!-- .element: class="fragment" -->
-* #### (+) Makes testing / enforcing guidelines easier
-<!-- .element: class="fragment" -->
-* #### (-) Steeper learning curve
-<!-- .element: class="fragment" -->
-
-----
-
-# 👍
-
-* #### DI is just a fancy term for using constructors (25 dollar concept...)
-<!-- .element: class="fragment" -->
-* #### DI can be easily misused
-<!-- .element: class="fragment" -->
-* #### DI doesn't require a library/framework
+* #### DI can be easily misused and doesn't require a library/framework
 <!-- .element: class="fragment" -->
 * #### DI library/framework helps with the wiring mess
 <!-- .element: class="fragment" -->
 
 <!-- .slide: data-background="darkblue" -->
-
 
 ==============================================================================
 

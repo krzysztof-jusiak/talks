@@ -570,7 +570,8 @@ namedtuple(Ts...) -> namedtuple<Ts...>;
 #### namedtuple[name]
 
 ```cpp
-[[nodiscard]] constexpr const auto& operator[](const auto& name) const {
+[[nodiscard]] 
+constexpr const auto& operator[](const auto& name) const {
   // ... ?
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -850,7 +851,7 @@ constexpr auto unroll = [](auto expr) {
 
 ```cpp
 int main() {
-  unroll<2>([]{ std::puts("C++Now 2021!"); });
+  unroll<2>([]{ std::puts("CppCon 2021!"); });
 }
 ```
 <!-- .element: class="fragment" -->
@@ -858,7 +859,7 @@ int main() {
 ---
 
 ```cpp
-.LC0: .string "C++Now 2021!"
+.LC0: .string "CppCon 2021!"
 main:
   sub     rsp, 8
   mov     edi, OFFSET FLAT:.LC0
