@@ -5,23 +5,22 @@
 // (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 //
-struct Manager {            // Indescriptive Naming
-  static auto& attendees(); // Singleton
-  static auto& speakers();  // Singleton
-  ...
-};
-
 struct Session {
-  [[gnu::always_inline]] // Premature Optimization
   auto run();
-  ...
 };
 
+template<Speaker TSpeaker, Attendees TAttendees>
 class cppcon_talk {
  public:
-  auto run(const auto& speaker, const auto&... attendees) {
+   cppcon_talk(TSpeaker& speaker, TAttendees& attendees)
+     : speaker_{speaker}, attendees{attendees}
+   { 
+     speaker.join(
+   }
 
-   // Untestability
+   auto run() {
+     speaker.jon
+
    Manager::speakers().get_speakers().get(speaker).join(session);
 
    // Duplication

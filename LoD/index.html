@@ -47,7 +47,7 @@
 
 ---
 
-## Law of Demeter: A Practical Guide to Loose Coupling
+## Law of Demeter: A <u>Practical</u> Guide to Loose Coupling
 
 ---
 
@@ -69,7 +69,7 @@
   <!-- .element: class="fragment" -->
       * #### [S]ingle Responsibility
   <!-- .element: class="fragment" -->
-      * #### <i>[O][L][I]*</i>
+      * #### // [O][L][I]
   <!-- .element: class="fragment" -->
       * #### [D]ependency Inversion/Injection
   <!-- .element: class="fragment" -->
@@ -97,31 +97,45 @@
 
 ----
 
-#### "`STUPID`" example 
-
-```cpp
-struct Manager {            // Indescriptive Naming
-  static auto& attendees(); // Singleton
-  static auto& speakers();  // Singleton
-  ...
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-struct Session {
-  [[gnu::always_inline]] // Premature Optimization
-  auto run();              
-  ...
-};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+### Design principles
 
 ----
 
-#### "`STUPID`" example 
+#### Flexible
+
+> "Nothing is certain in Software Development except for bugs and constatly changing requirements", Franklin rule
+<!-- .element: class="fragment" -->
+
+----
+
+#### Scalable
+
+> Easy to extend, maintain, reuse
+<!-- .element: class="fragment" -->
+
+<img src="images/large_scale.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### Testable
+
+> "If you liked it then you should have put a test on it", Beyonce rule
+<!-- .element: class="fragment" -->
+
+> "Test Your Software, or Your Users Will"
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+### Loose Coupling
+
+> By Example
+<!-- .element: class="fragment" -->
+
+----
+
+### KISS - ~~Keep it simple~~, 'STUPID'
 
 ```cpp
 class cppcon_talk {
@@ -130,33 +144,36 @@ class cppcon_talk {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  auto run(const auto& speaker, const auto&... attendees) {
+  [[gnu::always_inline]] auto run() {// Premature Optimization
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-   // Untestability
-   Manager::speakers().get_speakers().get(speaker).join(session);
-
-   // Duplication
-   (Manager::attendees().get_attendees().get(attendees).join(session),
-    ...);
-
-   return session.run();
+   // Indescriptive Naming - What's Manager responsibility?
+   // Singleton            - Manager::instance() - global variable
+   // Untestability        - How to fake Manager?
+   // Tight Coupling       - Can we change the speaker?
+   const auto& speaker = Manager::instance().get_speakers().get();
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
+
+
+```cpp
+   // Duplication - Manager::instance(), same access pattern
+   const auto& attendees = Manager::instance().get_attendees().get();
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
+   speaker.talk();
+   attendees.ask();
+```
+<!-- .element: class="fragment" data-fragment-index="6" -->
 
 ```cpp
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
- private:
-  std::shared_ptr<Session> session // Tight Coupling
-    = std::make_shared<Session>();
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 };
@@ -165,23 +182,24 @@ class cppcon_talk {
 
 ----
 
-#### "`STUPID`" example | Questions
+### KISS - ~~Keep it simple~~, 'STUPID'
 
-* Is it modern?
+* #### Flexible?
 <!-- .element: class="fragment" -->
-
-* Is it testible?
+  * ##### Not really: Tightly coupled
 <!-- .element: class="fragment" -->
-
-* Is it flexible?
+* #### Scalable?
 <!-- .element: class="fragment" -->
-
-* Is it fast?
+  * ##### Not really: Hard to extend
+<!-- .element: class="fragment" -->
+* #### Testable?
+<!-- .element: class="fragment" -->
+  * ##### Not really: Hard to fake
 <!-- .element: class="fragment" -->
 
 ----
 
-#### "`STUPID`" example | Problems
+### KISS - ~~Keep it simple~~, 'STUPID' | Problems
 
 * [S]ingleton
 <!-- .element: class="fragment" -->
@@ -203,38 +221,23 @@ class cppcon_talk {
 
 ----
 
-#### "`STUPID`" example | Goal
-
-* Refactor into more SOLID solution
-<!-- .element: class="fragment" -->
-
-* Discover useful patterns/principles
-<!-- .element: class="fragment" -->
-
-==============================================================================
-
-#### So, what's the issue with `cppcon_talk` example?
+### KISS - ~~Keep it simple~~, 'STUPID' | Problems
 
 ```
 obj1.obj2.obj3.objN...
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-##### `aka`
+###### `aka`
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-Manager::speakers().get_speakers().get(speaker).join(session);
+Manager::speakers().get_speakers().get()...
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 > Is breaking the law!
 <!-- .element: class="fragment" data-fragment-index="3" -->
-
----
-
-> The law of demeter
-<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
@@ -246,13 +249,9 @@ Manager::speakers().get_speakers().get(speaker).join(session);
 ---
 
 ```cpp
-Manager::speakers().get_speakers().get(speaker).join(session); // 👎
+Manager::instance().get_speakers().get() // Don't chain method calls 👎
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
-```cpp
-speaker.join(session); // 👍
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
 
 <!-- .slide: data-background="darkblue" -->
 
@@ -273,13 +272,34 @@ speaker.join(session); // 👍
 
 > How to fix it?
 
----
+----
+
+### Not a fix!
+
+```cpp
+  auto& manager       = Manager::instance();    // 👎
+  auto& speakers      = manager.get_speakers(); // 👎
+  const auto& speaker = speakers.get();         // 👎
+
+  speaker.talk();
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+### How to fix it?
 
 * By applying `SOLID` principles the proper way!
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 * By applying Test Driven Development (TDD) / Behaviour Driven Development (BDD)!
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+### Let's make it `more` flexible 👌
 
 ----
 
@@ -313,27 +333,6 @@ speaker.join(session); // 👍
 
 ----
 
-### TDD/BDD
-
-> "If you liked it then you should have put a test on it", Beyonce rule
-<!-- .element: class="fragment" -->
-
-----
-
-### 👍 Consider Test Driving your code (BDD/TDD)
-
-* BDD, uses automated examples to guide us towards **building the right thing**
-<!-- .element: class="fragment" -->
-
-* TDD uses unit tests to guides us towards **building it right**
-<!-- .element: class="fragment" -->
-
-----
-
-### Let's make it `more` flexible 👌
-
-----
-
 ### Single Responsibility Principle (SRP)
 
 <img style="background:none; border:none; box-shadow:none;" src="images/single_responsibility_principle.jpg" width="50%" />
@@ -361,10 +360,10 @@ class speaker {
 
 ```cpp
 /**
- * Responsibility: Participate
+ * Responsibility: Ask questions
  */
 class attendees {
-  std::vector names = {"Lenny", "Shea", ...}; // Tightly coupled
+  std::vector names = {"John", "Mike", ...}; // Tightly coupled
 
  public:
   auto ask();
@@ -390,10 +389,8 @@ class cppcon_talk {
 ```cpp
  public:
   auto run() {
-    const auto before = attendees.ask();
     speaker.talk();
-    const auto after = attendees.ask();
-    return after - before;
+    attendees.ask();
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -492,7 +489,7 @@ class cppcon_talk {
 
  public:
   auto run();
-}
+};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -508,7 +505,7 @@ class speaker {
 ```cpp
  public:
    // 👍 Dependency Injection!!!
-   explicit speaker(std::string_view name)
+   explicit speaker(std::string name)
      : name_{name}
    { }
 ```
@@ -559,14 +556,14 @@ int main() {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  const auto speaker = speaker{"Kris"};
-  const auto attendees = attendees{"Lenny", "Shea", ...};
+  const auto speaker   = speaker{"Kris"};
+  const auto attendees = attendees{"John", "Mike", ...};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  cppcon_talk track{speaker, attendees};
-  return track.run();
+  cppcon_talk talk{speaker, attendees};
+  talk.run();
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -605,7 +602,7 @@ class cppcon_talk {
  public:
   explicit cppcon_talk(speaker);
   auto run() {
-    const auto attendees = attendees{"Lenny", "Shea", ...}; // 👎
+    const auto attendees = attendees{"John", "Mike", ...}; // 👎
     // ...
   }
 };
@@ -615,7 +612,7 @@ class cppcon_talk {
 ```cpp
 int main() {
   const auto speaker = speaker{"Kris"};
-  cppcon_talk track{speaker};
+  cppcon_talk talk{speaker};
   // ...
 }
 ```
@@ -626,8 +623,8 @@ int main() {
 ```cpp
 int main() {
   const auto speaker = speaker{"Kris"};
-  const auto attendees = attendees{"Lenny", "Shea", ...};
-  cppcon_talk track{speaker, attendees};                    // 👍
+  const auto attendees = attendees{"John", "Mike", ...};
+  cppcon_talk talk{speaker, attendees};                    // 👍
   // ...
 }
 ```
@@ -643,18 +640,18 @@ int main() {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  cppcon_talk track1{{"Kris"}, {"Lenny", "Shea", ...}};
+  cppcon_talk talk1{{"Kris"}, {"John", "Mike", ...}};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  cppcon_talk track2{{"Timur"}, {"Ben", "Brian", ...}};
+  cppcon_talk talk2{{"Patrick"}, {"Ben", "Brian", ...}};
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  co_await track1.run();
-  co_await track2.run();
+  co_await talk1.run();
+  co_await talk2.run();
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -702,7 +699,7 @@ cppcon_talk() : speaker_{"Kris"} {}                     // 👎
 <!-- .element: class="fragment" -->
 
 ```cpp
-cppcon_talk(speaker speaker) : speaker_{speaker} {};    // 👍
+cppcon_talk(speaker speaker) : speaker_{speaker} {}     // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -740,7 +737,7 @@ speakers::instance().get("Kris")                              // 👎
 <!-- .element: class="fragment" -->
 
 ```cpp
-cppcon_talk(speaker speaker) : speaker_{speaker} {};          // 👍
+cppcon_talk(speaker speaker) : speaker_{speaker} {}           // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -774,12 +771,12 @@ class cppcon_talk {
 ### 👍 Consider passing initialized objects instead of parameters to initialize them
 
 ```cpp
-explicit cppcon_talk(string_view name) : speaker{name} {};     // 👎
+explicit cppcon_talk(string_view name) : speaker{name} {}      // 👎
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-explicit cppcon_talk(speaker speaker)  : speaker_{speaker} {}; // 👍
+explicit cppcon_talk(speaker speaker)  : speaker_{speaker} {}  // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -1090,6 +1087,18 @@ speaker(first_name, last_name);                             // 👍
 
 ----
 
+* #### DI Libraries
+  * #### [Boost].DI
+<!-- .element: class="fragment" -->
+  * #### Google.Fruit
+<!-- .element: class="fragment" -->
+  * #### Hypodermic
+<!-- .element: class="fragment" -->
+  * #### ...
+<!-- .element: class="fragment" -->
+
+----
+
 ### 👍 Consider using a DI framework to limit the boilerplate and remove the wiring mess
 
 <!-- .slide: data-background="darkblue" -->
@@ -1156,8 +1165,8 @@ class cppcon_talk {
 ```cpp
  public:
   explicit cppcon_talk(ServiceLocator& container)
-    : speaker_{container.resolve<SpeakerLike&>()}
-    , attendees_{container}
+    : speaker_{container.resolve<SpeakerLike>()}
+    , attendees_{container.resolve<AttendeesLike>()}
   { }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -1242,6 +1251,63 @@ cppcon_talk(speaker, attendees);                // 👍
 
 <!-- .slide: data-background="darkblue" -->
 
+----
+
+### Let's test it ✔️
+
+----
+
+### Behavior Driven Development (BDD) / [ut](https://github.com/boost-ext/ut)
+
+```cpp
+given("I have a cppcon talk") = [] {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  const auto speaker = fake_speaker{};
+  const auto attendees = fake_attendees{};
+  cppcon_talk talk{speaker, attendees};
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  when("I run the talk") = [&] {
+    talk.run();
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+  then("The speaker should give a talk") = [&] {
+    expect_call(speaker.talk);
+  };
+
+  then("The attendees should ask questions") = [&] {
+    expect_call(attendees.ask);
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+### 👍 Consider Test Driving your code (BDD/TDD)
+
+* BDD, uses automated examples to guide us towards **building the right thing**
+<!-- .element: class="fragment" -->
+
+* TDD uses unit tests to guides us towards **building it right**
+<!-- .element: class="fragment" -->
+
 ==============================================================================
 
 ## Summary
@@ -1265,14 +1331,25 @@ SOLID >> `STUPID`
 <!-- .element: class="fragment" -->
 * #### DI can be easily misused and doesn't require a library/framework
 <!-- .element: class="fragment" -->
-* #### DI library/framework helps with the wiring mess
+* #### DI libraries can help with the wiring mess but have gotchas
 <!-- .element: class="fragment" -->
 
 <!-- .slide: data-background="darkblue" -->
 
 ==============================================================================
 
-## Let's !"only talk to our immediate friends"
+### Law of Demeter: A Practical Guide to Loose Coupling
+
+---
+
+## Let's
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+## <b>!</b>
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+## "only talk to our immediate friends"
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
