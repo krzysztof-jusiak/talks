@@ -69,7 +69,7 @@
   <!-- .element: class="fragment" -->
       * #### [S]ingle Responsibility
   <!-- .element: class="fragment" -->
-      * #### // [O][L][I]
+      * #### ...
   <!-- .element: class="fragment" -->
       * #### [D]ependency Inversion/Injection
   <!-- .element: class="fragment" -->
@@ -144,7 +144,7 @@ class cppcon_talk {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  [[gnu::always_inline]] auto run() {// Premature Optimization
+  [[gnu::always_inline]] auto run() { // Premature Optimization
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -289,20 +289,6 @@ Manager::instance().get_speakers().get() // Don't chain method calls 👎
 
 ----
 
-### How to fix it?
-
-* By applying `SOLID` principles the proper way!
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-* By applying Test Driven Development (TDD) / Behaviour Driven Development (BDD)!
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-### Let's make it `more` flexible 👌
-
-----
-
 ### SOLID vs 'STUPID'
 
 <table><tr>
@@ -330,6 +316,20 @@ Manager::instance().get_speakers().get() // Don't chain method calls 👎
  </tr>
 </table>
 <!-- .element: class="fragment" -->
+
+----
+
+### How to fix it?
+
+* By applying `SOLID` principles the proper way!
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+* By applying Test Driven Development (TDD) / Behaviour Driven Development (BDD)!
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+### Let's fit it then, shall we 👌
 
 ----
 
@@ -548,120 +548,6 @@ class cppcon_talk {
 
 ----
 
-### Constructor DI - Wiring
-
-```cpp
-int main() {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  const auto speaker   = speaker{"Kris"};
-  const auto attendees = attendees{"John", "Mike", ...};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-  cppcon_talk talk{speaker, attendees};
-  talk.run();
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-### Wiring
-
-### 👍 Separates the creation logic from the business logic
-<!-- .element: class="fragment" -->
-
-> No raw `new/make_unique/etc...` except in the wiring
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background="darkblue" -->
-
-----
-
-### Composition root
-
-> A unique location in an application where modules are composed together
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-<!-- .slide: data-background="darkblue" -->
-
-----
-
-### Composition root
-
-```cpp
-class cppcon_talk {
- public:
-  explicit cppcon_talk(speaker);
-  auto run() {
-    const auto attendees = attendees{"John", "Mike", ...}; // 👎
-    // ...
-  }
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-int main() {
-  const auto speaker = speaker{"Kris"};
-  cppcon_talk talk{speaker};
-  // ...
-}
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
----
-
-```cpp
-int main() {
-  const auto speaker = speaker{"Kris"};
-  const auto attendees = attendees{"John", "Mike", ...};
-  cppcon_talk talk{speaker, attendees};                    // 👍
-  // ...
-}
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-----
-
-### Constructor DI - immediate benefits
-
-```cpp
-int main() {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  cppcon_talk talk1{{"Kris"}, {"John", "Mike", ...}};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-  cppcon_talk talk2{{"Patrick"}, {"Ben", "Brian", ...}};
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  co_await talk1.run();
-  co_await talk2.run();
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
 ### Constructor DI - gotchas
 
 <img src="images/traps.jpg" style="width: 40%; background:none; border:none; box-shadow:none;" />
@@ -846,7 +732,7 @@ class cppcon_talk {
 
 ----
 
-### 👍 Consider talking only to your immediate friends (Law of demeter)
+### 👍 Consider talking only to your immediate friends
 
 ```cpp
 speaker_{mgr.get_speakers().get("Kris")}      // 👎
@@ -856,6 +742,9 @@ speaker_{mgr.get_speakers().get("Kris")}      // 👎
 ```cpp
 speaker_{speaker};                            // 👍
 ```
+<!-- .element: class="fragment" -->
+
+> Law of demeter!
 <!-- .element: class="fragment" -->
 
 ----
@@ -931,7 +820,7 @@ speaker(first_name, last_name);                             // 👍
 
 ----
 
-### Let's make it `even more` flexible 👌
+### Let's make it `actually` flexible 👌
 
 ----
 
@@ -998,6 +887,116 @@ speaker(first_name, last_name);                             // 👍
 
 ----
 
+### Concepts (C++20)
+
+```cpp
+template <class TSpeaker>
+concept SpeakerLike = requires(TSpeaker speaker) {
+  { speaker.talk() } -> std::same_as<void>;
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+class regular_speaker { // No inheritance 👍
+ public:
+  regular_speaker(first_name, last_name);
+  void talk();
+};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Concepts (C++20)
+
+```cpp
+template<SpeakerLike TSpeaker, AttendeesLike TAttendees>
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+class cppcon_talk {
+  TSpeaker& speaker_;
+  TAttendees& attendees_;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+ public:
+  cppcon_talk(TSpeaker& speaker, TAttendees& attendees)
+    : speaker_{speaker}, attendees_{attendees}
+  { }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  auto run();
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+### Concepts (C++20) - Wiring
+
+```cpp
+int main() {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  SpeakerLike speaker     = regular_speaker{"Kris", "Jusiak"};
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  AttendeesLike attendees = awesome_attendees{"John", "Mike", ...};
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  auto talk               = cppcon_talk{speaker, attendees};
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+  talk.run();
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+### Wiring
+
+### 👍 Separates the creation logic from the business logic
+<!-- .element: class="fragment" -->
+
+> No raw `new/make_unique/etc...` except in the wiring
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+### Composition root
+
+> A unique location in an application where modules are composed together
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+> (aka wired together)
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+
+----
+
 ### Dependency Inversion Principle
 
 * #### Flexible?
@@ -1015,245 +1014,7 @@ speaker(first_name, last_name);                             // 👍
 
 ----
 
-### 👍 Consider using proper abstractions for your project/module (DIP)
-
-* Templates/Concepts
-<!-- .element: class="fragment" -->
-  * Dependencies known at compile time
-<!-- .element: class="fragment" -->
-* Type-Erasure
-<!-- .element: class="fragment" -->
-  * Run-Time dependency
-<!-- .element: class="fragment" -->
-* Inheritance
-<!-- .element: class="fragment" -->
-  * Never?
-<!-- .element: class="fragment" -->
-
-----
-
-### Wiring mess
-
-<img src="images/wiring.png" style="width: 90%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-* #### Boilerplate / Tedious
-<!-- .element: class="fragment" -->
-* #### Hard to maintain (Order is important)
-<!-- .element: class="fragment" -->
-* #### Multiple configurations (Release, Debug, Testing)
-<!-- .element: class="fragment" -->
-
-----
-
-### Wiring mess
-
-* #### Single Responsibility
-<!-- .element: class="fragment" -->
-  * #### A lot of classes =>
-<!-- .element: class="fragment" -->
-    * #### Dependency Inversion/Injection =>
-<!-- .element: class="fragment" -->
-      * #### Wiring mess =>
-<!-- .element: class="fragment" -->
-        * #### Hard to maintain + Deadlines / Pressure =>
-<!-- .element: class="fragment" -->
-          * #### Hacks / Workarounds =>
-<!-- .element: class="fragment" -->
-            * #### ~~SRP / DI~~
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background="darkblue" -->
-
------
-
-### Solution
-
-
-<img src="images/frameworks.png" style="width: 30%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-#### Simplify/Remove the wiring mess by Automating dependency injection
-<!-- .element: class="fragment" -->
-
-----
-
-### Dependency Injection Libraries
-
-<img src="images/cpp_logo.png" style="width: 30%; background:none; border:none; box-shadow:none;" />
-
-> Often called [`Inversion of Control Containers`](https://martinfowler.com/articles/injection.html)
-<!-- .element: class="fragment" -->
-
-----
-
-* #### DI Libraries
-  * #### [Boost].DI
-<!-- .element: class="fragment" -->
-  * #### Google.Fruit
-<!-- .element: class="fragment" -->
-  * #### Hypodermic
-<!-- .element: class="fragment" -->
-  * #### ...
-<!-- .element: class="fragment" -->
-
-----
-
-### 👍 Consider using a DI framework to limit the boilerplate and remove the wiring mess
-
-<!-- .slide: data-background="darkblue" -->
-
------
-
-### DI libraries - gotchas
-
-<img src="images/subscription_issues.jpg" style="width: 40%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-----
-
-### Using a Global injector/container
-
-```cpp
-class cppcon_talk {
-  std::unique_ptr<SpeakerLike> speaker_;
-  std::shared_ptr<AttendeesLike> attendees_;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
- public:
-  cppcon_talk()
-    : speaker_{
-        container::instance().resolve<std::unique_ptr<SpeakerLike>>()}
-    , attendees_{
-        container::instance().resolve<std::shared_ptr<SpeakerLike>>()}
-  { }
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-### 👍 Consider avoiding global injector/containers
-
-```cpp
-speaker_{container::instance().resolve<SpeakerLike>()} // 👎
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-speaker_{speaker}                                      // 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-### Using Service Locator/God Object
-
-```cpp
-class cppcon_talk {
-  SpeakerLike& speaker_;       // Tightly coupled
-  AttendeesLike& attendees_;   // Tightly coupled
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
- public:
-  explicit cppcon_talk(ServiceLocator& container)
-    : speaker_{container.resolve<SpeakerLike>()}
-    , attendees_{container.resolve<AttendeesLike>()}
-  { }
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-### 👍 Consider Service Locator to be antipattern
-
-```cpp
-explicit cppcon_talk(ServiceLocator& container) // 👎
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-explicit cppcon_talk(speaker& speaker)          // 👍
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background="darkblue" -->
-
-----
-
-### Coupling to a specific DI library
-
-```cpp
-class cppcon_talk {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
- public:
-   // Coupling to the DI framework via INJECT macro
-   INJECT(cppcon_talk(speaker, attendees));
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-### Coupling to a specific DI library
-
-```cpp
-class cppcon_talk {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
- public:
-   // Only shared_ptrs can be injected
-   cppcon_talk(std::shared_ptr<speaker>,
-               std::shared_ptr<attendees>));
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-### 👍 Consider not coupling code to a specific DI framework
-
-```cpp
-INJECT(cppcon_talk(speaker, attendees));        // 👎
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-cppcon_talk(speaker, attendees);                // 👍
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background="darkblue" -->
-
-----
-
-### Let's test it ✔️
+### And what about testing?
 
 ----
 
@@ -1265,9 +1026,9 @@ given("I have a cppcon talk") = [] {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  const auto speaker = fake_speaker{};
-  const auto attendees = fake_attendees{};
-  cppcon_talk talk{speaker, attendees};
+  auto speaker   = fake_speaker{};
+  auto attendees = fake_attendees{};
+  auto talk      = cppcon_talk{speaker, attendees};
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -1300,6 +1061,23 @@ given("I have a cppcon talk") = [] {
 
 ----
 
+### BDD/TDD
+
+* #### Flexible?
+<!-- .element: class="fragment" -->
+  * ##### Yes: Loosely coupled
+<!-- .element: class="fragment" -->
+* #### Scalable?
+<!-- .element: class="fragment" -->
+  * ##### Yes, if we considered easy testable code, scalable?
+<!-- .element: class="fragment" -->
+* #### Testable?
+<!-- .element: class="fragment" -->
+  * ##### Yes!
+<!-- .element: class="fragment" -->
+
+----
+
 ### 👍 Consider Test Driving your code (BDD/TDD)
 
 * BDD, uses automated examples to guide us towards **building the right thing**
@@ -1307,6 +1085,8 @@ given("I have a cppcon talk") = [] {
 
 * TDD uses unit tests to guides us towards **building it right**
 <!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
 
 ==============================================================================
 
@@ -1330,8 +1110,6 @@ SOLID >> `STUPID`
 * #### TDD/BDD, Single Responsibility, Dependency Injecition/Inversion is the way to go!
 <!-- .element: class="fragment" -->
 * #### DI can be easily misused and doesn't require a library/framework
-<!-- .element: class="fragment" -->
-* #### DI libraries can help with the wiring mess but have gotchas
 <!-- .element: class="fragment" -->
 
 <!-- .slide: data-background="darkblue" -->
