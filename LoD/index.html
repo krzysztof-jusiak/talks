@@ -235,7 +235,7 @@ obj1.obj2.obj3.objN...
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-Manager::speakers().get_speakers().get()...
+Manager::instance().get_speakers().get()...
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -292,6 +292,16 @@ Manager::instance().get_speakers().get() // Don't chain method calls 👎
 
 ----
 
+### How to fix it?
+
+* By applying `SOLID` principles the proper way!
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+* By applying Test Driven Development (TDD) / Behaviour Driven Development (BDD)!
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
 ### SOLID vs 'STUPID'
 
 <table><tr>
@@ -310,7 +320,7 @@ Manager::instance().get_speakers().get() // Don't chain method calls 👎
     <tr><td><b>S</b></td><td><u>Singleton</u></td></tr>
     <tr><td><b>T</b></td><td><u>Tight Coupling</u></td></tr>
     <tr><td><b>U</b></td><td><u>Untestability</u></td></tr>
-    <tr><td><b>P</b></td><td>Premature Optimization</td></tr>
+    <tr><td><b>P</b></td><td><u>Premature Optimization</u></td></tr>
     <tr><td><b>I</b></td><td><u>Indescriptive Naming</u></td></tr>
     <tr><td><b>D</b></td><td><u>Duplication</u></td></tr>
   </table>
@@ -322,17 +332,8 @@ Manager::instance().get_speakers().get() // Don't chain method calls 👎
 
 ----
 
-### How to fix it?
 
-* By applying `SOLID` principles the proper way!
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-* By applying Test Driven Development (TDD) / Behaviour Driven Development (BDD)!
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-### Let's fit it then, shall we 👌
+### Let's fix it then, shall we 👌
 
 ----
 
@@ -409,15 +410,15 @@ class cppcon_talk {
 
 * #### Flexible?
 <!-- .element: class="fragment" -->
-  * ##### Not really: Tightly coupled
+  * ##### Better but still coupled
 <!-- .element: class="fragment" -->
 * #### Scalable?
 <!-- .element: class="fragment" -->
-  * ##### Not really: Not don't Repeat Yourself (DRY)
+  * ##### A bit easier to change (ETC) as we can change components in separation
 <!-- .element: class="fragment" -->
 * #### Testable?
 <!-- .element: class="fragment" -->
-  * ##### Not really: Hard to fake
+  * ##### Still hard to fake but can be unit-tested
 <!-- .element: class="fragment" -->
 
 ----
@@ -1020,11 +1021,11 @@ int main() {
 <!-- .element: class="fragment" -->
 * #### Scalable?
 <!-- .element: class="fragment" -->
-  * ##### ???
+  * ##### ETC applies
 <!-- .element: class="fragment" -->
 * #### Testable?
 <!-- .element: class="fragment" -->
-  * ##### Yes: We can inject mocks/fakes/stubs
+  * ##### Yes: We can inject fakes/stubs/mocks
 <!-- .element: class="fragment" -->
 
 ----
@@ -1084,11 +1085,11 @@ given("I have a cppcon talk") = [] {
 <!-- .element: class="fragment" -->
 * #### Scalable?
 <!-- .element: class="fragment" -->
-  * ##### Yes, if we considered easy testable code, scalable?
+  * ##### Yes, BDD/TDD drives ETC
 <!-- .element: class="fragment" -->
 * #### Testable?
 <!-- .element: class="fragment" -->
-  * ##### Yes!
+  * ##### Well, Yeah!
 <!-- .element: class="fragment" -->
 
 ----
