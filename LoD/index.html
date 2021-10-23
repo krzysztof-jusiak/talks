@@ -907,7 +907,7 @@ speaker(first_name, last_name);                             // 👍
 
 ```cpp
 template <class TSpeaker>
-concept SpeakerLike = requires(TSpeaker speaker) {
+concept Speaker = requires(TSpeaker speaker) {
   { speaker.talk() } -> std::same_as<void>;
 };
 ```
@@ -927,7 +927,7 @@ class regular_speaker { // No inheritance 👍
 ### Concepts (C++20)
 
 ```cpp
-template<SpeakerLike TSpeaker, AttendeesLike TAttendees>
+template<Speaker TSpeaker, Attendees TAttendees>
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -962,17 +962,17 @@ int main() {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  SpeakerLike speaker     = regular_speaker{"Kris", "Jusiak"};
+  Speaker speaker     = regular_speaker{"Kris", "Jusiak"};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  AttendeesLike attendees = awesome_attendees{"John", "Mike", ...};
+  Attendees attendees = awesome_attendees{"John", "Mike", ...};
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  auto talk               = cppcon_talk{speaker, attendees};
+  auto talk           = cppcon_talk{speaker, attendees};
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
