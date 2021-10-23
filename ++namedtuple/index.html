@@ -448,7 +448,7 @@ struct fish : human?
 auto human = namedtuple{"height"_t, "weight"_t};
 auto employee = namedtuple{human, "salary"_t};
 
-auto print(const extends<"height", "weight">&);
+auto print(const extends<"height", "weight"> auto&);
 auto print(employee); // ✔️
 ```
 <!-- .element: class="fragment" -->
@@ -1094,7 +1094,7 @@ static_assert(8 == sizeof(t2));
 
 #### Full implementation at
 
- #### https://godbolt.org/z/GbaTMG6cd
+ #### https://godbolt.org/z/4889PqPGb
 <!-- .element: class="fragment" -->
 
 ==============================================================================
