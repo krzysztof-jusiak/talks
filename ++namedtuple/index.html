@@ -142,19 +142,30 @@ static_assert(12 == sizeof(t2)); // oops, not packed!
 
 ```cpp
 constexpr auto t = tuple(x = 42, y = 2);
-static_assert(4 == t.x);         // access by name!
-static_assert(2 == t.y);         // access by name!
+static_assert(4 == t.x); // access by name!
+static_assert(2 == t.y); // access by name!
 ```
 <!-- .element: class="fragment" -->
 
 ---
 
 ```cpp
-std::cout << t;                  // print it!
+using record_t    = decltype(tuple(x = int, y = int));
+constexpr auto t1 = record_t{x = 4, y = 2); // order-nameify it!
+constexpr auto t2 = record_t{y = 2, x = 4); // order-nameify it!
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+std::cout << t << '\n' << t1 << '\n' << t2; // print it!
 ```
 <!-- .element: class="fragment" -->
 
 ```sh
+{x:4,y:2}
+{x:4,y:2}
 {x:4,y:2}
 ```
 <!-- .element: class="fragment" -->
@@ -164,7 +175,7 @@ std::cout << t;                  // print it!
 #### std::tuple | Dream
 
 ```cpp
-to_json(std::cout, t);           // json it!
+to_json(std::cout, t); // json it!
 ```
 <!-- .element: class="fragment" -->
 
@@ -177,7 +188,7 @@ to_json(std::cout, t);           // json it!
 <!-- .element: class="fragment" -->
 
 ```cpp
-std::vector<decltype(t)> ts{t};  // query it!
+std::vector<decltype(t)> ts{t}; // query it!
 
 db.query("SELECT x, y FROM points", ts);
 ```
@@ -201,10 +212,20 @@ static_assert(not requires{ t.z; });
 <!-- .element: class="fragment" -->
 
 ```cpp
+static_assert(extends<decltype(t), "x", "y">); // conceptify it!
+static_assert(not extends<decltype(t), "x", "y", "z">);
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### std::tuple | Dream
+
+```cpp
 constexpr auto t1 = tuple(x = 42, y = 2,   z = 'z');
 constexpr auto t2 = tuple(x = 42, z = 'z', y = 2);
 
-static_assert(8 == sizeof(t1));   // pack it!
+static_assert(8 == sizeof(t1)); // pack it!
 static_assert(8 == sizeof(t2));
 ```
 <!-- .element: class="fragment" -->
@@ -254,6 +275,13 @@ constexpr auto t = namedtuple{"x"_t = 4, "y"_t = 2};
 <!-- .element: class="fragment" -->
 
 ```cpp
+using record_t    = decltype(namedtuple{"x"_t = int{}, "y"_t = int{}});
+constexpr auto t1 = record_t{"x"_t = 4, "y"_t = 2);
+constexpr auto t2 = record_t{"y"_t = 4, "x"_t = 4);
+```
+<!-- .element: class="fragment" -->
+
+```cpp
 static_assert(4 == t["x"_t]); // accsessable by name 👍
 static_assert(2 == t["y"_t]); // accsessable by name 👍
 ```
@@ -264,12 +292,14 @@ static_assert(2 == t["y"_t]); // accsessable by name 👍
 #### The Goal vs the Reality
 
 ```cpp
-std::cout << t;               // printable 👍
+std::cout << t << '\n' << t1 << '\n' << t2; // printable 👍
 ```
 
 <!-- .element: class="fragment" -->
 
 ```sh
+{x:4,y:2}
+{x:4,y:2}
 {x:4,y:2}
 ```
 <!-- .element: class="fragment" -->
@@ -278,7 +308,7 @@ std::cout << t;               // printable 👍
 
 ```cpp
 constexpr auto t = namedtuple<"Point">{"x"_t = 4, "y"_t = 2};
-std::cout << t;               // even nicer 👍
+std::cout << t; // even nicer 👍
 ```
 
 <!-- .element: class="fragment" -->
@@ -293,7 +323,7 @@ Point{x:4,y:2}
 #### The Goal vs the Reality
 
 ```cpp
-to_json(std::cout, t);        // jsonable 👍
+to_json(std::cout, t); // jsonable 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -340,13 +370,22 @@ static_assert(2 == t["y"_t]);
 ---
 
 ```cpp
-constexpr auto t2 = namedtuple(t, "z"_t = 10);
+constexpr auto t2 = namedtuple(t, "z"_t = 10); // row polymorphism!
 
-static_assert(4 == t["x"_t]);  // extendable 👍
-static_assert(2 == t["y"_t);   // extendable 👍
-static_assert(10 == t["z"_t]); // extendable 👍
+static_assert(4  == t["x"_t]); // extensible 👍
+static_assert(2  == t["y"_t);  // extensible 👍
+static_assert(10 == t["z"_t]); // extensible 👍
 ```
 <!-- .element: class="fragment" -->
+
+----
+
+#### Row polymorphism / https://en.wikipedia.org/wiki/Row_polymorphism
+
+> Row polymorphism is a kind of polymorphism that allows one to write programs that are polymorphic on record field types (also known as rows, hence row polymorphism).
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
 
 ----
 
@@ -360,6 +399,16 @@ static_assert(not [](auto tuple) {
 <!-- .element: class="fragment" -->
 
 ---
+
+```cpp
+static_assert(extends<decltype(t), "x", "y">); // conceptified 👍
+static_assert(not extends<decltype(t), "x", "y", "z">);
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### The Goal vs the Reality
 
 ```cpp
 constexpr auto t1 = namedtuple("x"_t = 42, "y"_t = 2,   "z"_t = 'z');
@@ -718,6 +767,24 @@ static_assert([](auto tuple) {
 
 ----
 
+#### extends<Names...>
+
+```cpp
+template<class T, fixed_string... Names>
+concept extends = (requires(T t, arg<Names> arg) { t[arg]; } and ...);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(extends<decltype(t), "x", "y">);          // ✔️
+static_assert(not extends<decltype(t), "x", "y", "z">); // ✔️
+```
+<!-- .element: class="fragment" -->
+
+----
+
 ### Achievement Unlocked
 
 ### 👍
@@ -972,7 +1039,7 @@ static_assert(8 == sizeof(t2));
 
 #### Full implementation at
 
- #### https://godbolt.org/z/MfYKbnfW5
+ #### https://godbolt.org/z/GbaTMG6cd
 <!-- .element: class="fragment" -->
 
 ==============================================================================
