@@ -370,22 +370,13 @@ static_assert(2 == t["y"_t]);
 ---
 
 ```cpp
-constexpr auto t2 = namedtuple(t, "z"_t = 10); // row polymorphism!
+constexpr auto t2 = namedtuple(t, "z"_t = 10);
 
 static_assert(4  == t["x"_t]); // extensible 👍
 static_assert(2  == t["y"_t);  // extensible 👍
 static_assert(10 == t["z"_t]); // extensible 👍
 ```
 <!-- .element: class="fragment" -->
-
-----
-
-#### Row polymorphism / https://en.wikipedia.org/wiki/Row_polymorphism
-
-> Row polymorphism is a kind of polymorphism that allows one to write programs that are polymorphic on record field types (also known as rows, hence row polymorphism).
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background="darkblue" -->
 
 ----
 
@@ -405,6 +396,70 @@ static_assert(extends<decltype(t), "x", "y">); // conceptified 👍
 static_assert(not extends<decltype(t), "x", "y", "z">);
 ```
 <!-- .element: class="fragment" -->
+
+----
+
+#### Row polymorphism / https://en.wikipedia.org/wiki/Row_polymorphism
+
+> Row polymorphism is a kind of polymorphism that allows one to write programs that are polymorphic on record field types (also known as rows, hence row polymorphism).
+<!-- .element: class="fragment" -->
+
+```cpp
+constexpr auto print(const extends<"x", "y"> auto& t) {
+  std::cout << t["x"_t] << t["y"_t];
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+print(namedtuple("x"_t = 4, "y"_t = 2); // prints {x:4,y:2}
+print(namedtuple("x"_t = 9, "y"_t = 7, "z"_t = 1); // prints {x:9,y:7}
+print(namedtuple("x"_t = 4)); // error: constraint not satisfied!
+```
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+#### Subtyping
+
+```cpp
+struct human { int height; int weight; };
+struct employee : human { int salary; };
+
+auto print(const human&);
+auto print(employee{}); // ✔️
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+struct fish : human?
+```
+<!-- .element: class="fragment" -->
+
+---
+
+#### Row polymorphism
+
+```cpp
+auto human = namedtuple{"height"_t, "weight"_t};
+auto employee = namedtuple{human, "salary"_t};
+
+auto print(const extends<"height", "weight">&);
+auto print(employee); // ✔️
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto fish = namedtuple{"height"_t, "weight"_t, "type"_t);
+auto print(fish); // ✔️
+```
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
 
 ----
 
