@@ -282,21 +282,20 @@ Manager::instance().get_speakers().get() // Don't chain method calls 👎
 ### Not a fix!
 
 ```cpp
-   const auto* speaker = 
-     Manager::instance()->get_speakers()->get(); // 👎
+const auto* speaker = Manager::instance()->get_speakers()->get(); // 👎
 
-   speaker->talk();
+speaker->talk();
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
-  auto& manager       = Manager::instance();    // 👎
-  auto& speakers      = manager.get_speakers(); // 👎
-  const auto& speaker = speakers.get();         // 👎
+auto& manager       = Manager::instance();    // 👎
+auto& speakers      = manager.get_speakers(); // 👎
+const auto& speaker = speakers.get();         // 👎
 
-  speaker.talk();
+speaker.talk();
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
