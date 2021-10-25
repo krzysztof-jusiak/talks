@@ -658,7 +658,7 @@ class cppcon_talk {
 ```cpp
  public:
   // 👎 Leaky abstraction
-  explicit cppcon_talk(string_view name)
+  explicit cppcon_talk(std::string name)
    : speaker_{name}
   {}
 ```
@@ -675,7 +675,7 @@ class cppcon_talk {
 ### 👍 Consider passing initialized objects instead of parameters to initialize them
 
 ```cpp
-explicit cppcon_talk(string_view name) : speaker{name} {}      // 👎
+explicit cppcon_talk(std::string name) : speaker{name} {}      // 👎
 ```
 <!-- .element: class="fragment" -->
 
@@ -697,7 +697,7 @@ class cppcon_talk : speaker { // Tightly coupled to `speaker` API
 
 ```cpp
  public:
-  explicit cppcon_talk(string_view name) // Common with CRTP?
+  explicit cppcon_talk(std::string name) // Common with CRTP?
    : speaker{name}
   {}
 ```
@@ -771,7 +771,7 @@ speaker_{speaker};                            // 👍
 
 ```cpp
 // 👎 Weak API
-speaker(string_view first_name, string_view last_name);
+speaker(std::string first_name, std::string last_name);
 ```
 <!-- .element: class="fragment" -->
 
@@ -789,20 +789,9 @@ speaker{"Jusiak", "Kris"}; // 👎 Oops
 
 ### Strong types for strong interfaces
 
-<center>
-  <a href="https://www.youtube.com/watch?v=WVleZqzTw2k">
-    <img src="images/strong_types_for_strong_interfaces.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
-  </a>
-</center>
-<!-- .element: class="fragment" -->
-
-----
-
-### Strong types for strong interfaces
-
 ```cpp
-using first_name = named<string_view, "first name">;
-using last_name  = named<string_view, "last name">;
+using first_name = named<std::string, "first name">;
+using last_name  = named<std::string, "last name">;
 ```
 <!-- .element: class="fragment" -->
 
@@ -827,7 +816,7 @@ speaker{last_name{"Jusiak"}, first_name{"Kris"}}; // 👍 Compile error
 ### 👍 Consider using strong types
 
 ```cpp
-speaker(string_view first_name, string_view last_name);     // 👎
+speaker(std::string first_name, std::string last_name);     // 👎
 ```
 <!-- .element: class="fragment" -->
 
