@@ -676,87 +676,36 @@ namedtuple(Ts...) -> namedtuple<Ts...>;
 #### namedtuple[name]
 
 ```cpp
-[[nodiscard]]
-constexpr const auto& operator[](const auto& name) const {
-  // ... ?
+[[nodiscard]] constexpr auto operator[](auto name); // ?
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### namedtuple.get\<"..."\>
+
+```cpp
+  template<fixed_string> constexpr auto get(...) -> void { }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  static_cast<
-    const find_by_name_t<decltype(name), Ts...>&
-  >(*this).value;
+  template<fixed_string Name, class TValue>
+  [[nodiscard]] constexpr decltype(auto) get(arg<Name, TValue>* t) {
+    return (t->value);
+  }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### find_by_name_t : map_lookup / boost::mp11::map_find
-
-```cpp
-static_assert(
-  std::is_same_v<void,
-    map_lookup<inherit<arg<"x", int>>, "z", void>
-  >);
-
-static_assert(
-  std::is_same_v<arg<"x", int>,
-    map_lookup<inherit<arg<"x", int>>, "x", void>
-  >);
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-template<class... Ts> struct inherit : Ts... {};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-#### map_lookup
-
-```cpp
-template <class TDefault, fixed_string>
-auto map_lookup(...) -> TDefault; // not found
-
-template <class, fixed_string TKey class TValue>
-auto map_lookup(arg<TKey, TValue>*) -> arg<TKey, TValue>; // found
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-template <class T, fixed_string TKey, class TDefault>
-using map_lookup = decltype(
-  detail::map_lookup<TDefault, TKey, T>(static_cast<T*>(nullptr))
-);
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-----
-
-Consider using `boost::mp11::mp_map_find` when dealing only with types
-
-#### Universal Template Parameters - [ http://wg21.link/p1985 ]
-
-<!-- .slide: data-background="darkblue" -->
 
 ----
 
 #### namedtuple[name]
 
 ```cpp
-template <class T,
-  class TArg = map_lookup<namedtuple, T::name, void>>
-    requires(not std::is_void_v<TArg>) {
-[[nodiscard]] constexpr const auto& operator[](const T&) const {
-  return static_cast<const TArg&>(*this).value;
+template <class T>
+[[nodiscard]] constexpr auto operator[](T) ->
+  decltype(get<T::name>(this) { // SFINAE friendly
+    return get<T::name>(this);
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -911,7 +860,7 @@ struct tuple_element<N, namedtuple<Ts...>> {
 
 ----
 
-#### namedtuple.get
+#### namedtuple.get\<N\>
 
 ```cpp
 template<class... Ts>
@@ -920,17 +869,15 @@ struct namedtuple : Ts... {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  template <std::size_t N> auto& get() {
-    using id_type_t = dectype(
-      []<auto... Ns>(std::index_sequence<Ns...>) {
-        return inherit<arg<Ns, Ts>...>{};
+  template <std::size_t N> decltype(auto) get() {
+    return []<auto I, auto... Is>(this auto& self, std::index_sequence< I, Is...>) {
+      if constexpr (N == I) {
+        return get<Ts::name>(this);
+      } else {
+        return self(std::index_sequence<Is...>{});
       }
-      (std::make_index_sequence<sizeof...(Ts)>{})
-    );
-
-    return static_cast<
-      typename map_lookup<decltype(id_type), N, void>())::value_type&
-    >(*this).value;
+    }
+    (std::make_index_sequence<sizeof...(Ts)>{});
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1030,9 +977,7 @@ struct namedtuple : Ts... {
     [&]<auto... Ns>(std::index_sequence<Ns...>) {
       ((os << (Ns ? "," : "")
            << std::string_view{Ts::name} << ':'
-           << static_cast<
-                const map_lookup<namedtuple, Ts::name, void>&
-              >(nt).value),
+           << nt[Ts::name]),
        ...);
     }
     (std::make_index_sequence<sizeof...(Ts)>{});
@@ -1314,7 +1259,7 @@ int main() {
 #### benchmark / namedtuple
 
 ```cpp
-#include <namedtuple>
+#include <namedtuple.hpp>
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 

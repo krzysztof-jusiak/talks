@@ -56,6 +56,17 @@ struct namedtuple : Ts... {
     return (t->value);
   }
 
+  template <std::size_t N> decltype(auto) get() {
+    return [this]<auto I, auto... Is>(this auto& self, std::index_sequence< I, Is...>) {
+      if constexpr (N == I) {
+        return get<Ts::name>(this);
+      } else {
+        return self(std::index_sequence<Is...>{});
+      }
+    }
+    (std::make_index_sequence<sizeof...(Ts)>{});
+  }
+
   template <class T>
   constexpr auto& operator[](const T) {
     return get<T::name>(this);
