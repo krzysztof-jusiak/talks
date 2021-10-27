@@ -68,6 +68,8 @@
 <!-- .element: class="fragment" data-fragment-index="2" -->
 * #### Showcase
 <!-- .element: class="fragment" data-fragment-index="2" -->
+* #### Benchmark
+<!-- .element: class="fragment" data-fragment-index="2" -->
 * #### Summary
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
@@ -674,7 +676,7 @@ namedtuple(Ts...) -> namedtuple<Ts...>;
 #### namedtuple[name]
 
 ```cpp
-[[nodiscard]] 
+[[nodiscard]]
 constexpr const auto& operator[](const auto& name) const {
   // ... ?
 ```
@@ -1132,8 +1134,6 @@ assert(23       == employees[0]["age"_t]);  // ✔️
 ```
 <!-- .element: class="fragment" -->
 
-
-
 ----
 
 #### namedtuple / to_json
@@ -1170,7 +1170,7 @@ to_json(std::cout, employees);
 #### namedtuple / to_json
 
 ```cpp
-constexpr auto to_json(std::ostream& os, const auto& vs) {
+constexpr auto to_json(const auto& os, const auto& vs) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1217,6 +1217,157 @@ constexpr auto to_json(std::ostream& os, const auto& vs) {
 ### 👍
 
 <!-- .slide: data-background="green" -->
+
+----
+
+#### namedtuple / from_json
+
+
+```json
+static constexpr auto json = R"(
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+[
+  {
+    "Employee": {
+      "name": "John",
+      "age": 23,
+      "title": "Software Engineer"
+    }
+  },
+  {
+    "Employee": {
+      "name": "Michael",
+      "age": 36,
+      "title": "Senior Software Engineer"
+    }
+  }
+]
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+)";
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### namedtuple / from_json
+
+```cpp
+constexpr auto from_json(const auto& json) -> decltype(employees);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+> Exercisie for the reader!!
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+### Benchmark
+
+----
+
+#### benchmark / std::tuple
+
+```cpp
+#include <tuple>
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+int main() {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  struct x{};
+  auto t = std::tuple{
+      0, "", true, 0u, .0, 'x', x{}, 0ull, short{}, 42.f,
+      0, "", true, 0u, .0, 'x', x{}, 0ull, short{}, 42.f,
+      ...
+      0, "", true, 0u, .0, 'x', x{}, 0ull, short{}, 42.f
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  std::get<0>(t);
+  std::get<1>(t);
+  ...
+  std::get<99>(t);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### benchmark / namedtuple
+
+```cpp
+#include <namedtuple>
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+int main() {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  struct x{};
+  auto t = namedtuple{
+      "0"_t = 0,
+      "1"_t = "",
+      "2"_t = true,
+      "3"_t = 0u,
+      "4"_t = .0,
+      "5"_t = 'x',
+      "6"_t = x{},
+      ...
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  t["0"_t];
+  t["1"_t];
+  ...
+  t["99"_t];
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### Results - compilation times / 100 elements
+
+| -std=c++20 -O3 | clang-13/libstdc++ | clang-13/libc++   | gcc-11/libstdc++ |
+|-|-|-|-|
+|     std::tuple |            2.524s  |           0.782s  |           2.372s |
+|     namedtuple |            1.191s  |           1.158s  |           1.923s |
+
+----
+
+#### Results - compilation times / 100 elements
+
+| -std=c++20 -O0 -g | clang-13/libstdc++ | clang-13/libc++  | gcc-11/libstdc++ |
+|-|-|-|-|
+|     std::tuple    |            2.329s  |           0.676s |           2.511s |
+|     namedtuple    |            1.241s  |           1.312s |           1.872s |
 
 ==============================================================================
 
