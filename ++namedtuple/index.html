@@ -265,7 +265,11 @@ static_assert(10 == t.z);
 ---
 
 > To make `++namedtuple` dream come true!
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<img src="images/dreams.jpg" style="width: 30%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
 
 ----
 
@@ -676,7 +680,8 @@ namedtuple(Ts...) -> namedtuple<Ts...>;
 #### namedtuple[name]
 
 ```cpp
-[[nodiscard]] constexpr auto operator[](auto name); // ?
+[[nodiscard]] constexpr auto& operator[](const auto&);             // ?
+[[nodiscard]] constexpr const auto& operator[](const auto&) const; // ?
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -756,13 +761,13 @@ static_assert(1'000 == nt["nested"_t]["z"_t]); // ✔️
 #### Just works...
 
 ```cpp
-static_assert(not [](auto tuple) {
-  return requires{ ["x"_t]; }(tuple) // false -> SFINAE friendly
-)(nt1); // ✔️
+static_assert(not [](auto t) {
+  return requires{ t["x"_t]; } // false -> SFINAE friendly
+}(nt1)); // ✔️
 
-static_assert([](auto tuple) {
-  return requires{ ["z"_t]; }(tuple) // true -> SFINAE friendly
-)(nt1); // ✔️
+static_assert([](auto t) {
+  return requires{ t["z"_t]; } // true -> SFINAE friendly
+}(nt1)); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -818,7 +823,7 @@ static_assert(2 == nt.get<1>());
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```sh
-error: not method `get` found in namedtuple
+error: not method `get<std::size_t>` found in namedtuple
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -979,11 +984,12 @@ struct namedtuple : Ts... {
 ```cpp
   friend std::ostream&
   operator<<(std::ostream& os, const namedtuple& nt) {
-    os << std::string_view{Name} << '{';
-    [&]<auto... Ns>(std::index_sequence<Ns...>) {
-      ((os << (Ns ? "," : "") << Ts::name << ':' << nt[Ts::name]), ...);
-    }
-    (std::make_index_sequence<sizeof...(Ts)>{});
+    os << Name << '{';
+    std::apply(
+      [&](const auto&... args) {
+        ((os << args.name << ':' << args.value), ...);
+      }, nt
+    );
     os << '}';
     return os;
   }
