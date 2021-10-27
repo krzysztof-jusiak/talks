@@ -48,27 +48,30 @@ struct namedtuple : Ts... {
   constexpr explicit(true) namedtuple(Ts... ts) : Ts{ts}... {}
   constexpr explicit(true) namedtuple(auto... ts) : Ts{ts}... {}
 
-  template<fixed_string>
-  constexpr auto get(...) -> void { }
-
   template<fixed_string Name_, class TValue>
   constexpr decltype(auto) get(arg<Name_, TValue>* t) {
     return (t->value);
   }
 
-  template <std::size_t N> decltype(auto) get() {
-    return [this]<auto I, auto... Is>(this auto& self, std::index_sequence< I, Is...>) {
-      if constexpr (N == I) {
-        return get<Ts::name>(this);
-      } else {
-        return self(std::index_sequence<Is...>{});
-      }
-    }
-    (std::make_index_sequence<sizeof...(Ts)>{});
+  template<std::size_t, fixed_string>
+  struct id_name {};
+
+  template<std::size_t N, fixed_string Name_>
+  constexpr decltype(auto) get(id_name<N, Name_>*) {
+    return get<Name_>(this);
   }
 
+  template <std::size_t N> decltype(auto) get() {
+    auto t = []<auto... Is>(std::index_sequence<Is...>) {
+      return namedtuple<"", id_name<Is, Ts::name>...>{id_name<Is,Ts::name>{}...};
+    }
+    (std::make_index_sequence<sizeof...(Ts)>{});
+    return get<N>(&t);
+  }
+
+
   template <class T>
-  constexpr auto& operator[](const T) {
+  constexpr auto operator[](const T) -> decltype(get<T::name>(this)) {
     return get<T::name>(this);
   }
 

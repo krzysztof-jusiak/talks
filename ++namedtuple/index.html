@@ -685,14 +685,9 @@ namedtuple(Ts...) -> namedtuple<Ts...>;
 #### namedtuple.get\<"..."\>
 
 ```cpp
-  template<fixed_string> constexpr auto get(...) -> void { }
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
   template<fixed_string Name, class TValue>
-  [[nodiscard]] constexpr decltype(auto) get(arg<Name, TValue>* t) {
-    return (t->value);
+  [[nodiscard]] constexpr decltype(auto) get(arg<Name, TValue>&& t) {
+    return (t.value);
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -704,8 +699,8 @@ namedtuple(Ts...) -> namedtuple<Ts...>;
 ```cpp
 template <class T>
 [[nodiscard]] constexpr auto operator[](T) ->
-  decltype(get<T::name>(this) { // SFINAE friendly
-    return get<T::name>(this);
+  decltype(get<T::name>(*this) { // SFINAE friendly
+    return get<T::name>(*this);
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -869,15 +864,26 @@ struct namedtuple : Ts... {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
+  template<std::size_t, fixed_string> struct id_name {};
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  template<std::size_t N, fixed_string Name>
+  constexpr decltype(auto) get(id_name<N, Name>&&) {
+    return get<Name>(*this);
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
   template <std::size_t N> decltype(auto) get() {
-    return []<auto I, auto... Is>(this auto& self, std::index_sequence< I, Is...>) {
-      if constexpr (N == I) {
-        return get<Ts::name>(this);
-      } else {
-        return self(std::index_sequence<Is...>{});
+    return get<N>(
+      []<auto... Is>(std::index_sequence<Is...>) {
+        return namedtuple{id_name<Is, Ts::name>{}...};
       }
-    }
-    (std::make_index_sequence<sizeof...(Ts)>{});
+      (std::make_index_sequence<sizeof...(Ts)>{})
+    );
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -975,10 +981,7 @@ struct namedtuple : Ts... {
   operator<<(std::ostream& os, const namedtuple& nt) {
     os << std::string_view{Name} << '{';
     [&]<auto... Ns>(std::index_sequence<Ns...>) {
-      ((os << (Ns ? "," : "")
-           << std::string_view{Ts::name} << ':'
-           << nt[Ts::name]),
-       ...);
+      ((os << (Ns ? "," : "") << Ts::name << ':' << nt[Ts::name]), ...);
     }
     (std::make_index_sequence<sizeof...(Ts)>{});
     os << '}';
