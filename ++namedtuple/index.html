@@ -88,7 +88,7 @@
 
 ### Motivation
 
-> Python’s namedtuple was created to improve code readability by providing a way to access values using descriptive field names instead of integer indices, which most of the time don’t provide any context on what the values are. This feature also makes the code cleaner and more maintainable.
+> Python’s namedtuple was created to improve code readability by providing a way to access values **using descriptive field names instead of integer indices**, which most of the time don’t provide any context on what the values are. This feature also makes the code cleaner and more maintainable.
 
 ----
 
@@ -130,8 +130,8 @@ std::get<2>(t);                  // error, not SFINAE friendly!
 ---
 
 ```cpp
-constexpr auto t1 = std::tuple(42,  2, 'z');
-constexpr auto t2 = std::tuple(42, 'z', 2);
+constexpr auto t1 = std::tuple(int{},  short{}, char{});
+constexpr auto t2 = std::tuple(int{},  char{},  short{});
 
 static_assert(8 == sizeof(t1));
 static_assert(12 == sizeof(t2)); // oops, not packed!
@@ -224,8 +224,8 @@ static_assert(not extends<decltype(t), "x", "y", "z">);
 #### std::tuple | Dream
 
 ```cpp
-constexpr auto t1 = tuple(x = 42, y = 2,   z = 'z');
-constexpr auto t2 = tuple(x = 42, z = 'z', y = 2);
+constexpr auto t1 = std::tuple(int{},  short{}, char{});
+constexpr auto t2 = std::tuple(int{},  char{},  short{});
 
 static_assert(8 == sizeof(t1)); // pack it!
 static_assert(8 == sizeof(t2));
@@ -472,8 +472,13 @@ auto print(fish); // ✔️
 #### The Goal vs the Reality
 
 ```cpp
-constexpr auto t1 = namedtuple("x"_t = 42, "y"_t = 2,   "z"_t = 'z');
-constexpr auto t2 = namedtuple("x"_t = 42, "z"_t = 'z', "y"_t = 2);
+constexpr auto t1 = namedtuple("
+  x"_t = int{}, "y"_t = short{}, "z"_t = char{}
+);
+
+constexpr auto t2 = namedtuple(
+  "x"_t = int{}, "z"_t = char{},  "y"_t = short{}
+);
 
 static_assert(8 == sizeof(t1)); // packed 👍
 static_assert(8 == sizeof(t2)); // packed 👍
@@ -561,9 +566,7 @@ struct fixed_string {
   constexpr explicit(false) fixed_string(char const* str) {
     std::copy_n(str, Size + 1, data);
   }
-  constexpr explicit(false) operator std::string_view() const {
-    return {data, Size};
-  }
+  constexpr auto operator<=>(const fixed_string&) const = default;
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -583,8 +586,16 @@ fixed_string(char const (&)[Size]) -> fixed_string<Size - 1>;
 #### "name"_t
 
 ```cpp
+template<fixed_string Name> arg {
+  constexpr explicit(false) operator std::string_view() const {
+    return {arg::data, arg::size};
+  }
+};
+```
+
+```cpp
 template <fixed_string Name>
-constexpr auto operator""_t() { return Name; }
+constexpr auto operator""_t() { return arg<Name>{}; }
 ```
 <!-- .element: class="fragment" -->
 
@@ -594,8 +605,8 @@ constexpr auto operator""_t() { return Name; }
 static_assert("name"sv == "name"_t); // ✔️
 
 static_assert(not std::is_same_v<
-                decltype("x"_t),
-                decltype("y"_t)
+                decltype("x"_t), // arg{'x'}
+                decltype("y"_t)  // arg{'y'}
               >); // ✔️
 ```
 <!-- .element: class="fragment" -->
@@ -1031,8 +1042,14 @@ Point{x:4,y:2}
 #### packed:namedtuple
 
 ```cpp
-constexpr auto t1 = namedtuple("x"_t = 42, "y"_t = 2,   "z"_t = 'z');
-constexpr auto t2 = namedtuple("x"_t = 42, "z"_t = 'z', "y"_t = 2);
+constexpr auto t1 = namedtuple(
+  "x"_t = int{}, "y"_t = short{}, "z"_t = char{}
+);
+
+constexpr auto t2 = namedtuple(
+  "x"_t = int{}, "z"_t = char{},  "y"_t = short{}
+);
+
 static_assert(8 == sizeof(t1));
 static_assert(8 == sizeof(t2));
 ```
@@ -1062,18 +1079,41 @@ static_assert(8 == sizeof(t2));
 #### namedtuple
 
 ```cpp
-auto employee = namedtuple<"Employee">("name"_t, "age"_t, "title"_t);
+auto employee = namedtuple<"Employee">(
+  "name"_t  = std::string{},
+  "age"_t   = int{},
+  "title"_t = std::string{}
+);
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
+// vector<namedtuple<"Employee", arg<"name", std::string>, ...
 std::vector<decltype(employee)> employees{};
-employees.emplace_back("John", 22, "Software Engineer");
-employees.emplace_back("Michael", 36, "Senior Software Engineer");
 ```
 <!-- .element: class="fragment" -->
 
----
+```cpp
+employees.emplace_back(
+  "name"_t  = "John",
+  "age"_t   = 22,
+  "title"_t = "Software Engineer"
+);
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+employees.emplace_back(
+  "name"_t  = "Michael",
+  "age"_t   = 36,
+  "title"_t = "Senior Software Engineer"
+);
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### namedtuple
 
 ```cpp
 employees[0]["age"_t] = 23; // modify
