@@ -314,13 +314,16 @@ constexpr auto t = namedtuple{"x"_t = 4, "y"_t = 2};
 <!-- .element: class="fragment" -->
 
 ```cpp
-using record_t   = decltype(namedtuple{"x"_t = int{}, "y"_t = int{}});
+using record_t = decltype(namedtuple{"x"_t = int{}, "y"_t = int{}});
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
 // alternative definition
-using record_t   = namedtuple<arg<"x", int>, arg<"y", int>>;
+using record_t = namedtuple<
+  arg<"x", int>,
+  arg<"y", int>
+>;
 ```
 <!-- .element: class="fragment" -->
 
