@@ -149,6 +149,11 @@ static_assert(2 == t.y); // access by name!
 ```
 <!-- .element: class="fragment" -->
 
+```cpp
+t.z; // z can't be found in namedtuple t!
+```
+<!-- .element: class="fragment" -->
+
 ---
 
 ```cpp
@@ -214,8 +219,8 @@ static_assert(not requires{ t.z; });
 <!-- .element: class="fragment" -->
 
 ```cpp
-static_assert(extends<decltype(t), "x", "y">); // conceptify it!
-static_assert(not extends<decltype(t), "x", "y", "z">);
+static_assert(    extends<decltype(t), "x", "y">); // conceptify it!
+static_assert(not extends<decltype(t), "x", "z">); // missing "y"
 ```
 <!-- .element: class="fragment" -->
 
@@ -273,6 +278,34 @@ static_assert(10 == t.z);
 
 ----
 
+#### The Goal vs the Reality - [Not] The Solution?
+
+```cpp
+struct namedtuple {
+  int x; // yes, with static reflection!
+  int y; // yes, with static reflection!
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+struct namedtuple {
+  named<"x", int> x; // requires annotating the type
+  named<"y", int> y; // and duplicates the name
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+using namedtuple = meta_struct<
+  member<"x", int>,  // requires annotating the type
+  member<"y", int>   // DRY but boilerplate
+>;
+```
+<!-- .element: class="fragment" -->
+
+----
+
 #### The Goal vs the Reality
 
 ```cpp
@@ -281,7 +314,19 @@ constexpr auto t = namedtuple{"x"_t = 4, "y"_t = 2};
 <!-- .element: class="fragment" -->
 
 ```cpp
-using record_t    = decltype(namedtuple{"x"_t = int{}, "y"_t = int{}});
+using record_t   = decltype(namedtuple{"x"_t = int{}, "y"_t = int{}});
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+// alternative definition
+using record_t   = namedtuple<arg<"x", int>, arg<"y", int>>;
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
 constexpr auto t1 = record_t{"x"_t = 4, "y"_t = 2);
 constexpr auto t2 = record_t{"y"_t = 4, "x"_t = 4);
 ```
@@ -290,6 +335,28 @@ constexpr auto t2 = record_t{"y"_t = 4, "x"_t = 4);
 ```cpp
 static_assert(4 == t["x"_t]); // accsessable by name 👍
 static_assert(2 == t["y"_t]); // accsessable by name 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### The Goal vs the Reality
+
+```cpp
+t["z"_t]; // inaccessable name?
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```sh
+error: no viable overloaded operator[] for type
+  'namedtuple<arg<{{120, 0}}, int>, arg<{{121, 0}}, int>>'
+      nt["z"_t];
+      ~~^~~~~~
+
+candidate template ignored: constraints not satisfied
+  with T = arg<{{122, 0}}>
 ```
 <!-- .element: class="fragment" -->
 
@@ -398,8 +465,8 @@ static_assert(not [](auto tuple) {
 ---
 
 ```cpp
-static_assert(extends<decltype(t), "x", "y">); // conceptified 👍
-static_assert(not extends<decltype(t), "x", "y", "z">);
+static_assert(    extends<decltype(t), "x", "y">); // conceptified 👍
+static_assert(not extends<decltype(t), "x", "z">); // missing "y"
 ```
 <!-- .element: class="fragment" -->
 
@@ -422,7 +489,7 @@ constexpr auto print(const extends<"x", "y"> auto& t) {
 ```cpp
 print(namedtuple("x"_t = 4, "y"_t = 2); // prints {x:4,y:2}
 print(namedtuple("x"_t = 9, "y"_t = 7, "z"_t = 1); // prints {x:9,y:7}
-print(namedtuple("x"_t = 4)); // error: constraint not satisfied!
+print(namedtuple("x"_t = 4)); // error: constraint not satisfied! - "y" is required
 ```
 <!-- .element: class="fragment" -->
 
@@ -795,8 +862,8 @@ concept extends = (requires(T t, arg<Names> arg) { t[arg]; } and ...);
 ---
 
 ```cpp
-static_assert(extends<decltype(t), "x", "y">);          // ✔️
-static_assert(not extends<decltype(t), "x", "y", "z">); // ✔️
+static_assert(    extends<decltype(t), "x", "y">); // ✔️
+static_assert(not extends<decltype(t), "x", "z">); // ✔️ - missing "y"
 ```
 <!-- .element: class="fragment" -->
 
@@ -850,7 +917,7 @@ namespace std {
 ```cpp
 template <class... Ts>
 struct tuple_size<namedtuple<Ts...>>
-    : std::integral_constant<std::size_t, sizeof...(Ts)> {};
+    : std::integral_constant<std::size_t, namedtuple<Ts...>::size> {};
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -868,6 +935,33 @@ struct tuple_element<N, namedtuple<Ts...>> {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+
+----
+
+#### namedtuple.size
+
+```cpp
+template<class... Ts>
+struct namedtuple : Ts... {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  static constexpr auto size = (0u + ... + [] {
+    if constexpr (requires{ Ts::size; }) { // required for nested tuples
+      return Ts::size;
+    } else {
+      return 1u;
+    }
+  }());
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+// ...
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -944,7 +1038,7 @@ constexpr auto unroll = [](auto expr) {
 
 ```cpp
 int main() {
-  unroll<2>([]{ std::puts("CppCon 2021!"); });
+  unroll<2>([]{ std::puts("Hello World!"); });
 }
 ```
 <!-- .element: class="fragment" -->
@@ -952,7 +1046,7 @@ int main() {
 ---
 
 ```cpp
-.LC0: .string "CppCon 2021!"
+.LC0: .string "Hello World!"
 main:
   sub     rsp, 8
   mov     edi, OFFSET FLAT:.LC0
@@ -1050,8 +1144,8 @@ constexpr auto t2 = namedtuple(
   "x"_t = int{}, "z"_t = char{},  "y"_t = short{}
 );
 
-static_assert(8 == sizeof(t1));
-static_assert(8 == sizeof(t2));
+static_assert(8 == sizeof(t1)); // ✔️
+static_assert(8 == sizeof(t2)); // currently 12 👎
 ```
 <!-- .element: class="fragment" -->
 
@@ -1088,10 +1182,20 @@ auto employee = namedtuple<"Employee">(
 <!-- .element: class="fragment" -->
 
 ```cpp
-// vector<namedtuple<"Employee", arg<"name", std::string>, ...
+// vector<
+//   namedtuple<"Employee",
+//     arg<"name", std::string>,
+//     arg<"age", int>,
+//     arg<"title", std::string>
+//   >
+// >
 std::vector<decltype(employee)> employees{};
 ```
 <!-- .element: class="fragment" -->
+
+----
+
+#### namedtuple
 
 ```cpp
 employees.emplace_back(
