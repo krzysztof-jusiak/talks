@@ -88,7 +88,7 @@
 
 ### Motivation
 
-> Python’s namedtuple was created to improve code readability by providing a way to access values **using descriptive field names instead of integer indices**, which most of the time don’t provide any context on what the values are. This feature also makes the code cleaner and more maintainable.
+> Python’s namedtuple was created to improve code readability by providing a way to access values <u>using descriptive field names instead of integer indices</u>, which most of the time don’t provide any context on what the values are. This feature also makes the code cleaner and more maintainable.
 
 ----
 
@@ -489,7 +489,12 @@ constexpr auto print(const extends<"x", "y"> auto& t) {
 ```cpp
 print(namedtuple("x"_t = 4, "y"_t = 2); // prints {x:4,y:2}
 print(namedtuple("x"_t = 9, "y"_t = 7, "z"_t = 1); // prints {x:9,y:7}
-print(namedtuple("x"_t = 4)); // error: constraint not satisfied! - "y" is required
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+// error: constraint not satisfied! - "y" is required
+print(namedtuple("x"_t = 4));
 ```
 <!-- .element: class="fragment" -->
 
@@ -781,14 +786,12 @@ namedtuple(Ts...) -> namedtuple<Ts...>;
 
 ```cpp
 template <class T>
-[[nodiscard]] constexpr auto operator[](T) ->
-  decltype(get<T::name>(*this) { // SFINAE friendly
+[[nodiscard]] constexpr auto operator[](T) 
+  requires requires { get<T::name>(*this); } // SFINAE friendly
     return get<T::name>(*this);
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
----
 
 ```cpp
 constexpr auto nt = namedtuple("x"_t = 42, "y"_t = 100);
@@ -796,6 +799,24 @@ static_assert(42  == nt["x"_t]); // ✔️
 static_assert(100 == nt["y"_t]); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+t["z"_t]; // name not found!
+```
+<!-- .element: class="fragment" -->
+
+```sh
+error: no viable overloaded operator[] for type
+  'namedtuple<arg<{{120, 0}}, int>, arg<{{121, 0}}, int>>'
+      nt["z"_t];
+      ~~^~~~~~
+
+candidate template ignored: constraints not satisfied
+  with T = arg<{{122, 0}}>
+```
+<!-- .element: class="fragment" -->
 
 ----
 
