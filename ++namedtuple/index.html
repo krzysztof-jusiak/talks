@@ -123,7 +123,7 @@ const auto [y, x] = t;           // wrong values!
 #### std::tuple | Issues
 
 ```cpp
-std::get<2>(t);                  // error, not SFINAE friendly!
+std::get<2>(t); // error, not SFINAE friendly!
 ```
 <!-- .element: class="fragment" -->
 
@@ -319,7 +319,7 @@ using record_t = decltype(namedtuple{"x"_t = int{}, "y"_t = int{}});
 <!-- .element: class="fragment" -->
 
 ```cpp
-// alternative definition
+// same as...
 using record_t = namedtuple<
   arg<"x", int>,
   arg<"y", int>
