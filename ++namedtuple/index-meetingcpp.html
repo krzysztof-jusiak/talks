@@ -380,19 +380,60 @@ std::cout << t << '\n' << t1 << '\n' << t2; // printable 👍
 ```
 <!-- .element: class="fragment" -->
 
----
+----
+
+#### The Goal vs the Reality
 
 ```cpp
 constexpr auto t = namedtuple<"Point">{"x"_t = 4, "y"_t = 2};
-std::cout << t; // even nicer 👍
 ```
+<!-- .element: class="fragment" -->
 
+```cpp
+assert(4 == t["x"_t] and 2 == t["y"_t]); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+std::cout << t; // 👍
+```
 <!-- .element: class="fragment" -->
 
 ```sh
 Point{x:4,y:2}
 ```
 <!-- .element: class="fragment" -->
+
+---
+
+```cpp
+struct Point {
+  int x;
+  int y;
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+constexpr auto t = namedtuple<Point>{"x"_t = 4, "y"_t = 2};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+assert(4 == t.x and 2 == t.y); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+std::cout << t; // 👍
+```
+<!-- .element: class="fragment" -->
+
+```sh
+Point{x:4,y:2}
+```
+<!-- .element: class="fragment" -->
+
 
 ----
 
@@ -433,7 +474,7 @@ auto [x, y] = t; // still works but issues remain 👎
 #### The Goal vs the Reality
 
 ```cpp
-constexpr auto t = namedtuple("x"_t, "y"_t);
+constexpr auto t = namedtuple("x"_t = int{}, "y"_t = int{});
 
 t["x"_t] = 4; // modifable by name 👍
 t["y"_t] = 2; // modifable by name 👍
@@ -893,14 +934,6 @@ static_assert(not extends<decltype(t), "x", "z">); // ✔️ - missing "y"
 
 ----
 
-### Achievement Unlocked
-
-### 👍
-
-<!-- .slide: data-background="green" -->
-
-----
-
 #### Not working...
 
 ```cpp
@@ -1331,14 +1364,6 @@ constexpr auto to_json(const auto& os, const auto& vs) {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-### Achievement Unlocked
-
-### 👍
-
-<!-- .slide: data-background="green" -->
 
 ----
 
