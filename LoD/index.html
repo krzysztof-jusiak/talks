@@ -41,17 +41,23 @@
   <body>
     <div class="reveal">
       <div class="slides">
-          <section data-markdown="">
+          <section data-markdown="" data-background-image="images/accu.png">
           <script type="text/template">
-<a href="https://cppcon.org/"><img src="images/cppcon2021.png" style="width: 35%; background:none; border:none; box-shadow:none;" /></a>
-
----
-
-## Law of Demeter: A <u>Practical</u> Guide to Loose Coupling
-
----
-
-###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+A PRACTICAL GUIDE TO LOOSE COUPLING
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<p style="background-color:black; font-size: 22px;">
+kris@jusiak.net | @krisjusiak | linkedin.com/in/kris-jusiak
+<br />
+https://www.quantlab.com/careers
+</p>
           </script>
           </section>
           <section data-markdown=""
@@ -143,7 +149,7 @@
 ### KISS - ~~Keep it simple~~, 'STUPID'
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
  public:
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -391,7 +397,7 @@ class attendees {
 ### Single Responsibility Principle (SRP)
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -501,7 +507,7 @@ class speaker {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
   speaker speaker_{};     // Tightly coupled
   attendees attendees_{}; // Tightly coupled
 
@@ -540,7 +546,7 @@ class speaker {
 ### Less coupling - Constructor DI
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
   speaker speaker_;     // Tightly coupled?
   attendees attendees_; // Tightly coupled?
 ```
@@ -549,7 +555,7 @@ class cppcon_talk {
 ```cpp
  public:
   // 👍 Dependency Injection!!!
-  cppcon_talk(speaker speaker, attendees attendees)
+  accu_talk(speaker speaker, attendees attendees)
       : speaker_{speaker}, attendees_{attendees}
   { }
 ```
@@ -576,14 +582,14 @@ class cppcon_talk {
 ### Not using constructors consistently
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
   speaker speaker_;                     // Tightly coupled?
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
  public:
-  cppcon_talk() : speaker_{"Kris"} {}   // Tightly coupled
+  accu_talk() : speaker_{"Kris"} {}   // Tightly coupled
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -598,12 +604,12 @@ class cppcon_talk {
 ### 👍 Consider using constructor Dependency Injection consistently
 
 ```cpp
-cppcon_talk() : speaker_{"Kris"} {}                     // 👎
+accu_talk() : speaker_{"Kris"} {}                     // 👎
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-cppcon_talk(speaker speaker) : speaker_{speaker} {}     // 👍
+accu_talk(speaker speaker) : speaker_{speaker} {}     // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -612,7 +618,7 @@ cppcon_talk(speaker speaker) : speaker_{speaker} {}     // 👍
 ### Using singletons
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
  public:
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -641,7 +647,7 @@ speakers::instance().get("Kris")                              // 👎
 <!-- .element: class="fragment" -->
 
 ```cpp
-cppcon_talk(speaker speaker) : speaker_{speaker} {}           // 👍
+accu_talk(speaker speaker) : speaker_{speaker} {}           // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -650,7 +656,7 @@ cppcon_talk(speaker speaker) : speaker_{speaker} {}           // 👍
 ### Carrying dependencies
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
   speaker speaker_; // Tightly coupled
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -658,7 +664,7 @@ class cppcon_talk {
 ```cpp
  public:
   // 👎 Leaky abstraction
-  explicit cppcon_talk(std::string name)
+  explicit accu_talk(std::string name)
    : speaker_{name}
   {}
 ```
@@ -675,12 +681,12 @@ class cppcon_talk {
 ### 👍 Consider passing initialized objects instead of parameters to initialize them
 
 ```cpp
-explicit cppcon_talk(std::string name) : speaker{name} {}      // 👎
+explicit accu_talk(std::string name) : speaker{name} {}      // 👎
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-explicit cppcon_talk(speaker speaker)  : speaker_{speaker} {}  // 👍
+explicit accu_talk(speaker speaker)  : speaker_{speaker} {}  // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -691,13 +697,13 @@ explicit cppcon_talk(speaker speaker)  : speaker_{speaker} {}  // 👍
 ### Carrying dependencies with inheritance
 
 ```cpp
-class cppcon_talk : speaker { // Tightly coupled to `speaker` API
+class accu_talk : speaker { // Tightly coupled to `speaker` API
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
  public:
-  explicit cppcon_talk(std::string name) // Common with CRTP?
+  explicit accu_talk(std::string name) // Common with CRTP?
    : speaker{name}
   {}
 ```
@@ -714,12 +720,12 @@ class cppcon_talk : speaker { // Tightly coupled to `speaker` API
 ### 👍 Prefer composition over inheritance
 
 ```cpp
-class cppcon_talk : speaker                  // 👎
+class accu_talk : speaker                  // 👎
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-class cppcon_talk { speaker speaker_;        // 👍
+class accu_talk { speaker speaker_;        // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -728,14 +734,14 @@ class cppcon_talk { speaker speaker_;        // 👍
 ### Talking to your distant friends
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
   speaker speaker_; // Tightly coupled
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
  public:
-  explicit cppcon_talk(talk_manager& mgr)
+  explicit accu_talk(talk_manager& mgr)
       // 👎 Distant friends
     : speaker_{mgr.get_speakers().get("Kris")}; // difficult to test
   { }
@@ -822,6 +828,41 @@ speaker(std::string first_name, std::string last_name);     // 👎
 
 ```cpp
 speaker(first_name, last_name);                             // 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Combine required parameters together
+
+```cpp
+struct speaker_info {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  first_name first_name;
+  last_name  last_name;
+  ...
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+### 👍 Consider combining required paremeters together
+
+```cpp
+make_speaker(std::string first_name, std::string last_name, ...); // 👎
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+make_speaker(speaker_info);                                       // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -935,7 +976,7 @@ template<Speaker TSpeaker, Attendees TAttendees>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-class cppcon_talk {
+class accu_talk {
   TSpeaker& speaker_;
   TAttendees& attendees_;
 ```
@@ -943,7 +984,7 @@ class cppcon_talk {
 
 ```cpp
  public:
-  cppcon_talk(TSpeaker& speaker, TAttendees& attendees)
+  accu_talk(TSpeaker& speaker, TAttendees& attendees)
     : speaker_{speaker}, attendees_{attendees}
   { }
 ```
@@ -975,7 +1016,7 @@ int main() {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  auto talk           = cppcon_talk{speaker, attendees};
+  auto talk           = accu_talk{speaker, attendees};
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -1013,7 +1054,6 @@ int main() {
 
 <!-- .slide: data-background="darkblue" -->
 
-
 ----
 
 ### Dependency Inversion Principle
@@ -1033,6 +1073,59 @@ int main() {
 
 ----
 
+### Can I go too far?
+
+---
+
+## Absolutely!
+<!-- .element: class="fragment" -->
+
+---
+
+> Good Design is Easier to Change Than Bad Design (ETC)
+<!-- .element: class="fragment" -->
+
+----
+
+### Can I go too far?
+
+```cpp
+struct ispeaker_talk {
+  virtual ~ispeaker_talk() noexcept = default;
+  virtual auto talk() -> void = 0;
+}
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+struct ispeaker_say {
+  virtual ~ispeaker_say() noexcept = default;
+  virtual auto say() -> void = 0;
+}
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+...
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### 👎 Going too far is a risk!
+
+> Like with any approach there is a risk of going too far without much benefits
+<!-- .element: class="fragment" -->
+
+---
+
+> ETC to the rescue!
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
 ### And what about testing?
 
 ----
@@ -1040,14 +1133,14 @@ int main() {
 ### Behavior Driven Development (BDD) / [ut](https://github.com/boost-ext/ut)
 
 ```cpp
-given("I have a cppcon talk") = [] {
+given("I have a accu talk") = [] {
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
   auto speaker   = fake_speaker{};
   auto attendees = fake_attendees{};
-  auto talk      = cppcon_talk{speaker, attendees};
+  auto talk      = accu_talk{speaker, attendees};
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 

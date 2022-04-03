@@ -1,0 +1,561 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>The Nth Element...: A Case Study</title>
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
+    <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
+    <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
+    <link rel="stylesheet" href="extensions/css/custom.css">
+
+    <style>
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
+    </style>
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+      function set_address(self, remote, local) {
+        if (window.location.search.match("local")) {
+          self.href = local;
+        } else {
+          self.href = remote;
+        }
+      }
+    </script>
+
+    <meta name="description" content="Law of Demeter: A Practical Guide to Loose Coupling">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+          <section data-markdown="">
+          <script type="text/template">
+#### C++Now 2022
+
+---
+
+## The Nth Element
+...
+## A Case Study
+
+---
+
+
+----
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+          </script>
+          </section>
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$">
+          <script type="text/template">
+
+### Agenda
+
+* #### Motivation
+<!-- .element: class="fragment" -->
+* #### Loose Coupling
+<!-- .element: class="fragment" -->
+    * #### Law of Demeter
+  <!-- .element: class="fragment" -->
+      * #### [S]ingle Responsibility
+  <!-- .element: class="fragment" -->
+      * #### ...
+  <!-- .element: class="fragment" -->
+      * #### [D]ependency Inversion/Injection
+  <!-- .element: class="fragment" -->
+* #### Summary
+<!-- .element: class="fragment" -->
+
+---
+
+##### <p style="background-color:darkblue">`darkblue background - something to remember ✓`</p>
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+
+first_elemnt = [](auto first, auto... args) { return first; }(args...);
+last_element = (args, ...)
+
+Nth?
+
+Why
+std::get<2>
+
+<details open><summary>Info</summary><p>
+
+* **Did you know about methods to access the last element of variadic pack...?**
+
+
+</p></details><details open><summary>Example</summary><p>
+
+```cpp
+template<class, std::size_t> concept Any = true;
+
+constexpr auto last1 = [](auto... args) {
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    return [](Any<Ns> auto..., auto last) {
+      return last;
+    }(args...);
+  }
+  (std::make_index_sequence<sizeof...(args) - 1>{});
+};
+
+auto last2 = [](auto... args) {
+  return (args, ...);
+};
+
+static_assert(1 == last1(1));
+static_assert(2 == last1(1, 2));
+static_assert(3 == last1(1, 2, 3));
+
+static_assert(1 == last2(1));
+static_assert(2 == last2(1, 2));
+static_assert(3 == last2(1, 2, 3));
+```
+
+> https://godbolt.org/z/599K9eah8
+
+</p></details><details open><summary>Puzzle</summary><p>
+
+* **Can you implement nth_element which returns Nth element of variadic pack...?**
+
+```cpp
+template<auto N>
+constexpr auto nth_element; // TODO
+
+static_assert(1 == nth_element<0>(1));
+static_assert(1 == nth_element<0>(1, 2));
+static_assert(2 == nth_element<1>(1, 2));
+static_assert(1 == nth_element<0>(1, 2, 3));
+static_assert(2 == nth_element<1>(1, 2, 3));
+static_assert(3 == nth_element<2>(1, 2, 3));
+```
+
+> https://godbolt.org/z/1aPcePYPE
+
+</p></details><details><summary>Solutions</summary><p>
+
+```cpp
+template<auto N>
+constexpr auto nth_element = [](auto...args){
+    return std::get<N>(std::tuple{args...});
+};
+```
+
+> https://godbolt.org/z/vqKfzevbK
+
+
+```cpp
+template <typename, std::size_t> concept prefix = true;
+
+template <auto N>
+constexpr auto nth_element(auto... args) {
+  return [&]<auto... Is>(std::index_sequence<Is...>) {
+    return [] (prefix<Is> auto..., auto arg, auto...) {
+      return arg;
+    }(args...);
+  }(std::make_index_sequence<N>());
+}
+```
+
+> https://godbolt.org/z/WPhe5MerW
+
+```cpp
+template<class T, std::size_t N> struct any { T value{}; };
+
+template<std::size_t N, class T>
+constexpr decltype(auto) get(any<T, N>& t) { return t.value; }
+
+template<auto N>
+constexpr auto nth_element = [](auto... args) {
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    struct : any<decltype(args), Ns>... { } _{args...};
+    return get<N>(_);
+  }
+  (std::make_index_sequence<sizeof...(args)>{});
+};
+```
+
+> https://godbolt.org/z/aEM31WE8b
+
+```cpp
+template<auto N>
+constexpr auto nth_element = [](auto... args) {
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    return [](decltype((void*)Ns)..., auto* nth, auto*...) {
+      return *nth;
+    }(&args...);
+  }
+  (std::make_index_sequence<N>{});
+};
+```
+
+> https://godbolt.org/z/a8vsqM848
+
+```cpp
+template<class T, std::size_t N> struct any { T value{}; };
+
+template<auto N>
+constexpr auto nth_element = [](auto... args) {
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    struct : any<decltype(args), Ns>... { } _{args...};
+    return static_cast<__type_pack_element<N, any<decltype(args), Ns>...>&>(_).value;
+  }
+  (std::make_index_sequence<sizeof...(args)>{});
+};
+```
+
+> https://godbolt.org/z/GMGnWfvnE
+
+```cpp
+template<auto N>
+constexpr auto nth_element = [](auto arg, auto... args)
+  requires (std::is_same_v<decltype(arg), decltype(args)> and ...) {
+  return std::array{arg, args...}[N];
+};
+
+```
+
+> https://godbolt.org/z/1G7Gj16nx
+
+```cpp
+template<auto N, auto I = 0>
+constexpr auto nth_element(auto arg, auto... args) {
+    if constexpr (I == N) {
+        return arg;
+    } else if constexpr (sizeof...(args) > 0u) {
+        return nth_element<N, I + 1>(args...);
+    }
+}
+```
+
+> https://godbolt.org/z/vGh1nTnaq
+
+```cpp
+template<class T, std::size_t N> struct any { T value{}; };
+
+template<auto N>
+constexpr auto nth_element = [](auto... args) {
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    struct : any<decltype(args), Ns>... { } _{args...};
+    return static_cast<boost::mp11::mp_at_c<boost::mp11::mp_inherit<any<decltype(args), Ns>...>, N>&>(_).value;
+  }
+  (std::make_index_sequence<sizeof...(args)>{});
+};
+```
+
+> https://godbolt.org/z/rKjzPf9zK
+
+```cpp
+template<class, std::size_t> concept Any = true;
+
+template<auto N>
+constexpr auto nth_element(auto... pack) {
+    return [&]<auto... Is>(std::index_sequence<Is...>) {
+        return [](Any<Is> auto..., auto arg, auto...) {
+            return arg;
+        }(pack...);
+    }(std::make_index_sequence<N>{});
+}
+```
+
+> https://godbolt.org/z/bao1dsY5q
+
+```cpp
+template<class, std::size_t> concept Any = true;
+template<auto N>
+constexpr auto nth_element( auto ...  args )
+{
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    return [](Any<Ns> auto ..., auto nth, auto ... ) {
+      return nth;
+    }(args...);
+  }(std::make_index_sequence<N>{});
+}
+```
+
+> https://godbolt.org/z/78b1qd3cE
+
+```cpp
+namespace detail {
+
+#define NTH_ARG(Z, N, TYPE) TYPE arg##N,
+#define NTH_ELEMENT(Z, N, TYPE)                                                \
+  template <auto I>                                                            \
+  requires(I == N) constexpr decltype(auto) nth_element(                       \
+      BOOST_PP_REPEAT(BOOST_PP_INC(N), NTH_ARG, TYPE) TYPE...) {               \
+    return arg##N;                                                             \
+  }
+
+BOOST_PP_REPEAT(BOOST_PP_DEC(BOOST_PP_LIMIT_REPEAT), NTH_ELEMENT, auto &&)
+
+#undef NTH_ELEMENT
+#undef NTH_ARG
+
+} // namespace detail
+
+template <auto N> constexpr decltype(auto) nth_element(auto &&...args) {
+  return detail::nth_element<N>(args...);
+}
+```
+
+> https://godbolt.org/z/ervdav89b
+
+```cpp
+template <class, std::size_t>
+concept Any = true;
+
+template <auto N> constexpr decltype(auto) nth_element(auto &&...args) {
+  return [&]<auto... Is>(std::index_sequence<Is...>) -> decltype(auto) {
+    return [](Any<Is> auto &&..., auto &&arg, auto &&...) -> decltype(auto) {
+      return arg;
+    }(args...);
+  }(std::make_index_sequence<N>{});
+}
+```
+
+> https://godbolt.org/z/515fP7WbW
+
+```cpp
+template <std::size_t N>
+requires (N == 0)
+constexpr auto nth_element(auto&& arg0, auto&&...) {
+    return arg0;
+}
+
+template <std::size_t N>
+requires (N > 0) constexpr auto nth_element(auto&& arg0, auto&&... rest) {
+    return nth_element<N-1>(std::forward<decltype(rest)>(rest)...);
+}
+```
+
+> https://godbolt.org/z/5WqMc5bjo
+
+```cpp
+template<auto N>
+constexpr auto nth_element = [](auto... args) {
+    static_assert(N < sizeof...(args));
+    return std::array{args...}[N];
+};
+```
+
+> https://godbolt.org/z/vGnM4GnE4
+
+```cpp
+template<auto N>
+constexpr decltype(auto) nth_element(auto &&... args) {
+    using namespace boost::mp11;
+    return [&] <class... Ts> (mp_list<Ts...>) -> decltype(auto) {
+        return [] (Ts &&..., auto &&arg, auto &&...) -> decltype(auto) {
+            return arg;
+        }(std::forward<decltype(args)>(args)...);
+    }(mp_take_c<mp_list<decltype(args)...>, N>{});
+}
+
+```
+
+> https://godbolt.org/z/zEM1eGqxK
+
+```cpp
+template<std::size_t> struct  Any
+{
+    template<typename T > constexpr Any(T){}
+};
+template<auto N>
+constexpr auto nth_element( auto ...  args )
+{
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    return [](Any<Ns> ..., auto nth, auto ... ) {
+      return nth;
+    }(args...);
+  }(std::make_index_sequence<N>{});
+}
+```
+
+> https://godbolt.org/z/3471fcrqG
+
+
+
+----
+
+Benchmarks
+
+readability
+performance - compilation times
+
+
+
+
+
+
+
+
+==============================================================================
+
+
+quantlab carrers
+https://github.com/QuantlabFinancial/cpp_tip_of_the_week/blob/master/250.md
+
+### Law of Demeter: A Practical Guide to Loose Coupling
+
+---
+
+## Let's
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+## <b>!</b>
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+## "only talk to our immediate friends"
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+#### https://www.quantlab.com/careers
+
+          </script>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
+          { src: 'extensions/plugin/line-numbers/line-numbers.js' }
+        ]
+      });
+
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
+    </script>
+
+  </body>
+</html>

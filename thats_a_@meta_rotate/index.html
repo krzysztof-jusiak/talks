@@ -45,7 +45,7 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-<a href="https://cppcon.org/"><img src="images/cppcon2021.png" style="width: 35%; background:none; border:none; box-shadow:none;" /></a>
+#### Denver C++ Meetup, Dec 2021
 
 ---
 
@@ -90,8 +90,8 @@ int main() {
 ```cpp
   @meta std::array types{
     @dynamic_type(
-        @types(tuple<bool, int, float>)
-    )...
+      tuple<bool, int, float>
+    )... // expand in-place
   };
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
