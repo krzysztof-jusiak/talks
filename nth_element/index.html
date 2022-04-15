@@ -51,9 +51,6 @@
 ...
 ## A Case Study
 
----
-
-
 ----
 
 ###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
@@ -68,16 +65,14 @@
 
 * #### Motivation
 <!-- .element: class="fragment" -->
-* #### Loose Coupling
+* #### First/Last element
 <!-- .element: class="fragment" -->
-    * #### Law of Demeter
-  <!-- .element: class="fragment" -->
-      * #### [S]ingle Responsibility
-  <!-- .element: class="fragment" -->
-      * #### ...
-  <!-- .element: class="fragment" -->
-      * #### [D]ependency Inversion/Injection
-  <!-- .element: class="fragment" -->
+    * #### Nth element...
+<!-- .element: class="fragment" -->
+    * #### std::get / std::tuple
+<!-- .element: class="fragment" -->
+* #### Benchmarks
+<!-- .element: class="fragment" -->
 * #### Summary
 <!-- .element: class="fragment" -->
 
@@ -89,67 +84,68 @@
 ==============================================================================
 
 
-first_elemnt = [](auto first, auto... args) { return first; }(args...);
-last_element = (args, ...)
+todo proposal for ...
+c++now logo
+powered by compiler explorer
+Non-terminal variadic template parameters
+template<class... Ts, class T>
+void foo(Ts..., T t) { return t; }
+di - with any
+bonus - tuple
+dbi - fit it in somehow
 
-Nth?
-
-Why
-std::get<2>
-
-<details open><summary>Info</summary><p>
-
-* **Did you know about methods to access the last element of variadic pack...?**
-
-
-</p></details><details open><summary>Example</summary><p>
+### Motivation
 
 ```cpp
-template<class, std::size_t> concept Any = true;
-
-constexpr auto last1 = [](auto... args) {
-  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
-    return [](Any<Ns> auto..., auto last) {
-      return last;
-    }(args...);
-  }
-  (std::make_index_sequence<sizeof...(args) - 1>{});
-};
-
-auto last2 = [](auto... args) {
-  return (args, ...);
-};
-
-static_assert(1 == last1(1));
-static_assert(2 == last1(1, 2));
-static_assert(3 == last1(1, 2, 3));
-
-static_assert(1 == last2(1));
-static_assert(2 == last2(1, 2));
-static_assert(3 == last2(1, 2, 3));
+constexpr auto first_element = 
+  [](auto first, auto... args) { return first; }(args...);
 ```
+<!-- .element: class="fragment" -->
 
-> https://godbolt.org/z/599K9eah8
-
-</p></details><details open><summary>Puzzle</summary><p>
-
-* **Can you implement nth_element which returns Nth element of variadic pack...?**
 
 ```cpp
-template<auto N>
-constexpr auto nth_element; // TODO
-
-static_assert(1 == nth_element<0>(1));
-static_assert(1 == nth_element<0>(1, 2));
-static_assert(2 == nth_element<1>(1, 2));
-static_assert(1 == nth_element<0>(1, 2, 3));
-static_assert(2 == nth_element<1>(1, 2, 3));
-static_assert(3 == nth_element<2>(1, 2, 3));
+static_assert(1 == first_lement(1, 2, 3));
 ```
+<!-- .element: class="fragment" -->
 
-> https://godbolt.org/z/1aPcePYPE
+----
 
-</p></details><details><summary>Solutions</summary><p>
+### Motivation
+
+```cpp
+constexpr auto last_element = 
+  (args, ...);
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == last_lement(1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+----
+
+```cpp
+constexp auto t = std::tuple{1, 2, 3}
+static_assert(3 == std::get<std::tuple_size_v<decltype(T)>-1>(t));
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Nth element...?
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(2 == std::get<2>(std::tuple{1, 2, 3});
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### std.tuple
 
 ```cpp
 template<auto N>
@@ -160,6 +156,91 @@ constexpr auto nth_element = [](auto...args){
 
 > https://godbolt.org/z/vqKfzevbK
 
+----
+
+### Recursion.1
+
+```cpp
+template <auto N> requires (N == 0)
+constexpr auto nth_element(auto&& arg0, auto&&...) {
+    return arg0;
+}
+
+template <auto N> requires (N > 0)
+constexpr auto nth_element(auto&& arg0, auto&&... rest) {
+    return nth_element<N-1>(std::forward<decltype(rest)>(rest)...);
+}
+```
+
+> https://godbolt.org/z/5WqMc5bjo
+
+----
+
+### Recursion.2
+
+```cpp
+template<auto N, auto I = 0>
+constexpr auto nth_element(auto arg, auto... args) {
+    if constexpr (I == N) {
+        return arg;
+    } else if constexpr (sizeof...(args) > 0u) {
+        return nth_element<N, I + 1>(args...);
+    }
+}
+```
+
+> https://godbolt.org/z/vGh1nTnaq
+
+----
+
+#### Immediately-Invoked Function Expression (`IIFE`) - https://godbolt.org/z/aM58T1
+
+```cpp
+template<auto N>
+constexpr auto unroll = [](auto expr) {
+  [expr]<auto ...Is>(std::index_sequence<Is...>) {
+    ((expr(), void(Is)), ...);
+  }(std::make_index_sequence<N>{});
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+int main() {
+  unroll<2>([]{ std::puts("C++Now 2022!"); });
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+.LC0: .string "C++Now 2022!"
+main:
+  sub     rsp, 8
+  mov     edi, OFFSET FLAT:.LC0
+  call    puts
+  mov     edi, OFFSET FLAT:.LC0
+  call    puts
+  xor     eax, eax
+  add     rsp, 8
+  ret
+```
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+#### Immediately-Invoked Function Expression (`IIFE`) - https://godbolt.org/z/jj7vWaMrG
+
+<img style="background:none; border:none; box-shadow:none;" src="images/iife-asm.png" width="100%" />
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+### Concept expansion
 
 ```cpp
 template <typename, std::size_t> concept prefix = true;
@@ -175,6 +256,10 @@ constexpr auto nth_element(auto... args) {
 ```
 
 > https://godbolt.org/z/WPhe5MerW
+
+----
+
+### any type
 
 ```cpp
 template<class T, std::size_t N> struct any { T value{}; };
@@ -194,6 +279,10 @@ constexpr auto nth_element = [](auto... args) {
 
 > https://godbolt.org/z/aEM31WE8b
 
+----
+
+### void* expansion
+
 ```cpp
 template<auto N>
 constexpr auto nth_element = [](auto... args) {
@@ -207,6 +296,10 @@ constexpr auto nth_element = [](auto... args) {
 ```
 
 > https://godbolt.org/z/a8vsqM848
+
+----
+
+### __type_pack_element
 
 ```cpp
 template<class T, std::size_t N> struct any { T value{}; };
@@ -223,29 +316,9 @@ constexpr auto nth_element = [](auto... args) {
 
 > https://godbolt.org/z/GMGnWfvnE
 
-```cpp
-template<auto N>
-constexpr auto nth_element = [](auto arg, auto... args)
-  requires (std::is_same_v<decltype(arg), decltype(args)> and ...) {
-  return std::array{arg, args...}[N];
-};
+----
 
-```
-
-> https://godbolt.org/z/1G7Gj16nx
-
-```cpp
-template<auto N, auto I = 0>
-constexpr auto nth_element(auto arg, auto... args) {
-    if constexpr (I == N) {
-        return arg;
-    } else if constexpr (sizeof...(args) > 0u) {
-        return nth_element<N, I + 1>(args...);
-    }
-}
-```
-
-> https://godbolt.org/z/vGh1nTnaq
+### boost.mp11.1
 
 ```cpp
 template<class T, std::size_t N> struct any { T value{}; };
@@ -262,35 +335,45 @@ constexpr auto nth_element = [](auto... args) {
 
 > https://godbolt.org/z/rKjzPf9zK
 
-```cpp
-template<class, std::size_t> concept Any = true;
+----
 
+### boost.mp11.2
+
+```cpp
 template<auto N>
-constexpr auto nth_element(auto... pack) {
-    return [&]<auto... Is>(std::index_sequence<Is...>) {
-        return [](Any<Is> auto..., auto arg, auto...) {
+constexpr decltype(auto) nth_element(auto &&... args) {
+    using namespace boost::mp11;
+    return [&] <class... Ts> (mp_list<Ts...>) -> decltype(auto) {
+        return [] (Ts &&..., auto &&arg, auto &&...) -> decltype(auto) {
             return arg;
-        }(pack...);
-    }(std::make_index_sequence<N>{});
+        }(std::forward<decltype(args)>(args)...);
+    }(mp_take_c<mp_list<decltype(args)...>, N>{});
 }
+
 ```
 
-> https://godbolt.org/z/bao1dsY5q
+> https://godbolt.org/z/zEM1eGqxK
+
+
+----
+
+### std.array (same types)
 
 ```cpp
-template<class, std::size_t> concept Any = true;
 template<auto N>
-constexpr auto nth_element( auto ...  args )
-{
-  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
-    return [](Any<Ns> auto ..., auto nth, auto ... ) {
-      return nth;
-    }(args...);
-  }(std::make_index_sequence<N>{});
-}
+constexpr auto nth_element = [](auto arg, auto... args)
+  requires (std::is_same_v<decltype(arg), decltype(args)> and ...) {
+  static_assert(N < sizeof...(args));
+  return std::array{arg, args...}[N];
+};
+
 ```
 
-> https://godbolt.org/z/78b1qd3cE
+> https://godbolt.org/z/1G7Gj16nx
+
+----
+
+#### boost.preprocessor
 
 ```cpp
 namespace detail {
@@ -317,88 +400,22 @@ template <auto N> constexpr decltype(auto) nth_element(auto &&...args) {
 
 > https://godbolt.org/z/ervdav89b
 
-```cpp
-template <class, std::size_t>
-concept Any = true;
-
-template <auto N> constexpr decltype(auto) nth_element(auto &&...args) {
-  return [&]<auto... Is>(std::index_sequence<Is...>) -> decltype(auto) {
-    return [](Any<Is> auto &&..., auto &&arg, auto &&...) -> decltype(auto) {
-      return arg;
-    }(args...);
-  }(std::make_index_sequence<N>{});
-}
-```
-
-> https://godbolt.org/z/515fP7WbW
-
-```cpp
-template <std::size_t N>
-requires (N == 0)
-constexpr auto nth_element(auto&& arg0, auto&&...) {
-    return arg0;
-}
-
-template <std::size_t N>
-requires (N > 0) constexpr auto nth_element(auto&& arg0, auto&&... rest) {
-    return nth_element<N-1>(std::forward<decltype(rest)>(rest)...);
-}
-```
-
-> https://godbolt.org/z/5WqMc5bjo
-
-```cpp
-template<auto N>
-constexpr auto nth_element = [](auto... args) {
-    static_assert(N < sizeof...(args));
-    return std::array{args...}[N];
-};
-```
-
-> https://godbolt.org/z/vGnM4GnE4
-
-```cpp
-template<auto N>
-constexpr decltype(auto) nth_element(auto &&... args) {
-    using namespace boost::mp11;
-    return [&] <class... Ts> (mp_list<Ts...>) -> decltype(auto) {
-        return [] (Ts &&..., auto &&arg, auto &&...) -> decltype(auto) {
-            return arg;
-        }(std::forward<decltype(args)>(args)...);
-    }(mp_take_c<mp_list<decltype(args)...>, N>{});
-}
-
-```
-
-> https://godbolt.org/z/zEM1eGqxK
-
-```cpp
-template<std::size_t> struct  Any
-{
-    template<typename T > constexpr Any(T){}
-};
-template<auto N>
-constexpr auto nth_element( auto ...  args )
-{
-  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
-    return [](Any<Ns> ..., auto nth, auto ... ) {
-      return nth;
-    }(args...);
-  }(std::make_index_sequence<N>{});
-}
-```
-
-> https://godbolt.org/z/3471fcrqG
-
-
-
 ----
 
-Benchmarks
+### Bonus
 
-readability
-performance - compilation times
+Simple std::get for tuple
 
+==============================================================================
+
+## Benchmarks
+
+---
+
+* Readability
+* Performance / compilation times
+
+----
 
 
 
@@ -408,22 +425,6 @@ performance - compilation times
 
 ==============================================================================
 
-
-quantlab carrers
-https://github.com/QuantlabFinancial/cpp_tip_of_the_week/blob/master/250.md
-
-### Law of Demeter: A Practical Guide to Loose Coupling
-
----
-
-## Let's
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-## <b>!</b>
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-## "only talk to our immediate friends"
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 

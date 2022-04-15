@@ -1,0 +1,321 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Constraints not satisfied</title>
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
+    <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
+    <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
+    <link rel="stylesheet" href="extensions/css/custom.css">
+
+    <style>
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
+    </style>
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+      function set_address(self, remote, local) {
+        if (window.location.search.match("local")) {
+          self.href = local;
+        } else {
+          self.href = remote;
+        }
+      }
+    </script>
+
+    <meta name="description" content="Law of Demeter: A Practical Guide to Loose Coupling">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$">
+          <script type="text/template">
+#### C++Now 2022
+
+---
+
+# Constraints not satisfied
+
+---
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+----
+
+#### Anything - https://godbolt.org/z/MKq8aEde4
+
+```cpp
+static_assert(anything<int>);
+static_assert(anything<void>);
+static_assert(anything<const short *>);
+static_assert(anything<int &>);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+template <class...>
+concept anything = true;
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Negation - https://godbolt.org/z/d5EEzrcd6
+
+```cpp
+auto foo($not(std::movable) auto arg) { }
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+int main() {
+  foo(std::make_unique<int>()); // error: constraints not satisfied
+}
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Negation - https://godbolt.org/z/d5EEzrcd6
+
+```cpp
+namespace detail {
+  template<class T, auto F>
+  concept neg = not F.template operator()<T>();
+}
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+#define $not($concept) \
+  detail::neg<[]<class T> { return $concept<T>; }>
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Function parameters - https://godbolt.org/z/rW9dK3Ydh
+
+```cpp
+struct bar {};
+struct foo1 { auto foo(int, auto...) -> void; };
+struct foo2 { auto foo(int, short, auto) -> void; };
+struct foo3 { auto foo(int, double, auto) -> void; };
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+template <class T>
+concept fooable = requires(T t) {
+  { 
+    t.foo(
+      $requires(std::integral),
+      $requires(std::same_as<short>),
+      $requires(anything)
+    )
+  } -> std::same_as<void>;
+};
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(not fooable<bar>);
+static_assert(not fooable<foo1>);
+static_assert(fooable<foo2>);
+static_assert(not fooable<foo3>);
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Function parameters - https://godbolt.org/z/rW9dK3Ydh
+
+```cpp
+namespace detail {
+  template <auto Constraint> struct requires_ {
+    template <class T>
+      requires(Constraint.template operator()<T>())
+    operator T() const;
+  };
+}
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+#define $requires(...)                                 \
+  detail::requires_<[]<class $T> {                     \
+    return requires {                                  \
+      { [] -> $T { return {}; }() } -> __VA_ARGS__; }; \
+    }                                                  \
+  >{}
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Let's constraints all our requirements!
+
+```cpp
+auto bar(auto);               // 👎
+auto bar($not(fooable) auto); // 👍
+```
+<!-- .element: class="fragment" -->
+
+http://eel.is/c++draft/temp.constr.decl
+<!-- .element: class="fragment" -->
+
+---
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+          </script>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
+          { src: 'extensions/plugin/line-numbers/line-numbers.js' }
+        ]
+      });
+
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
+    </script>
+
+  </body>
+</html>
