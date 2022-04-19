@@ -126,7 +126,7 @@ struct foo3 { auto foo(int, double, auto) -> void; };
 ```cpp
 template <class T>
 concept fooable = requires(T t) {
-  { 
+  {
     t.foo(
       $requires(std::integral),
       $requires(std::same_as<short>),
@@ -163,12 +163,8 @@ namespace detail {
 <!-- .element: class="fragment" -->
 
 ```cpp
-#define $requires(...)                                 \
-  detail::requires_<[]<class $T> {                     \
-    return requires {                                  \
-      { [] -> $T { return {}; }() } -> __VA_ARGS__; }; \
-    }                                                  \
-  >{}
+#define $requires(...) \
+  detail::requires_<[]<__VA_ARGS__> { return true; }>{}
 ```
 <!-- .element: class="fragment" -->
 

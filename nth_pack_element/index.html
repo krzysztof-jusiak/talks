@@ -1,0 +1,1150 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Nth pack element...: A Case Study</title>
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
+    <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
+    <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
+    <link rel="stylesheet" href="extensions/css/custom.css">
+
+    <style>
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
+    </style>
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+      function set_address(self, remote, local) {
+        if (window.location.search.match("local")) {
+          self.href = local;
+        } else {
+          self.href = remote;
+        }
+      }
+    </script>
+
+    <meta name="description" content="Law of Demeter: A Practical Guide to Loose Coupling">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+          <section data-markdown="">
+          <script type="text/template">
+<a href="https://cppnow.org/"><img src="images/cppnow.svg" style="width: 10%; background:none; border:none; box-shadow:none;" /></a>2022
+
+---
+
+# Nth pack element...
+## A Case Study
+
+----
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+          </script>
+          </section>
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$">
+          <script type="text/template">
+
+### Agenda
+
+* #### Motivation/Goal
+<!-- .element: class="fragment" -->
+    * #### First/Last element
+    <!-- .element: class="fragment" -->
+* #### Nth pack element...
+<!-- .element: class="fragment" -->
+    * #### tuple.get\<N\>
+    <!-- .element: class="fragment" -->
+* #### Benchmarks
+<!-- .element: class="fragment" -->
+* #### Summary
+<!-- .element: class="fragment" -->
+
+---
+
+##### <p style="background-color:darkblue">`darkblue background - something to remember ✓`</p>
+<!-- .element: class="fragment" -->
+
+###### Powered by [Compiler Explorer](https://godbolt.org)
+<!-- .element: class="fragment" -->
+
+----
+
+### Disclaimer
+
+---
+
+```cpp
+std::nth_element
+  partial sorting algorithm that rearranges elements in [first, last)
+```
+<!-- .element: class="fragment" -->
+
+#### Not this talk 👎
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+nth_pack_element
+  returns element at N position from a variadic pack...
+```
+<!-- .element: class="fragment" -->
+
+#### This talk 👍
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+### Motivation - First element
+
+```cpp
+static_assert(1 == first_pack_elment(1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+constexpr auto first_pack_element =
+  [](auto first, auto... args) { return first; }(args...);
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Motivation - First element ([wg21.link/P1061](wg21.link/P1061))
+
+```cpp
+static_assert(1 == first);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+constexpr auto [first, ...ts] = std::tuple{1, 2, 3};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Motivation - Last element
+
+```cpp
+static_assert(3 == last_pack_element(1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(3 == (1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+constexpr auto last_pack_element = (args, ...);
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Motivation - Last element ([wg21.link/P1061](wg21.link/P1061))
+
+```cpp
+static_assert(1 == last);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+constexpr auto [...ts, last] = std::tuple{1, 2, 3};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Motivation - First and last element
+
+```cpp
+static_assert(1 == first and 3 == last);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+constexpr auto [first, last] =
+  [](auto first, auto... ts){
+    return std::tuple{first, (ts, ...)};
+  }(1, 2, 3);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+constexpr auto [first, ...ts, last] = std::tuple{1, 2, 3};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Motivation - Nth pack element...?
+
+```cpp
+static_assert(2 == std::get<1>(std::tuple{1, 2, 3}));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+templte<auto N>
+[[nodiscard]] constexpr auto get(auto t) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  // Explore possible solutions - The Goal!
+  return nth_pack_element<N>(...);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+==============================================================================
+
+### Nth pack element...
+
+----
+
+### Requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Goals
+
+* #### Flexibility
+<!-- .element: class="fragment" -->
+  * #### Supports different types?
+<!-- .element: class="fragment" -->
+
+* #### Readability
+<!-- .element: class="fragment" -->
+  * #### Easy to follow? / How much magic is being involved?
+<!-- .element: class="fragment" -->
+
+* #### Performance
+<!-- .element: class="fragment" -->
+  * #### Is there an overhead? / Compilation times?
+<!-- .element: class="fragment" -->
+
+----
+
+### Solutions
+
+* #### std::array* (Same types only)
+<!-- .element: class="fragment" -->
+* #### Recursion
+<!-- .element: class="fragment" -->
+* #### Type/object expansion
+<!-- .element: class="fragment" -->
+* #### Concept expansion
+<!-- .element: class="fragment" -->
+* #### boost::mp11
+<!-- .element: class="fragment" -->
+* #### boost::preprocessor
+<!-- .element: class="fragment" -->
+* #### __type_pack_element
+<!-- .element: class="fragment" -->
+* #### @Circle
+<!-- .element: class="fragment" -->
+
+----
+
+#### std.array (same types) - https://godbolt.org/z/1G7Gj16nx
+
+```cpp
+template<auto N>
+constexpr auto nth_pack_element = [](auto... args) [[nodiscard]] {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  static_assert(N < sizeof...(args));
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  return std::array{args...}[N];
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### std.array - Requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // error: different types 👎
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### std.array - Goals
+
+* #### Flexibility
+  - #### not really, works only for the same types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### yes, simple to follow
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### fast to compile
+<!-- .element: class="fragment" -->
+
+----
+
+### Recursion.1
+
+```cpp
+template <auto N> requires (N == 0)
+[[nodiscard]] constexpr auto nth_pack_element(auto arg, auto...) {
+    return arg;
+}
+<!-- .element: class="fragment" -->
+
+template <auto N> requires (N > 0)
+[[nodiscard]] constexpr auto nth_pack_element(auto arg, auto... args) {
+    return nth_pack_element<N - 1>(args...);
+}
+```
+<!-- .element: class="fragment" -->
+
+> https://godbolt.org/z/5WqMc5bjo
+
+----
+
+#### Recursion.1 - Requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Recursion.1 - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### yes-ish, requires a bit of magic for final case
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### slow to compile
+<!-- .element: class="fragment" -->
+
+----
+
+### Recursion.2
+
+```cpp
+template<auto N, auto I = 0>
+constexpr auto nth_pack_element(auto arg, auto... args) {
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+    if constexpr (I == N) {
+        return arg;
+    } else if constexpr (sizeof...(args) > 0u) {
+        return nth_pack_element<N, I + 1>(args...);
+    }
+}
+```
+<!-- .element: class="fragment" -->
+
+> https://godbolt.org/z/vGh1nTnaq
+
+----
+
+#### Recursion.2 - Requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Recursion.2 - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### yes-ish, requires a bit of magic for final case
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### slow to compile
+<!-- .element: class="fragment" -->
+
+----
+
+#### Immediately-Invoked Function Expression (`IIFE`) - https://godbolt.org/z/aM58T1
+
+```cpp
+template<auto N>
+constexpr auto unroll = [](auto expr) {
+  [expr]<auto ...Is>(std::index_sequence<Is...>) {
+    ((expr(), void(Is)), ...);
+  }(std::make_index_sequence<N>{});
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+int main() {
+  unroll<2>([]{ std::puts("C++Now 2022!"); });
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+.LC0: .string "C++Now 2022!"
+main:
+  sub     rsp, 8
+  mov     edi, OFFSET FLAT:.LC0
+  call    puts
+  mov     edi, OFFSET FLAT:.LC0
+  call    puts
+  xor     eax, eax
+  add     rsp, 8
+  ret
+```
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+#### Immediately-Invoked Function Expression (`IIFE`) - https://godbolt.org/z/jj7vWaMrG
+
+<img style="background:none; border:none; box-shadow:none;" src="images/iife-asm.png" width="100%" />
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+### void* expansion
+
+```cpp
+template<auto N>
+constexpr auto nth_pack_element(auto... args) {
+```
+
+``cpp
+  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
+```
+
+```cpp
+    return [](decltype((void*)Ns)..., auto* nth, auto*...) {
+      return *nth;
+    }(&args...);
+```
+
+```cpp
+  }
+  (std::make_index_sequence<N>{});
+```
+
+```cpp
+}
+```
+
+> https://godbolt.org/z/a8vsqM848
+
+----
+
+#### void* exapansion - Requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### void* expansion - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### dark-magic!
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### no recursion = faster to compile
+<!-- .element: class="fragment" -->
+
+----
+
+### any type exapansion
+
+```cpp
+template<class T, auto N> struct any { T value{}; };
+
+template<std::size_t N, class T>
+constexpr decltype(auto) get(any<T, N>& t) { return t.value; }
+
+template<auto N>
+constexpr auto nth_pack_element = [](auto... args) {
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    struct : any<decltype(args), Ns>... { } _{args...};
+    return get<N>(_);
+  }
+  (std::make_index_sequence<sizeof...(args)>{});
+};
+```
+
+> https://godbolt.org/z/aEM31WE8b
+
+
+### Concept expansion - C++20
+
+```cpp
+template <class, auto> concept prefix = true;
+
+template <auto N>
+constexpr auto nth_pack_element(auto... args) {
+  return [&]<auto... Is>(std::index_sequence<Is...>) {
+    return [] (prefix<Is> auto..., auto arg, auto...) {
+      return arg;
+    }(args...);
+  }(std::make_index_sequence<N>{});
+}
+```
+
+> https://godbolt.org/z/WPhe5MerW
+
+----
+
+### __type_pack_element - clang
+
+```cpp
+template<class T, std::size_t N> struct any { T value{}; };
+
+template<auto N>
+constexpr auto nth_pack_element = [](auto... args) {
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    struct : any<decltype(args), Ns>... { } _{args...};
+    return static_cast<__type_pack_element<N, any<decltype(args), Ns>...>&>(_).value;
+  }
+  (std::make_index_sequence<sizeof...(args)>{});
+};
+```
+
+> https://godbolt.org/z/GMGnWfvnE
+
+----
+
+### boost.mp11.1
+
+```cpp
+template<class T, std::size_t N> struct any { T value{}; };
+
+template<auto N>
+constexpr auto nth_pack_element = [](auto... args) {
+  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+    struct : any<decltype(args), Ns>... { } _{args...};
+    return static_cast<boost::mp11::mp_at_c<boost::mp11::mp_inherit<any<decltype(args), Ns>...>, N>&>(_).value;
+  }
+  (std::make_index_sequence<sizeof...(args)>{});
+};
+```
+
+> https://godbolt.org/z/rKjzPf9zK
+
+----
+
+### boost.mp11.2
+
+```cpp
+template<auto N>
+constexpr decltype(auto) nth_pack_element(auto &&... args) {
+    using namespace boost::mp11;
+    return [&] <class... Ts> (mp_list<Ts...>) -> decltype(auto) {
+        return [] (Ts &&..., auto &&arg, auto &&...) -> decltype(auto) {
+            return arg;
+        }(std::forward<decltype(args)>(args)...);
+    }(mp_take_c<mp_list<decltype(args)...>, N>{});
+}
+
+```
+
+> https://godbolt.org/z/zEM1eGqxK
+
+----
+
+#### boost.preprocessor
+
+```cpp
+namespace detail {
+
+#define NTH_ARG(Z, N, TYPE) TYPE arg##N,
+#define nth_pack_element(Z, N, TYPE)                                                \
+  template <auto I>                                                            \
+  requires(I == N) constexpr decltype(auto) nth_pack_element(                       \
+      BOOST_PP_REPEAT(BOOST_PP_INC(N), NTH_ARG, TYPE) TYPE...) {               \
+    return arg##N;                                                             \
+  }
+
+BOOST_PP_REPEAT(BOOST_PP_DEC(BOOST_PP_LIMIT_REPEAT), nth_pack_element, auto &&)
+
+#undef nth_pack_element
+#undef NTH_ARG
+
+} // namespace detail
+
+template <auto N> constexpr decltype(auto) nth_pack_element(auto &&...args) {
+  return detail::nth_pack_element<N>(args...);
+}
+```
+
+> https://godbolt.org/z/ervdav89b
+
+----
+
+#### [@Cricle](https://www.circle-lang.org) - https://circle.godbolt.org/z/KGhP5aedx
+
+```cpp
+template<auto N>
+[[nodiscard]] constexpr auto nth_pack_element(auto... args) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  return args...[N]; // Expressiveness! 👍
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### @Circle - Requriements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### @Cricle - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### can't be much easier, but it's not C++
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### fast to compile as it's a language feature
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+### tuple.get\<N\>
+
+---
+
+```cpp
+static_assert(1 == get<0>(tuple(1, 2, 3)));
+static_assert(2 == get<1>(tuple(1, 2, 3)));
+static_assert(3 == get<2>(tuple(1, 2, 3)));
+get<3>(tuple(1, 2, 3)); // error: constraint not satisfied
+````
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### BTW, why get is not a member of tuple? - https://godbolt.org/z/bGz7q6fr7
+
+```cpp
+template<class... Ts> struct tuple {
+  template<auto N> [[nodiscard]]
+  constexpr decltype(auto) get(); // instead of std::get?
+  ...
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+auto foo(tuple<int, int, int> t) { return t.get<0>(); } // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+template<class... Ts> auto foo(tuple<Ts...> t) {
+  return t.template get<0>(); // 👎 - missing 'template' keyword prior
+                                      to dependent template name 'get'
+}
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto foo(auto t) {
+  return t.template get<0>(); // 👎 - missing 'template' keyword prior
+                                      to dependent template name 'get'
+}
+```
+<!-- .element: class="fragment" -->
+
+> To avoid `.template`!
+<!-- .element: class="fragment" -->
+
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+#### tuple - https://godbolt.org/z/a9Mbc3Mj8
+
+```cpp
+[[nodiscard]] constexpr auto tuple(auto... ts) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  return [...ts = ts](auto f) {
+    return f(ts...);
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### tuple.get\<N\> - https://godbolt.org/z/a9Mbc3Mj8
+
+```cpp
+template<auto N>
+[[nodiscard]] constexpr auto get(auto t) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  return t([](auto... args) {
+    return nth_pack_element<N>(args...);
+  });
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### [@Cricle](https://www.circle-lang.org) - https://circle.godbolt.org/z/eM56E78nb aka tuple as a language feature
+
+```cpp
+template<class... Ts>
+struct tuple {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  [[no_unique_address]] Ts... ts;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  template<auto N>
+  [[nodiscard]] constexpr auto get() {
+    return ts...[N];
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+==============================================================================
+
+### Benchmarks
+
+----
+
+* #### Readability
+* #### Performance / Compilation times
+
+----
+
+#### [Metabench](http://metaben.ch)
+
+```cpp
+int main() {
+<% (0..n-1).each do |i| %>
+  nth_pack_element<<%= i %>>(<%= (1..n).to_a.join(', ') %>);
+<% end %>
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+int main() {
+  nth_pack_element<0>(1);
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+int main() {
+  nth_pack_element<0>(1, 2);
+  nth_pack_element<1>(1, 2);
+  ...
+}
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+==============================================================================
+
+### Summary
+
+* #### Readability
+<!-- .element: class="fragment" -->
+  * #### Hide dark magic behind test and easy to use interfaces in libraries
+<!-- .element: class="fragment" -->
+
+* #### Performance
+<!-- .element: class="fragment" -->
+  * #### TMP with recursion is slow to compile (doesn't scale well)
+<!-- .element: class="fragment" -->
+
+* #### Lack of language features to manipulate/store variadic pack is hearting C++
+<!-- .element: class="fragment" -->
+  * #### C++ would benefit if tuple could be implemented much easier
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+#### https://www.quantlab.com/careers
+
+---
+
+## Let's pack... some more language features?!
+
+---
+##### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+          </script>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
+          { src: 'extensions/plugin/line-numbers/line-numbers.js' }
+        ]
+      });
+
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
+    </script>
+
+  </body>
+</html>
+
+<!--todo proposal for ...  Non-terminal variadic template parameters-->
+<!--template<class... Ts, class T>-->
+<!--void foo(Ts..., T t) { return t; }-->
+<!--di - with any-->
+<!--bonus - tuple-->
+<!--dbi - fit it in somehow-->
+<!--is_Same_v<Auto vs std::size_t -->
+<!-- expansion on ts... to get the same type -->
+
