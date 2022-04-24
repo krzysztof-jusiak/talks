@@ -159,7 +159,21 @@ static_assert(3 == (1, 2, 3));
 <!-- .element: class="fragment" -->
 
 ```cpp
-constexpr auto last_pack_element = (args, ...);
+constexpr auto last_pack_element = (..., args); // warning: unused-value
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Motivation - Last element
+
+```cpp
+static_assert(3 == (1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+constexpr auto last_pack_element = (..., (args = args)); // ok
 ```
 <!-- .element: class="fragment" -->
 
@@ -288,7 +302,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied
 <!-- .element: class="fragment" -->
 * #### Recursion
 <!-- .element: class="fragment" -->
-* #### Type/object expansion
+* #### Arg expansion
 <!-- .element: class="fragment" -->
 * #### Concept expansion
 <!-- .element: class="fragment" -->
@@ -373,7 +387,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-### Recursion.1
+### Recursion.1 - https://godbolt.org/z/5WqMc5bjo
 
 ```cpp
 template <auto N> requires (N == 0)
@@ -388,8 +402,6 @@ template <auto N> requires (N > 0)
 }
 ```
 <!-- .element: class="fragment" -->
-
-> https://godbolt.org/z/5WqMc5bjo
 
 ----
 
@@ -438,7 +450,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-### Recursion.2
+### Recursion.2 - https://godbolt.org/z/vGh1nTnaq
 
 ```cpp
 template<auto N, auto I = 0>
@@ -455,8 +467,6 @@ constexpr auto nth_pack_element(auto arg, auto... args) {
 }
 ```
 <!-- .element: class="fragment" -->
-
-> https://godbolt.org/z/vGh1nTnaq
 
 ----
 
@@ -516,6 +526,11 @@ constexpr auto unroll = [](auto expr) {
 };
 ```
 <!-- .element: class="fragment" -->
+<!-- .slide: data-background="darkblue" -->
+
+----
+
+#### Immediately-Invoked Function Expression (`IIFE`) - https://godbolt.org/z/aM58T1
 
 ```cpp
 int main() {
@@ -542,45 +557,41 @@ main:
 
 <!-- .slide: data-background="darkblue" -->
 
-#### Immediately-Invoked Function Expression (`IIFE`) - https://godbolt.org/z/jj7vWaMrG
-
-<img style="background:none; border:none; box-shadow:none;" src="images/iife-asm.png" width="100%" />
-
-<!-- .slide: data-background="darkblue" -->
-
 ----
 
-### void* expansion
+#### Arg expansion - https://godbolt.org/z/a8vsqM848
 
 ```cpp
 template<auto N>
 constexpr auto nth_pack_element(auto... args) {
 ```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-``cpp
+```cpp
   return [&]<auto... Ns>(std::index_sequence<Ns...>) {
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
     return [](decltype((void*)Ns)..., auto* nth, auto*...) {
       return *nth;
     }(&args...);
 ```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  }
-  (std::make_index_sequence<N>{});
+  }(std::make_index_sequence<N>{});
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
 }
 ```
-
-> https://godbolt.org/z/a8vsqM848
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-#### void* exapansion - Requirements
+#### Arg exapansion - Requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -609,7 +620,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### void* expansion - Goals
+#### Arg expansion - Goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -625,129 +636,528 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-### any type exapansion
+#### Arg/Any exapansion - https://godbolt.org/z/aEM31WE8b
 
 ```cpp
 template<class T, auto N> struct any { T value{}; };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-template<std::size_t N, class T>
-constexpr decltype(auto) get(any<T, N>& t) { return t.value; }
+```cpp
+template<auto N, class T>
+constexpr auto get(any<T, N>& t) { return t.value; }
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
+```cpp
 template<auto N>
 constexpr auto nth_pack_element = [](auto... args) {
-  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
     struct : any<decltype(args), Ns>... { } _{args...};
     return get<N>(_);
-  }
-  (std::make_index_sequence<sizeof...(args)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }(std::make_index_sequence<sizeof...(args)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
 };
 ```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-> https://godbolt.org/z/aEM31WE8b
+----
 
+#### Arg/Any exapansion - Requirements
 
-### Concept expansion - C++20
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Arg/Any expansion - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### dark-magic!
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### no recursion = faster to compile
+<!-- .element: class="fragment" -->
+
+----
+
+#### Concept expansion (C++20) - https://godbolt.org/z/WPhe5MerW
 
 ```cpp
 template <class, auto> concept prefix = true;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
+```cpp
 template <auto N>
 constexpr auto nth_pack_element(auto... args) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
   return [&]<auto... Is>(std::index_sequence<Is...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
     return [] (prefix<Is> auto..., auto arg, auto...) {
       return arg;
     }(args...);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
   }(std::make_index_sequence<N>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
 }
 ```
-
-> https://godbolt.org/z/WPhe5MerW
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-### __type_pack_element - clang
+#### Concept exapansion - Requirements
 
 ```cpp
-template<class T, std::size_t N> struct any { T value{}; };
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
 
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Concept expansion - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### dark-magic!
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### no recursion = faster to compile
+<!-- .element: class="fragment" -->
+
+----
+
+### __type_pack_element (clang) - https://godbolt.org/z/GMGnWfvnE
+
+```cpp
+template<class T, auto N> struct any { T value{}; };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
 template<auto N>
 constexpr auto nth_pack_element = [](auto... args) {
-  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+```cpp
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
     struct : any<decltype(args), Ns>... { } _{args...};
     return static_cast<__type_pack_element<N, any<decltype(args), Ns>...>&>(_).value;
-  }
-  (std::make_index_sequence<sizeof...(args)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }(std::make_index_sequence<sizeof...(args)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
 };
 ```
-
-> https://godbolt.org/z/GMGnWfvnE
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-### boost.mp11.1
+#### __type_pack_element - Requirements
 
 ```cpp
-template<class T, std::size_t N> struct any { T value{}; };
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
 
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Concept expansion - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### clang extension, doesn't work with other compilers
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### supported by the compiler but only works with types
+<!-- .element: class="fragment" -->
+
+----
+
+### boost.mp11.1 - https://godbolt.org/z/rKjzPf9zK
+
+```cpp
+template<class T, auto N> struct any { T value{}; };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```ccpp
 template<auto N>
-constexpr auto nth_pack_element = [](auto... args) {
-  return [&]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+constexpr auto nth_pack_element(auto... args) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
     struct : any<decltype(args), Ns>... { } _{args...};
-    return static_cast<boost::mp11::mp_at_c<boost::mp11::mp_inherit<any<decltype(args), Ns>...>, N>&>(_).value;
-  }
-  (std::make_index_sequence<sizeof...(args)>{});
-};
+    return static_cast<mp11::mp_at_c<
+      mp11::mp_inherit<any<decltype(args), Ns>...>, N
+    >&>(_).value;
 ```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
-> https://godbolt.org/z/rKjzPf9zK
+```cpp
+  }(std::make_index_sequence<sizeof...(args)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-### boost.mp11.2
+#### boost.mp11.1 - Requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### boost.mp11.1 - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### A bit better, some stuff hidden behind the library
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### boost.mp11 is well optimized
+<!-- .element: class="fragment" -->
+
+----
+
+### boost.mp11.2 - https://godbolt.org/z/zEM1eGqxK
 
 ```cpp
 template<auto N>
-constexpr decltype(auto) nth_pack_element(auto &&... args) {
-    using namespace boost::mp11;
-    return [&] <class... Ts> (mp_list<Ts...>) -> decltype(auto) {
-        return [] (Ts &&..., auto &&arg, auto &&...) -> decltype(auto) {
-            return arg;
-        }(std::forward<decltype(args)>(args)...);
-    }(mp_take_c<mp_list<decltype(args)...>, N>{});
-}
-
+constexpr auto nth_pack_element(auto... args) {
 ```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-> https://godbolt.org/z/zEM1eGqxK
+```cpp
+  return [&] <class... Ts> (mp_list<Ts...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+      return [] (Ts..., auto arg, auto...) {
+        return arg;
+      }(args...);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  }(mp_take_c<mp_list<decltype(args)...>, N>{});
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-#### boost.preprocessor
+#### boost.mp11.2 - Requirements
 
 ```cpp
-namespace detail {
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
 
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### boost.mp11.2 - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### A bit better, some stuff hidden behind the library
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### boost.mp11 is well optimized
+<!-- .element: class="fragment" -->
+
+----
+
+#### boost.preprocessor - https://godbolt.org/z/ervdav89b
+
+```cpp
+template <auto I> requires (I == 0)
+constexpr auto nt_pack_elemnt(auto arg, auto...) {
+  return arg;
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+template <auto I> requires (I == 1)
+constexpr auto nt_pack_elemnt(auto, arg, auto...) {
+  return arg;
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+...
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### boost.preprocessor - https://godbolt.org/z/ervdav89b
+
+```cpp
 #define NTH_ARG(Z, N, TYPE) TYPE arg##N,
-#define nth_pack_element(Z, N, TYPE)                                                \
-  template <auto I>                                                            \
-  requires(I == N) constexpr decltype(auto) nth_pack_element(                       \
-      BOOST_PP_REPEAT(BOOST_PP_INC(N), NTH_ARG, TYPE) TYPE...) {               \
-    return arg##N;                                                             \
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+#define nth_pack_element(Z, N, TYPE)                  \
+  template <auto I>                                   \
+  requires(I == N) constexpr auto nth_pack_element(   \
+      BOOST_PP_REPEAT(                                \
+          N, NTH_ARG, TYPE))                          \
+        BOOST_PP_INC(N), NTH_ARG, TYPE) TYPE...) {    \
+    return arg##N;                                    \
   }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
-BOOST_PP_REPEAT(BOOST_PP_DEC(BOOST_PP_LIMIT_REPEAT), nth_pack_element, auto &&)
+```cpp
+BOOST_PP_REPEAT(                                              \
+  BOOST_PP_DEC(BOOST_PP_LIMIT_REPEAT), nth_pack_element, auto \
+)
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
+```cpp
 #undef nth_pack_element
 #undef NTH_ARG
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
-} // namespace detail
-
-template <auto N> constexpr decltype(auto) nth_pack_element(auto &&...args) {
-  return detail::nth_pack_element<N>(args...);
+```cpp
+template <auto N> constexpr auto nth_pack_element(auto ...args) {
+  return nth_pack_element<N>(args...);
 }
 ```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-> https://godbolt.org/z/ervdav89b
+----
+
+#### boost.preprocessor - Requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### boost.preprocessor - Goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### Preprocessor, text replacement
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### Multiple overloads + preprocessor
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -771,7 +1181,7 @@ template<auto N>
 
 ----
 
-#### @Circle - Requriements
+#### @Circle - Requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -878,9 +1288,7 @@ auto foo(auto t) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  return [...ts = ts](auto f) {
-    return f(ts...);
-  };
+  return [=](auto f) { return f(ts...); };
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -945,14 +1353,29 @@ struct tuple {
 
 ----
 
-* #### Readability
-* #### Performance / Compilation times
+#### Readability
+
+| Solution            |  |
+| --------------------| ----------- |
+| Arg/Concept expansion       |dark-magic! |
+| boost::preprocessor |text replacement |
+| __type_pack_element |compiler extension |
 
 ----
 
-#### [Metabench](http://metaben.ch)
+#### Readability
 
-```cpp
+| Solution            |  |
+| --------------------| ----------- |
+| Recursion           |requires a bit of magic for the final case |
+| boost::mp11         |better, some stuff hidden behind the library |
+| @Circle             |can't be much easier, but it's not C++ |
+
+----
+
+#### Performance - nth_pack_element
+
+```ruby
 int main() {
 <% (0..n-1).each do |i| %>
   nth_pack_element<<%= i %>>(<%= (1..n).to_a.join(', ') %>);
@@ -961,23 +1384,130 @@ int main() {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+##### nth_pack_element.cpp.erb
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
 ---
 
 ```cpp
-int main() {
-  nth_pack_element<0>(1);
-}
+int main() { nth_pack_element<0>(1); }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+##### nth_pack_element.cpp.1
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+
 ```cpp
 int main() {
-  nth_pack_element<0>(1, 2);
-  nth_pack_element<1>(1, 2);
-  ...
+  nth_pack_element<0>(1, 2); nth_pack_element<1>(1, 2);
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+##### nth_pack_element.cpp.2
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+
+...
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+<h4><p style="color:black">GCC-11<a> - benchmark/nth_pack_element.clang.html</a></h4>
+
+<iframe src="benchmark/nth_pack_element.gcc.html" width="100%" height="500px"></iframe>
+
+<!-- .slide: data-background="white" -->
+
+<h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
+
+----
+
+<h4><p style="color:black">Clang-13<a> - benchmark/nth_pack_element.clang.html</a></h4>
+
+<iframe src="benchmark/nth_pack_element.clang.html" width="100%" height="500px"></iframe>
+
+<!-- .slide: data-background="white" -->
+
+<h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
+----
+
+<h4><p style="color:black">Circle-168<a> - benchmark/nth_pack_element.clang.html</a></h4>
+
+<iframe src="benchmark/nth_pack_element.circle.html" width="100%" height="500px"></iframe>
+
+<!-- .slide: data-background="white" -->
+
+<h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
+
+----
+
+#### Performance - nth_pack_element - highlights
+
+----
+
+#### Performance - tuple
+
+```ruby
+int main() {
+  auto t = tuple(<%= (1..n).to_a.join(', ') %>);
+<% (0..n-1).each do |i| %>
+  get<<%= i %>>(t);
+<% end %>
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### tuple.cpp.erb
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+> Special cases for
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+* std::tuple
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+* @Circle
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+<h4><p style="color:black">GCC-13<a> - benchmark/tuple</a></h4>
+
+<iframe src="benchmark/tuple.gcc.html" width="100%" height="500px"></iframe>
+
+<!-- .slide: data-background="white" -->
+
+<h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
+
+---
+
+<h4><p style="color:black">Clang-13<a> - benchmark/tuple</a></h4>
+
+<iframe src="benchmark/tuple.clang.html" width="100%" height="500px"></iframe>
+
+<!-- .slide: data-background="white" -->
+
+
+<h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
+
+----
+
+<h4><p style="color:black">Circle-13<a> - benchmark/tuple</a></h4>
+
+<iframe src="benchmark/tuple.circle.html" width="100%" height="500px"></iframe>
+
+<!-- .slide: data-background="white" -->
+
+
+<h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
+
+----
+
+#### Performance - tuple - highlights
 
 ==============================================================================
 
@@ -985,7 +1515,7 @@ int main() {
 
 * #### Readability
 <!-- .element: class="fragment" -->
-  * #### Hide dark magic behind test and easy to use interfaces in libraries
+  * #### Hide dark magic behind tests and user friendly interfaces in libraries
 <!-- .element: class="fragment" -->
 
 * #### Performance
@@ -1082,7 +1612,7 @@ int main() {
         hideAddressBar: true,
 
         // Opens links in an iframe preview overlay
-        previewLinks: false,
+        previewLinks: true,
 
         // Transition style
         transition: 'none', // none/fade/slide/convex/concave/zoom
