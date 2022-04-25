@@ -526,6 +526,21 @@ constexpr auto unroll = [](auto expr) {
 };
 ```
 <!-- .element: class="fragment" -->
+
+---
+
+#### P1061 - Structured Bindings can introduce a Pack
+<!-- .element: class="fragment" -->
+
+```cpp
+template<auto N>
+constexpr auto unroll = [](auto expr) {
+  auto [... Is] = std::make_index_sequence<N>();
+  ((expr(), void(Is)), ...);
+};
+```
+<!-- .element: class="fragment" -->
+
 <!-- .slide: data-background="darkblue" -->
 
 ----
@@ -1260,7 +1275,7 @@ auto foo(tuple<int, int, int> t) { return t.get<0>(); } // 👍
 ```cpp
 template<class... Ts> auto foo(tuple<Ts...> t) {
   return t.template get<0>(); // 👎 - missing 'template' keyword prior
-                                      to dependent template name 'get'
+                              // to dependent template name 'get'
 }
 ```
 <!-- .element: class="fragment" -->
@@ -1268,12 +1283,12 @@ template<class... Ts> auto foo(tuple<Ts...> t) {
 ```cpp
 auto foo(auto t) {
   return t.template get<0>(); // 👎 - missing 'template' keyword prior
-                                      to dependent template name 'get'
+                              // to dependent template name 'get'
 }
 ```
 <!-- .element: class="fragment" -->
 
-> To avoid `.template`!
+#### To avoid `.template`! / Universal Call Syntax to the rescue?
 <!-- .element: class="fragment" -->
 
 <!-- .slide: data-background="darkblue" -->
@@ -1414,7 +1429,7 @@ int main() {
 
 ----
 
-<h4><p style="color:black">GCC-11<a> - benchmark/nth_pack_element.clang.html</a></h4>
+<h4><p style="color:black">GCC-11<a> - benchmark/nth_pack_element</a></h4>
 
 <iframe src="benchmark/nth_pack_element.gcc.html" width="100%" height="500px"></iframe>
 
@@ -1424,7 +1439,7 @@ int main() {
 
 ----
 
-<h4><p style="color:black">Clang-13<a> - benchmark/nth_pack_element.clang.html</a></h4>
+<h4><p style="color:black">Clang-13<a> - benchmark/nth_pack_element</a></h4>
 
 <iframe src="benchmark/nth_pack_element.clang.html" width="100%" height="500px"></iframe>
 
@@ -1433,7 +1448,7 @@ int main() {
 <h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
 ----
 
-<h4><p style="color:black">Circle-168<a> - benchmark/nth_pack_element.clang.html</a></h4>
+<h4><p style="color:black">Circle-168<a> - benchmark/nth_pack_element</a></h4>
 
 <iframe src="benchmark/nth_pack_element.circle.html" width="100%" height="500px"></iframe>
 
@@ -1483,7 +1498,7 @@ int main() {
 
 <h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
 
----
+----
 
 <h4><p style="color:black">Clang-13<a> - benchmark/tuple</a></h4>
 
