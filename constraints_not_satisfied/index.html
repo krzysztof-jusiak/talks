@@ -60,10 +60,7 @@
 #### Anything - https://godbolt.org/z/MKq8aEde4
 
 ```cpp
-static_assert(anything<int>);
-static_assert(anything<void>);
-static_assert(anything<const short *>);
-static_assert(anything<int &>);
+auto foo(anything auto) -> void;
 ```
 <!-- .element: class="fragment" -->
 
@@ -75,12 +72,22 @@ concept anything = true;
 ```
 <!-- .element: class="fragment" -->
 
+---
+
+```cpp
+static_assert(anything<int>);
+static_assert(anything<void>);
+static_assert(anything<const short *>);
+static_assert(anything<int &>);
+```
+<!-- .element: class="fragment" -->
+
 ----
 
 #### Negation - https://godbolt.org/z/d5EEzrcd6
 
 ```cpp
-auto foo($not(std::movable) auto arg) { }
+auto foo($not(std::integral) auto arg) -> void
 ```
 <!-- .element: class="fragment" -->
 
@@ -88,26 +95,31 @@ auto foo($not(std::movable) auto arg) { }
 
 ```cpp
 int main() {
-  foo(std::make_unique<int>()); // error: constraints not satisfied
+  struct {} bar;
+  foo(bar); // ok
+  foo(42);  // error: constraints not satisfied
 }
 ```
 <!-- .element: class="fragment" -->
 
 ----
 
-#### Negation - https://godbolt.org/z/d5EEzrcd6
+#### Negation - https://godbolt.org/z/dsn51TMrf
 
 ```cpp
 namespace detail {
-  template<class T, auto F>
-  concept neg = not F.template operator()<T>();
+  template<class T, auto Constraint>
+  concept neg = not Constraint.template operator()<T>();
 }
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-#define $not($concept) \
-  detail::neg<[]<class T> { return $concept<T>; }>
+#define $not(...)                                                     \
+  detail::neg<[]<class $T>{                                           \
+    return requires{ { [] -> $T { return {}; }() } -> __VA_ARGS__; }; \
+  }>
+
 ```
 <!-- .element: class="fragment" -->
 
@@ -170,11 +182,25 @@ namespace detail {
 
 ----
 
-### Let's constraints all our requirements!
+### Let's constraints all requirements!
 
 ```cpp
-auto bar(auto);               // 👎
-auto bar($not(fooable) auto); // 👍
+auto bar(auto);                     // 👎
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto bar(std::integral auto);       // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto bar($not(std::movable) auto);  // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto bar($not(anything) auto);      // ?
 ```
 <!-- .element: class="fragment" -->
 

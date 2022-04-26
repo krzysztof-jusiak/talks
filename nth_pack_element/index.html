@@ -50,7 +50,7 @@
 # Nth pack element...
 ## A Case Study
 
-----
+---
 
 ###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
           </script>
@@ -68,7 +68,7 @@
     <!-- .element: class="fragment" -->
 * #### Nth pack element...
 <!-- .element: class="fragment" -->
-    * #### tuple.get\<N\>
+    * #### get\<N\>(tuple)
     <!-- .element: class="fragment" -->
 * #### Benchmarks
 <!-- .element: class="fragment" -->
@@ -95,14 +95,11 @@ std::nth_element
 ```
 <!-- .element: class="fragment" -->
 
-#### Not this talk 👎
-<!-- .element: class="fragment" -->
-
 ---
 
 ```cpp
 nth_pack_element
-  returns element at N position from a variadic pack...
+  returns element at N position from variadic pack...
 ```
 <!-- .element: class="fragment" -->
 
@@ -111,7 +108,11 @@ nth_pack_element
 
 ==============================================================================
 
-### Motivation - First element
+### Motivation/Goal
+
+----
+
+#### Motivation - First element
 
 ```cpp
 static_assert(1 == first_pack_elment(1, 2, 3));
@@ -128,7 +129,7 @@ constexpr auto first_pack_element =
 
 ----
 
-### Motivation - First element ([wg21.link/P1061](wg21.link/P1061))
+#### Motivation - First element ([wg21.link/P1061](wg21.link/P1061))
 
 ```cpp
 static_assert(1 == first);
@@ -144,7 +145,7 @@ constexpr auto [first, ...ts] = std::tuple{1, 2, 3};
 
 ----
 
-### Motivation - Last element
+#### Motivation - Last element
 
 ```cpp
 static_assert(3 == last_pack_element(1, 2, 3));
@@ -165,7 +166,7 @@ constexpr auto last_pack_element = (..., args); // warning: unused-value
 
 ----
 
-### Motivation - Last element
+#### Motivation - Last element
 
 ```cpp
 static_assert(3 == (1, 2, 3));
@@ -179,10 +180,10 @@ constexpr auto last_pack_element = (..., (args = args)); // ok
 
 ----
 
-### Motivation - Last element ([wg21.link/P1061](wg21.link/P1061))
+#### Motivation - Last element ([wg21.link/P1061](wg21.link/P1061))
 
 ```cpp
-static_assert(1 == last);
+static_assert(3 == last);
 ```
 <!-- .element: class="fragment" -->
 
@@ -195,10 +196,26 @@ constexpr auto [...ts, last] = std::tuple{1, 2, 3};
 
 ----
 
-### Motivation - First and last element
+#### Motivation - Last element (Non-terminal variadic template parameters)
 
 ```cpp
-static_assert(1 == first and 3 == last);
+static_assert(1 == last(1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+constexpr auto last = [](auto..., auto last) { return last; };
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Motivation - First and last element
+
+```cpp
+static_assert(1 == first(1, 2, 3) and 3 == last(1, 2, 3));
 ```
 <!-- .element: class="fragment" -->
 
@@ -208,7 +225,7 @@ static_assert(1 == first and 3 == last);
 constexpr auto [first, last] =
   [](auto first, auto... ts){
     return std::tuple{first, (ts, ...)};
-  }(1, 2, 3);
+  };
 ```
 <!-- .element: class="fragment" -->
 
@@ -221,7 +238,16 @@ constexpr auto [first, ...ts, last] = std::tuple{1, 2, 3};
 
 ----
 
-### Motivation - Nth pack element...?
+#### Motivation - Nth pack element...?
+
+```cpp
+constexpr auto nth = nth_pack_element<N>(1, 2, 3); // ?
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Motivation/Goal - Nth pack element...?
 
 ```cpp
 static_assert(2 == std::get<1>(std::tuple{1, 2, 3}));
@@ -237,7 +263,7 @@ templte<auto N>
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  // Explore possible solutions - The Goal!
+  // The goal - Explore possible solutions
   return nth_pack_element<N>(...);
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -253,7 +279,7 @@ templte<auto N>
 
 ----
 
-### Requirements
+#### Requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3));
@@ -271,13 +297,18 @@ static_assert(3 == nth_pack_element<2>(1, 2, 3));
 <!-- .element: class="fragment" -->
 
 ```cpp
+static_assert('a' == nth_pack_element<0>('a', 2, "c"));
+```
+<!-- .element: class="fragment" -->
+
+```cpp
 nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied
 ```
 <!-- .element: class="fragment" -->
 
 ----
 
-### Goals
+#### Goals
 
 * #### Flexibility
 <!-- .element: class="fragment" -->
@@ -296,23 +327,23 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied
 
 ----
 
-### Solutions
+#### Solutions
 
-* #### std::array* (Same types only)
+* ##### std::array* (Same types only)
 <!-- .element: class="fragment" -->
-* #### Recursion
+* ##### Recursion
 <!-- .element: class="fragment" -->
-* #### Arg expansion
+* ##### Arg expansion
 <!-- .element: class="fragment" -->
-* #### Concept expansion
+* ##### Concept expansion
 <!-- .element: class="fragment" -->
-* #### boost::mp11
+* ##### boost::mp11
 <!-- .element: class="fragment" -->
-* #### boost::preprocessor
+* ##### boost::preprocessor
 <!-- .element: class="fragment" -->
-* #### __type_pack_element
+* ##### __type_pack_element
 <!-- .element: class="fragment" -->
-* #### @Circle
+* ##### @Circle
 <!-- .element: class="fragment" -->
 
 ----
@@ -331,7 +362,8 @@ constexpr auto nth_pack_element = [](auto... args) [[nodiscard]] {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  return std::array{args...}[N];
+  return std::array{args...}[N]; // close to ideal syntax,
+                                 // but let's stay tune!
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -382,20 +414,22 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 <!-- .element: class="fragment" -->
 
 * #### Performance
-  - #### fast to compile
+  - #### fast to compile as it's a language feature
 <!-- .element: class="fragment" -->
 
 ----
 
-### Recursion.1 - https://godbolt.org/z/5WqMc5bjo
+#### Recursion.1 - https://godbolt.org/z/5WqMc5bjo
 
 ```cpp
 template <auto N> requires (N == 0)
 [[nodiscard]] constexpr auto nth_pack_element(auto arg, auto...) {
     return arg;
 }
+```
 <!-- .element: class="fragment" -->
 
+```cpp
 template <auto N> requires (N > 0)
 [[nodiscard]] constexpr auto nth_pack_element(auto arg, auto... args) {
     return nth_pack_element<N - 1>(args...);
@@ -450,23 +484,27 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-### Recursion.2 - https://godbolt.org/z/vGh1nTnaq
+#### Recursion.2 - https://godbolt.org/z/vGh1nTnaq
 
 ```cpp
 template<auto N, auto I = 0>
 constexpr auto nth_pack_element(auto arg, auto... args) {
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-    if constexpr (I == N) {
+    if constexpr (I == N) { // no overloads
         return arg;
     } else if constexpr (sizeof...(args) > 0u) {
         return nth_pack_element<N, I + 1>(args...);
     }
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
 }
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -510,7 +548,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 <!-- .element: class="fragment" -->
 
 * #### Performance
-  - #### slow to compile
+  - #### Less overloads than Recursion.1
 <!-- .element: class="fragment" -->
 
 ----
@@ -535,7 +573,7 @@ constexpr auto unroll = [](auto expr) {
 ```cpp
 template<auto N>
 constexpr auto unroll = [](auto expr) {
-  auto [... Is] = std::make_index_sequence<N>();
+  auto [... Is] = std::make_index_sequence<N>{};
   ((expr(), void(Is)), ...);
 };
 ```
@@ -606,7 +644,7 @@ constexpr auto nth_pack_element(auto... args) {
 
 ----
 
-#### Arg exapansion - Requirements
+#### Arg expansion - Requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -651,7 +689,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Arg/Any exapansion - https://godbolt.org/z/aEM31WE8b
+#### Arg/Any expansion - https://godbolt.org/z/aEM31WE8b
 
 ```cpp
 template<class T, auto N> struct any { T value{}; };
@@ -693,7 +731,7 @@ constexpr auto nth_pack_element = [](auto... args) {
 
 ----
 
-#### Arg/Any exapansion - Requirements
+#### Arg/Any expansion - Requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -775,7 +813,7 @@ constexpr auto nth_pack_element(auto... args) {
 
 ----
 
-#### Concept exapansion - Requirements
+#### Concept expansion - Requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -820,17 +858,17 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-### __type_pack_element (clang) - https://godbolt.org/z/GMGnWfvnE
+#### __type_pack_element (clang) - https://godbolt.org/z/jdM6v47P1
 
 ```cpp
-template<class T, auto N> struct any { T value{}; };
+template<class T, auto> struct any { T value{}; };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 template<auto N>
-constexpr auto nth_pack_element = [](auto... args) {
-```cpp
+constexpr auto nth_pack_element = []<class.. TArgs>(TArgs... args) {
+```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
@@ -839,8 +877,10 @@ constexpr auto nth_pack_element = [](auto... args) {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-    struct : any<decltype(args), Ns>... { } _{args...};
-    return static_cast<__type_pack_element<N, any<decltype(args), Ns>...>&>(_).value;
+    struct : any<TArgs, Ns>... { } _{args...}; // unique value types
+    return static_cast<
+      __type_pack_element<N, any<TArgs, Ns>...>&
+    >(_).value;
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -901,16 +941,16 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-### boost.mp11.1 - https://godbolt.org/z/rKjzPf9zK
+#### boost.mp11.1 - https://godbolt.org/z/rKjzPf9zK
 
 ```cpp
 template<class T, auto N> struct any { T value{}; };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-```ccpp
-template<auto N>
-constexpr auto nth_pack_element(auto... args) {
+```cpp
+template<auto N, class... TArgs>
+constexpr auto nth_pack_element(TArgs... args) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -920,10 +960,10 @@ constexpr auto nth_pack_element(auto... args) {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-    struct : any<decltype(args), Ns>... { } _{args...};
-    return static_cast<mp11::mp_at_c<
-      mp11::mp_inherit<any<decltype(args), Ns>...>, N
-    >&>(_).value;
+    struct : any<TArgs, Ns>... { } _{args...};
+    return static_cast<
+      mp_at_c<mp_inherit<any<TArgs, Ns>...>, N>&
+    >(_).value;
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -984,7 +1024,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-### boost.mp11.2 - https://godbolt.org/z/zEM1eGqxK
+#### boost.mp11.2 - https://godbolt.org/z/zEM1eGqxK
 
 ```cpp
 template<auto N>
@@ -993,14 +1033,14 @@ constexpr auto nth_pack_element(auto... args) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  return [&] <class... Ts> (mp_list<Ts...>) {
+  return [&]<class... Ts>(mp_list<Ts...>) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-      return [] (Ts..., auto arg, auto...) {
-        return arg;
-      }(args...);
+    return [](Ts..., auto arg, auto...) {
+      return arg;
+    }(args...);
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1065,7 +1105,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ```cpp
 template <auto I> requires (I == 0)
-constexpr auto nt_pack_elemnt(auto arg, auto...) {
+constexpr auto nth_pack_element(auto arg, auto...) {
   return arg;
 }
 ```
@@ -1075,7 +1115,7 @@ constexpr auto nt_pack_elemnt(auto arg, auto...) {
 
 ```cpp
 template <auto I> requires (I == 1)
-constexpr auto nt_pack_elemnt(auto, arg, auto...) {
+constexpr auto nth_pack_element(auto, auto arg, auto...) {
   return arg;
 }
 ```
@@ -1171,7 +1211,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 <!-- .element: class="fragment" -->
 
 * #### Performance
-  - #### Multiple overloads + preprocessor
+  - #### Preprocessor + Multiple overloads
 <!-- .element: class="fragment" -->
 
 ----
@@ -1241,17 +1281,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ==============================================================================
 
-### tuple.get\<N\>
-
----
-
-```cpp
-static_assert(1 == get<0>(tuple(1, 2, 3)));
-static_assert(2 == get<1>(tuple(1, 2, 3)));
-static_assert(3 == get<2>(tuple(1, 2, 3)));
-get<3>(tuple(1, 2, 3)); // error: constraint not satisfied
-````
-<!-- .element: class="fragment" data-fragment-index="0" -->
+### get\<N\>(tuple)
 
 ----
 
@@ -1260,7 +1290,7 @@ get<3>(tuple(1, 2, 3)); // error: constraint not satisfied
 ```cpp
 template<class... Ts> struct tuple {
   template<auto N> [[nodiscard]]
-  constexpr decltype(auto) get(); // instead of std::get?
+  constexpr auto get(); // instead of std::get?
   ...
 ```
 <!-- .element: class="fragment" -->
@@ -1274,16 +1304,18 @@ auto foo(tuple<int, int, int> t) { return t.get<0>(); } // 👍
 
 ```cpp
 template<class... Ts> auto foo(tuple<Ts...> t) {
-  return t.template get<0>(); // 👎 - missing 'template' keyword prior
-                              // to dependent template name 'get'
+  return t./*template*/ get<0>(); // 👎 - missing 'template'
+                                  // keyword prior to dependent
+                                  // template name 'get'
 }
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
 auto foo(auto t) {
-  return t.template get<0>(); // 👎 - missing 'template' keyword prior
-                              // to dependent template name 'get'
+  return t./*template*/ get<0>(); // 👎 - missing 'template'
+                                  // keyword prior to dependent
+                                  // template name 'get'
 }
 ```
 <!-- .element: class="fragment" -->
@@ -1298,23 +1330,33 @@ auto foo(auto t) {
 #### tuple - https://godbolt.org/z/a9Mbc3Mj8
 
 ```cpp
-[[nodiscard]] constexpr auto tuple(auto... ts) {
-```
+static_assert(1 == get<0>(tuple(1, 2, 3)));
+static_assert(2 == get<1>(tuple(1, 2, 3)));
+static_assert(3 == get<2>(tuple(1, 2, 3)));
+get<3>(tuple(1, 2, 3)); // error: constraint not satisfied
+````
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+---
+
 ```cpp
-  return [=](auto f) { return f(ts...); };
+[[nodiscard]] constexpr auto tuple(auto... ts) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
+  return [=](auto f) { return f(ts...); };
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-#### tuple.get\<N\> - https://godbolt.org/z/a9Mbc3Mj8
+#### get\<N\>(tuple) - https://godbolt.org/z/a9Mbc3Mj8
 
 ```cpp
 template<auto N>
@@ -1362,9 +1404,14 @@ struct tuple {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+<!-- .slide: data-background="darkblue" -->
+
 ==============================================================================
 
 ### Benchmarks
+
+> Always measure!
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1458,7 +1505,21 @@ int main() {
 
 ----
 
-#### Performance - nth_pack_element - highlights
+#### Performance - nth_pack_element | highlights
+
+---
+
+* ##### Up to 20 elements it doesn't matter
+<!-- .element: class="fragment" -->
+
+* ##### Recursive solutions don't scale well
+<!-- .element: class="fragment" -->
+
+* ##### `Clever` solutions scale quite well
+<!-- .element: class="fragment" -->
+
+* ##### @Circle approach with a language feature destroys the competition
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -1474,23 +1535,12 @@ int main() {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-##### tuple.cpp.erb
+##### tuple.cpp.erb (Special cases for std::tuple, @Circle)
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-> Special cases for
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-* std::tuple
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-* @Circle
-<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
-<h4><p style="color:black">GCC-13<a> - benchmark/tuple</a></h4>
+<h4><p style="color:black">GCC-11<a> - benchmark/tuple</a></h4>
 
 <iframe src="benchmark/tuple.gcc.html" width="100%" height="500px"></iframe>
 
@@ -1511,18 +1561,44 @@ int main() {
 
 ----
 
-<h4><p style="color:black">Circle-13<a> - benchmark/tuple</a></h4>
+<h4><p style="color:black">Circle-168<a> - benchmark/tuple</a></h4>
 
 <iframe src="benchmark/tuple.circle.html" width="100%" height="500px"></iframe>
 
 <!-- .slide: data-background="white" -->
 
-
 <h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
 
 ----
 
-#### Performance - tuple - highlights
+#### Performance - tuple | highlights
+
+* ##### Recursive solutions don't scale well
+<!-- .element: class="fragment" -->
+
+* ##### `Clever` solutions scale quite well
+<!-- .element: class="fragment" -->
+
+* ##### @Circle's approach to a `tuple` as a language feature destroys the competition (although std::tuple is not leveraging that)
+<!-- .element: class="fragment" -->
+
+----
+
+#### Performance | notes
+
+| Best solution (200 elements) | GCC-11        | Clang-13          | Circle-168      |
+|-|-|-|-|
+| nth_pack_element             |  (arg) 6.66s  | (concept) 3.98s | (@circle) 0.27s |
+| tuple                        |  (arg) 15.93s | (concept) 6.13s | (@circle) 0.09s |
+
+----
+
+#### Performance | notes
+
+| Worst solution (200 elements) | GCC-11                | Clang-13              | Circle-168           |
+|-|-|-|-|
+| nth_pack_element              | (rec.1) 129.90s | (rec.1) 106.01s | (rec.1) 28.73s |
+| tuple                         | (rec.1) 144.39s | (rec.1)  108.31 | (rec.1) 31.36s |
 
 ==============================================================================
 
@@ -1627,7 +1703,7 @@ int main() {
         hideAddressBar: true,
 
         // Opens links in an iframe preview overlay
-        previewLinks: true,
+        previewLinks: false,
 
         // Transition style
         transition: 'none', // none/fade/slide/convex/concave/zoom
@@ -1688,8 +1764,6 @@ int main() {
 <!--template<class... Ts, class T>-->
 <!--void foo(Ts..., T t) { return t; }-->
 <!--di - with any-->
-<!--bonus - tuple-->
 <!--dbi - fit it in somehow-->
 <!--is_Same_v<Auto vs std::size_t -->
-<!-- expansion on ts... to get the same type -->
 
