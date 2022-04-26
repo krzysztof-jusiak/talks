@@ -374,7 +374,7 @@ constexpr auto nth_pack_element = [](auto... args) [[nodiscard]] {
 
 ----
 
-#### std.array - Requirements
+#### std.array - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -403,7 +403,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### std.array - Goals
+#### std.array - goals
 
 * #### Flexibility
   - #### not really, works only for the same types
@@ -439,7 +439,7 @@ template <auto N> requires (N > 0)
 
 ----
 
-#### Recursion.1 - Requirements
+#### Recursion.1 - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -468,7 +468,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Recursion.1 - Goals
+#### Recursion.1 - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -508,7 +508,7 @@ constexpr auto nth_pack_element(auto arg, auto... args) {
 
 ----
 
-#### Recursion.2 - Requirements
+#### Recursion.2 - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -537,7 +537,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Recursion.2 - Goals
+#### Recursion.2 - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -644,7 +644,7 @@ constexpr auto nth_pack_element(auto... args) {
 
 ----
 
-#### Arg expansion - Requirements
+#### Arg expansion - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -673,14 +673,14 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Arg expansion - Goals
+#### Arg expansion - goals
 
 * #### Flexibility
   - #### yes, works with different types
 <!-- .element: class="fragment" -->
 
 * #### Readability
-  - #### dark-magic!
+  - #### 'dark-magic'!
 <!-- .element: class="fragment" -->
 
 * #### Performance
@@ -731,7 +731,7 @@ constexpr auto nth_pack_element = [](auto... args) {
 
 ----
 
-#### Arg/Any expansion - Requirements
+#### Arg/Any expansion - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -760,14 +760,14 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Arg/Any expansion - Goals
+#### Arg/Any expansion - goals
 
 * #### Flexibility
   - #### yes, works with different types
 <!-- .element: class="fragment" -->
 
 * #### Readability
-  - #### dark-magic!
+  - #### 'dark-magic'!
 <!-- .element: class="fragment" -->
 
 * #### Performance
@@ -813,7 +813,7 @@ constexpr auto nth_pack_element(auto... args) {
 
 ----
 
-#### Concept expansion - Requirements
+#### Concept expansion - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -842,14 +842,14 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Concept expansion - Goals
+#### Concept expansion - goals
 
 * #### Flexibility
   - #### yes, works with different types
 <!-- .element: class="fragment" -->
 
 * #### Readability
-  - #### dark-magic!
+  - #### 'dark-magic'!
 <!-- .element: class="fragment" -->
 
 * #### Performance
@@ -896,7 +896,7 @@ constexpr auto nth_pack_element = []<class.. TArgs>(TArgs... args) {
 
 ----
 
-#### __type_pack_element - Requirements
+#### __type_pack_element - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -925,7 +925,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Concept expansion - Goals
+#### Concept expansion - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -979,7 +979,7 @@ constexpr auto nth_pack_element(TArgs... args) {
 
 ----
 
-#### boost.mp11.1 - Requirements
+#### boost.mp11.1 - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -1008,7 +1008,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### boost.mp11.1 - Goals
+#### boost.mp11.1 - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -1056,7 +1056,7 @@ constexpr auto nth_pack_element(auto... args) {
 
 ----
 
-#### boost.mp11.2 - Requirements
+#### boost.mp11.2 - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -1085,7 +1085,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### boost.mp11.2 - Goals
+#### boost.mp11.2 - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -1171,7 +1171,7 @@ template <auto N> constexpr auto nth_pack_element(auto ...args) {
 
 ----
 
-#### boost.preprocessor - Requirements
+#### boost.preprocessor - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -1200,7 +1200,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### boost.preprocessor - Goals
+#### boost.preprocessor - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -1236,7 +1236,7 @@ template<auto N>
 
 ----
 
-#### @Circle - Requirements
+#### @Circle - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -1265,7 +1265,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### @Cricle - Goals
+#### @Cricle - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -1419,7 +1419,7 @@ struct tuple {
 
 | Solution            |  |
 | --------------------| ----------- |
-| Arg/Concept expansion       |dark-magic! |
+| Arg/Concept expansion       |'dark-magic'! |
 | boost::preprocessor |text replacement |
 | __type_pack_element |compiler extension |
 
@@ -1609,12 +1609,14 @@ int main() {
 
 * #### Readability
 <!-- .element: class="fragment" -->
-  * #### Hide dark magic behind tests and user friendly interfaces in libraries
+  * #### 'Dark-magic' should be hidden behind tests and user friendly interfaces in libraries
 <!-- .element: class="fragment" -->
 
 * #### Performance
 <!-- .element: class="fragment" -->
-  * #### TMP with recursion is slow to compile (doesn't scale well)
+  * #### TMP with recursion is slow to compile
+<!-- .element: class="fragment" -->
+  * #### @Circle pack... manipulations are really fast to compile and scale well
 <!-- .element: class="fragment" -->
 
 * #### Lack of language features to manipulate/store variadic pack is hearting C++
