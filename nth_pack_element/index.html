@@ -337,9 +337,9 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied
 <!-- .element: class="fragment" -->
 * ##### Concept expansion
 <!-- .element: class="fragment" -->
-* ##### boost::mp11
+* ##### boost.mp11
 <!-- .element: class="fragment" -->
-* ##### boost::preprocessor
+* ##### boost.preprocessor
 <!-- .element: class="fragment" -->
 * ##### __type_pack_element
 <!-- .element: class="fragment" -->
@@ -1133,12 +1133,12 @@ constexpr auto nth_pack_element(auto, auto arg, auto...) {
 #### boost.preprocessor - https://godbolt.org/z/ervdav89b
 
 ```cpp
-#define NTH_ARG(Z, N, TYPE) TYPE arg##N,
+#define NTH_ARG(~, N, TYPE) TYPE arg##N,
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-#define nth_pack_element(Z, N, TYPE)                  \
+#define NTH_PACK_ELEMENT(~, N, TYPE)                  \
   template <auto I>                                   \
   requires(I == N) constexpr auto nth_pack_element(   \
       BOOST_PP_REPEAT(                                \
@@ -1151,7 +1151,7 @@ constexpr auto nth_pack_element(auto, auto arg, auto...) {
 
 ```cpp
 BOOST_PP_REPEAT(                                              \
-  BOOST_PP_DEC(BOOST_PP_LIMIT_REPEAT), nth_pack_element, auto \
+  BOOST_PP_DEC(BOOST_PP_LIMIT_REPEAT), NTH_PACK_ELEMENT, auto \
 )
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -1515,7 +1515,10 @@ int main() {
 * ##### Recursive solutions don't scale well
 <!-- .element: class="fragment" -->
 
-* ##### `Clever` solutions scale quite well
+* ##### 'Clever' solutions scale quite well
+<!-- .element: class="fragment" -->
+
+* ##### GCC std::tuple is the fastest although still slower than Clang/@Circle
 <!-- .element: class="fragment" -->
 
 * ##### @Circle approach with a language feature destroys the competition
@@ -1576,7 +1579,7 @@ int main() {
 * ##### Recursive solutions don't scale well
 <!-- .element: class="fragment" -->
 
-* ##### `Clever` solutions scale quite well
+* ##### 'Clever' solutions scale quite well
 <!-- .element: class="fragment" -->
 
 * ##### @Circle's approach to a `tuple` as a language feature destroys the competition (although std::tuple is not leveraging that)
@@ -1589,7 +1592,7 @@ int main() {
 | Best solution (200 elements) | GCC-11        | Clang-13          | Circle-168      |
 |-|-|-|-|
 | nth_pack_element             |  (arg) 6.66s  | (concept) 3.98s | (@circle) 0.27s |
-| tuple                        |  (arg) 15.93s | (concept) 6.13s | (@circle) 0.09s |
+| tuple                        |  (std::tuple) 9.95s | (concept) 6.13s | (@circle) 0.09s |
 
 ----
 
