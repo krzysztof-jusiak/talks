@@ -1,0 +1,36 @@
+// Copyright Louis Dionne 2017
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
+
+<% if n > 20 %>
+    #define BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS
+    #define BOOST_MPL_LIMIT_LIST_SIZE <%= ((n + 9) / 10) * 10 %>
+<% end %>
+
+#include <boost/mpl/list.hpp>
+#include <boost/mpl/find_if.hpp>
+#include <boost/mpl/bool.hpp>
+#include <boost/mpl/int.hpp>
+namespace mpl = boost::mpl;
+
+template <int X>
+struct equals_to {
+    template<typename Y>
+    using apply = mpl::bool_<X == Y::type::value>;
+};
+
+<% env[:k].times do |k| %>
+
+<% ints = ((k*n+1)..(k*n+n)).to_a %>
+
+using <%= "xs#{k}" %> = mpl::list<
+    <%= ints.map { |i| "mpl::int_<#{i}>" }.join(', ') %>
+>;
+
+#if defined(METABENCH)
+using <%= "result#{k}" %> = mpl::find_if<<%= "xs#{k}" %>, equals_to<<%= ints.last || 0 %>>>::type;
+#endif
+
+<% end %>
+
+int main() {}

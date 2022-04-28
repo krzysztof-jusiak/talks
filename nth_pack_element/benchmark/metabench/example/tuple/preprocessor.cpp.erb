@@ -1,0 +1,44 @@
+#include <boost/preprocessor/arithmetic/dec.hpp>
+#include <boost/preprocessor/arithmetic/inc.hpp>
+#include <boost/preprocessor/repetition/repeat.hpp>
+#include <boost/preprocessor/config/limits.hpp>
+
+namespace detail {
+
+#define NTH_ARG(Z, N, TYPE) TYPE arg##N,
+#define NTH_ELEMENT(Z, N, TYPE)                                      \
+  template <auto I>                                                  \
+  requires(I == N) constexpr auto nth_element(                       \
+      BOOST_PP_REPEAT(BOOST_PP_INC(N), NTH_ARG, TYPE) TYPE...) {     \
+    return arg##N;                                                   \
+  }
+
+BOOST_PP_REPEAT(BOOST_PP_DEC(BOOST_PP_LIMIT_REPEAT), NTH_ELEMENT, auto)
+
+#undef NTH_ELEMENT
+#undef NTH_ARG
+
+} // namespace detail
+
+template <auto N> constexpr auto nth_pack_element(auto...args) {
+  return detail::nth_element<N>(args...);
+}
+
+template <class... Ts>
+[[nodiscard]] constexpr auto tuple(Ts... ts) {
+    return [=](auto f) { return f(ts...); };
+}
+
+template <auto N, class T>
+auto get(T& t) {
+    return t([](auto... args) { return nth_pack_element<N>(args...); });
+}
+
+int main() {
+#if defined(METABENCH)
+  auto t = tuple(<%= (1..n).to_a.join(', ') %>);
+<% (0..n-1).each do |i| %>
+    get<<%= i %>>(t);
+<% end %>
+#endif
+}

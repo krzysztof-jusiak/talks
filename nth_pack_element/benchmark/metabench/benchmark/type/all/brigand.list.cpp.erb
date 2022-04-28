@@ -1,0 +1,23 @@
+// Copyright Bruno Dutra 2016
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
+
+#define BRIGAND_NO_BOOST_SUPPORT
+#include <brigand/brigand.hpp>
+
+template<typename X, typename Y>
+using differs_from = brigand::bool_<X::type::value != Y::type::value>;
+
+<% env[:k].times do |k| %>
+
+<% ints = ((k*n+1)..(k*n+n)).to_a %>
+
+using <%= "xs#{k}" %> = brigand::list<<%= ints.map { |i| "brigand::int32_t<#{i}>" }.join(', ') %>>;
+
+#if defined(METABENCH)
+using <%= "result#{k}" %> = brigand::all<<%= "xs#{k}" %>, brigand::bind<differs_from, brigand::int32_t<<%= ints.last || 0 %>>, brigand::_1>>;
+#endif
+
+<% end %>
+
+int main() {}

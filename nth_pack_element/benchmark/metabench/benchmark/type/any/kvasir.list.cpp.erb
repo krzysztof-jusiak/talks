@@ -1,0 +1,26 @@
+// Copyright Odin Holmes 2017
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
+
+#include <kvasir/mpl/mpl.hpp>
+namespace mpl = kvasir::mpl;
+
+template<int X>
+struct equals_to {
+  template <typename Y>
+  using f = mpl::bool_<X == Y::value>;
+};
+
+<% env[:k].times do |k| %>
+
+<% ints = ((k*n+1)..(k*n+n)).to_a %>
+
+using <%= "xs#{k}" %> = mpl::list<<%= ints.map { |i| "mpl::int_<#{i}>" }.join(', ') %>>;
+
+#if defined(METABENCH)
+using <%= "result#{k}" %> = mpl::call<mpl::unpack<mpl::any<equals_to<<%= ints.last || 0 %>>>>,<%= "xs#{k}" %>>;
+#endif
+
+<% end %>
+
+int main() {}

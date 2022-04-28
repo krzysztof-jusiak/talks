@@ -1,0 +1,26 @@
+// Copyright Odin Holmes 2017
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
+
+#include <boost/tmp.hpp>
+namespace tmp = boost::tmp;
+
+template<int X>
+struct differs_from {
+  template <typename Y>
+  using f = tmp::bool_<X != Y::value>;
+};
+
+<% env[:k].times do |k| %>
+
+<% ints = ((k*n+1)..(k*n+n)).to_a %>
+
+using <%= "xs#{k}" %> = tmp::list_<<%= ints.map { |i| "tmp::int_<#{i}>" }.join(', ') %>>;
+
+#if defined(METABENCH)
+using <%= "result#{k}" %> = tmp::call_<tmp::unpack_<tmp::and_<tmp::lift_<differs_from<<%= ints.last || 0 %>>::template f>>>,<%= "xs#{k}" %>>;
+#endif
+
+<% end %>
+
+int main() {}

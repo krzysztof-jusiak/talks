@@ -1,0 +1,10 @@
+
+#if !defined(CUSTOM_DEFINITION_DUMMY2) || CUSTOM_DEFINITION_DUMMY2 != 5678
+#   error "CUSTOM_DEFINITION_DUMMY2 should be defined to be 5678"
+#endif
+
+#if defined(CUSTOM_DEFINITION_DUMMY1)
+#   error "CUSTOM_DEFINITION_DUMMY1 should not be defined here"
+#endif
+
+int main() { }

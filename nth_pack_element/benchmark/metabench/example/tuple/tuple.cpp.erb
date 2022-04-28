@@ -1,0 +1,10 @@
+#include <tuple>
+
+int main() {
+#if defined(METABENCH)
+  auto t = std::tuple{<%= (1..n).to_a.join(', ') %>};
+<% (0..n-1).each do |i| %>
+    std::get<<%= i %>>(t);
+<% end %>
+#endif
+}

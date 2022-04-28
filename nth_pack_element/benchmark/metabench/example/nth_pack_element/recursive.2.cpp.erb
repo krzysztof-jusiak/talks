@@ -1,0 +1,16 @@
+template<auto N, auto I = 0>
+[[nodiscard]] constexpr auto nth_pack_element(auto arg, auto... args) {
+  if constexpr(I == N) {
+    return arg;
+  } else {
+    return nth_pack_element<N - 1>(args...);
+  }
+}
+
+int main() {
+#if defined(METABENCH)
+<% (0..n-1).each do |i| %>
+    nth_pack_element<<%= i %>>(<%= (1..n).to_a.join(', ') %>);
+<% end %>
+#endif
+}

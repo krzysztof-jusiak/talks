@@ -1,0 +1,19 @@
+// Copyright Bruno Dutra 2017
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
+
+#include <boost/mp11.hpp>
+using namespace boost::mp11;
+
+template<typename... Xs> using distinct = std::is_same<mp_list<Xs...>, mp_unique<mp_list<Xs...>>>;
+
+template<int> struct x;
+
+<% env[:k].times do |k| %>
+
+#if defined(METABENCH)
+using <%= "result#{k}" %> = distinct<<%= ((k*n+1)..(k*n+n)).map { |i| "x<#{i}>" }.join(', ') %>>;
+#endif
+<% end %>
+
+int main() {}

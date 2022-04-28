@@ -1,0 +1,22 @@
+// Copyright Bruno Dutra 2016
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
+
+#include <metal.hpp>
+
+template<typename N>
+using is_even = metal::number<N::type::value % 2 == 0>;
+
+<% env[:k].times do |k| %>
+
+using <%= "xs#{k}" %> = metal::list<
+    <%= ((k*n+1)..(k*n+n)).map { |i| "metal::number<#{i}>" }.join(', ') %>
+>;
+
+#if defined(METABENCH)
+using <%= "result#{k}" %> = metal::replace_if<<%= "xs#{k}" %>, metal::lambda<is_even>, void>;
+#endif
+
+<% end %>
+
+int main() {}

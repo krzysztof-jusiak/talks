@@ -1,0 +1,32 @@
+#include <utility>
+
+template <typename, std::size_t> concept prefix = true;
+
+template <auto N>
+constexpr auto nth_pack_element(auto... args) {
+  return [&]<auto... Is>(std::index_sequence<Is...>) {
+    return [] (prefix<Is> auto..., auto arg, auto...) {
+      return arg;
+    }(args...);
+  }(std::make_index_sequence<N>());
+}
+
+template <class... Ts>
+[[nodiscard]] constexpr auto tuple(Ts... ts) {
+    return [=](auto f) { return f(ts...); };
+}
+
+template <auto N, class T>
+auto get(T& t) {
+    return t([](auto... args) { return nth_pack_element<N>(args...); });
+}
+
+
+int main() {
+#if defined(METABENCH)
+  auto t = tuple(<%= (1..n).to_a.join(', ') %>);
+<% (0..n-1).each do |i| %>
+    get<<%= i %>>(t);
+<% end %>
+#endif
+}

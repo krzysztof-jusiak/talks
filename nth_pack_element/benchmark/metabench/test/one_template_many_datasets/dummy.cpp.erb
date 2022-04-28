@@ -1,0 +1,10 @@
+
+#if defined(DUMMY1) && <%= ([0, 1, 2].include? n) ? 0 : 1 %>
+#   error "DUMMY1: something is wrong"
+#endif
+
+#if defined(DUMMY2) && <%= ([3, 4, 5].include? n) ? 0 : 1 %>
+#   error "DUMMY2: something is wrong"
+#endif
+
+int main() { }

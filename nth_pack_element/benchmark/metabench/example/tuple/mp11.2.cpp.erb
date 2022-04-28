@@ -1,0 +1,30 @@
+#include <boost/mp11/algorithm.hpp>
+
+template<auto N>
+constexpr decltype(auto) nth_pack_element(auto ... args) {
+    using namespace boost::mp11;
+    return [&] <class... Ts> (mp_list<Ts...>)  {
+        return [] (Ts ..., auto arg, auto...)  {
+            return arg;
+        }(args...);
+    }(mp_take_c<mp_list<decltype(args)...>, N>{});
+}
+
+template <class... Ts>
+[[nodiscard]] constexpr auto tuple(Ts... ts) {
+    return [=](auto f) { return f(ts...); };
+}
+
+template <auto N, class T>
+auto get(T& t) {
+    return t([](auto... args) { return nth_pack_element<N>(args...); });
+}
+
+int main() {
+#if defined(METABENCH)
+  auto t = tuple(<%= (1..n).to_a.join(', ') %>);
+<% (0..n-1).each do |i| %>
+    get<<%= i %>>(t);
+<% end %>
+#endif
+}

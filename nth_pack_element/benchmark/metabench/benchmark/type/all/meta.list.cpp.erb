@@ -1,0 +1,22 @@
+// Copyright Bruno Dutra 2016
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE.md or copy at http://boost.org/LICENSE_1_0.txt)
+
+#include <meta/meta.hpp>
+
+template <int X>
+using differs_from = meta::bind_front<meta::not_fn<meta::quote<meta::equal_to>>, meta::int_<X>>;
+
+<% env[:k].times do |k| %>
+
+<% ints = ((k*n+1)..(k*n+n)).to_a %>
+
+using <%= "xs#{k}" %> = meta::list<<%= ints.map { |i| "meta::int_<#{i}>" }.join(', ') %>>;
+
+#if defined(METABENCH)
+using <%= "result#{k}" %> = meta::all_of<<%= "xs#{k}" %>, differs_from<<%= ints.last || 0 %>>>;
+#endif
+
+<% end %>
+
+int main() {}
