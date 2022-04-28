@@ -348,6 +348,36 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied
 
 ----
 
+#### Main ideas/concepts
+
+```cpp
+template<auto N>
+constexpr auto nth_pack_element([[magic]] auto..., auto nth, auto...) {
+  return nth;
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+template<auto N, class... TArgs>
+constexpr auto nth_pack_element(TArgs... args) {
+  auto t = [[magic]] make_type_id{args...};
+  return []<class T>(type_id<T, N>& t) { return t; }(t);
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+Language feature/extension
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
 #### std.array (same types) - https://godbolt.org/z/1G7Gj16nx
 
 ```cpp
@@ -689,18 +719,12 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Arg/Any expansion - https://godbolt.org/z/aEM31WE8b
+#### Arg/Any expansion - https://godbolt.org/z/vravKn7h3
 
 ```cpp
 template<class T, auto N> struct any { T value{}; };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-template<auto N, class T>
-constexpr auto get(any<T, N>& t) { return t.value; }
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
 template<auto N>
@@ -715,7 +739,7 @@ constexpr auto nth_pack_element = [](auto... args) {
 
 ```cpp
     struct : any<decltype(args), Ns>... { } _{args...};
-    return get<N>(_);
+    return []<class T>(any<T, N>& t) { return t.value; }(_);
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
