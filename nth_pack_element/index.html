@@ -327,28 +327,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied
 
 ----
 
-#### Solutions
-
-* ##### std::array* (Same types only)
-<!-- .element: class="fragment" -->
-* ##### Recursion
-<!-- .element: class="fragment" -->
-* ##### Arg expansion
-<!-- .element: class="fragment" -->
-* ##### Concept expansion
-<!-- .element: class="fragment" -->
-* ##### boost.mp11
-<!-- .element: class="fragment" -->
-* ##### boost.preprocessor
-<!-- .element: class="fragment" -->
-* ##### __type_pack_element
-<!-- .element: class="fragment" -->
-* ##### @Circle
-<!-- .element: class="fragment" -->
-
-----
-
-#### Main ideas/concepts
+#### Solutions/Ideas
 
 ```cpp
 template<auto N>
@@ -375,6 +354,27 @@ constexpr auto nth_pack_element(TArgs... args) {
 Language feature/extension
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### Solutions
+
+* ##### std::array* (Same types only)
+<!-- .element: class="fragment" -->
+* ##### Recursion
+<!-- .element: class="fragment" -->
+* ##### Arg expansion
+<!-- .element: class="fragment" -->
+* ##### Concept expansion
+<!-- .element: class="fragment" -->
+* ##### boost.mp11
+<!-- .element: class="fragment" -->
+* ##### boost.preprocessor
+<!-- .element: class="fragment" -->
+* ##### __type_pack_element
+<!-- .element: class="fragment" -->
+* ##### @Circle
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -719,7 +719,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Arg/Any expansion - https://godbolt.org/z/vravKn7h3
+#### Arg expansion - https://godbolt.org/z/vravKn7h3
 
 ```cpp
 template<class T, auto N> struct any { T value{}; };
@@ -755,7 +755,7 @@ constexpr auto nth_pack_element = [](auto... args) {
 
 ----
 
-#### Arg/Any expansion - requirements
+#### Arg expansion - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -784,7 +784,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Arg/Any expansion - goals
+#### Arg expansion - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -1413,14 +1413,19 @@ static_assert(3 == tuple(1, 2, 3)[2_c]);
 ---
 
 ```cpp
-tuple./*template*/ get<N>(); // 👎
+constexpr auto nth = tuple./*template*/ get<N>(); // 👎
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-tuple(N_c); // 👍
+constexpr auto nth = std::get<N>(tuple);          // ~
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+constexpr auto nth = tuple(N_c);                  // 👍
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
@@ -1435,7 +1440,7 @@ struct tuple : std::tuple<Ts...> {
 
 ```cpp
   template<class I>
-  [[nodiscard]] constexpr auto operator[](const N) {
+  [[nodiscard]] constexpr auto& operator[](const N) {
     return std::get<N{}>(*this);
   }
 ```
@@ -1481,7 +1486,7 @@ struct tuple {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  [[nodiscard]] constexpr auto operator[](const auto N) {
+  [[nodiscard]] constexpr auto& operator[](const auto N) {
     return ts...[N];
   }
 ```
@@ -1601,6 +1606,8 @@ int main() {
 <!-- .element: class="fragment" -->
 
 * ##### Recursive solutions don't scale well
+<!-- .element: class="fragment" -->
+  * ##### Multiple overloads slower than if constexpr
 <!-- .element: class="fragment" -->
 
 * ##### 'Clever' solutions scale quite well
