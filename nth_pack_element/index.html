@@ -364,7 +364,7 @@ constexpr auto nth_pack_element([[magic]] auto..., auto nth, auto...) {
 template<auto N, class... TArgs>
 constexpr auto nth_pack_element(TArgs... args) {
   auto t = [[magic]] make_type_id{args...};
-  return []<class T>(type_id<T, N>& t) { return t; }(t);
+  return []<class T>(type_id<T, N>& t) { return *t; }(t);
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -393,7 +393,7 @@ constexpr auto nth_pack_element = [](auto... args) [[nodiscard]] {
 
 ```cpp
   return std::array{args...}[N]; // close to ideal syntax,
-                                 // but let's stay tune!
+                                 // but only for same types
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -1313,8 +1313,8 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ```cpp
 template<class... Ts> struct tuple {
-  template<auto N> [[nodiscard]]
-  constexpr auto get(); // instead of std::get?
+  template<auto N>
+   [[nodiscard]] constexpr auto get(); // instead of std::get?
   ...
 ```
 <!-- .element: class="fragment" -->
@@ -1402,6 +1402,71 @@ template<auto N>
 
 ----
 
+#### Bonus - map like tuple interface - https://godbolt.org/z/bdaEvodME
+
+```cpp
+static_assert(1 == tuple(1, 2, 3)[0_c]);
+static_assert(2 == tuple(1, 2, 3)[1_c]);
+static_assert(3 == tuple(1, 2, 3)[2_c]);
+```
+
+---
+
+```cpp
+tuple./*template*/ get<N>(); // 👎
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+tuple(N_c); // 👍
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### Bonus - map like tuple interface - https://godbolt.org/z/bdaEvodME
+
+```cpp
+template<class... Ts>
+struct tuple : std::tuple<Ts...> {
+  using std::tuple<Ts...>::tuple;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  template<class I>
+  [[nodiscard]] constexpr auto operator[](const N) {
+    return std::get<N{}>(*this);
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+};
+template<class... Ts> tuple(Ts...) -> tuple<Ts...>;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+static_assert(42 == 42_c);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+template <char... Cs>
+constexpr auto operator""_c() {
+  auto [... Is] = std::make_index_sequence<sizeof...(Cs)>{};
+  return std::integral_constant<int,
+    ((Cs - '0') * std::pow(10, sizeof...(Is) - Is - 1)) + ...
+  >{};
+}
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
 #### [@Cricle](https://www.circle-lang.org) - https://circle.godbolt.org/z/eM56E78nb aka tuple as a language feature
 
 ```cpp
@@ -1416,8 +1481,7 @@ struct tuple {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  template<auto N>
-  [[nodiscard]] constexpr auto get() {
+  [[nodiscard]] constexpr auto operator[](const auto N) {
     return ts...[N];
   }
 ```
@@ -1788,11 +1852,3 @@ int main() {
 
   </body>
 </html>
-
-<!--todo proposal for ...  Non-terminal variadic template parameters-->
-<!--template<class... Ts, class T>-->
-<!--void foo(Ts..., T t) { return t; }-->
-<!--di - with any-->
-<!--dbi - fit it in somehow-->
-<!--is_Same_v<Auto vs std::size_t -->
-
