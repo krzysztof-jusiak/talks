@@ -1464,7 +1464,7 @@ template <char... Cs>
 constexpr auto operator""_c() {
   auto [... Is] = std::make_index_sequence<sizeof...(Cs)>{};
   return std::integral_constant<int,
-    ((Cs - '0') * std::pow(10, sizeof...(Is) - Is - 1)) + ...
+    (((Cs - '0') * std::pow(10, sizeof...(Is) - Is - 1)) + ...)
   >{};
 }
 ```
