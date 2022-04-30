@@ -702,87 +702,6 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Arg expansion - https://godbolt.org/z/vravKn7h3
-
-```cpp
-template<class T, auto N> struct any { T value{}; };
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-template<auto N>
-constexpr auto nth_pack_element = [](auto... args) {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    struct : any<decltype(args), Ns>... { } _{args...};
-    return []<class T>(any<T, N>& t) { return t.value; }(_);
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  }(std::make_index_sequence<sizeof...(args)>{});
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### Arg expansion - requirements
-
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Arg expansion - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### 'dark-magic'!
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### no recursion = faster to compile
-<!-- .element: class="fragment" -->
-
-----
-
 #### Concept expansion (C++20) - https://godbolt.org/z/WPhe5MerW
 
 ```cpp
@@ -861,172 +780,6 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 * #### Performance
   - #### no recursion = faster to compile
-<!-- .element: class="fragment" -->
-
-----
-
-#### __type_pack_element (clang) - https://godbolt.org/z/jdM6v47P1
-
-```cpp
-template<class T, auto> struct any { T value{}; };
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-template<auto N>
-constexpr auto nth_pack_element = []<class.. TArgs>(TArgs... args) {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    struct : any<TArgs, Ns>... { } _{args...}; // unique value types
-    return static_cast<
-      __type_pack_element<N, any<TArgs, Ns>...>&
-    >(_).value;
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  }(std::make_index_sequence<sizeof...(args)>{});
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### __type_pack_element - requirements
-
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Concept expansion - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### clang extension, doesn't work with other compilers
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### supported by the compiler but only works with types
-<!-- .element: class="fragment" -->
-
-----
-
-#### boost.mp11.1 - https://godbolt.org/z/rKjzPf9zK
-
-```cpp
-template<class T, auto N> struct any { T value{}; };
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-template<auto N, class... TArgs>
-constexpr auto nth_pack_element(TArgs... args) {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    struct : any<TArgs, Ns>... { } _{args...};
-    return static_cast<
-      mp_at_c<mp_inherit<any<TArgs, Ns>...>, N>&
-    >(_).value;
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  }(std::make_index_sequence<sizeof...(args)>{});
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### boost.mp11.1 - requirements
-
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### boost.mp11.1 - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### A bit better, some stuff hidden behind the library
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### boost.mp11 is well optimized
 <!-- .element: class="fragment" -->
 
 ----
@@ -1219,6 +972,256 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 * #### Performance
   - #### Preprocessor + Multiple overloads
+<!-- .element: class="fragment" -->
+
+----
+
+
+----
+
+#### Any - https://godbolt.org/z/vravKn7h3
+
+```cpp
+template<class T, auto N> struct any { T value{}; };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+template<auto N>
+constexpr auto nth_pack_element = [](auto... args) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    struct : any<decltype(args), Ns>... { } _{args...};
+    return []<class T>(any<T, N>& t) { return t.value; }(_);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }(std::make_index_sequence<sizeof...(args)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### Any - requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Any - goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### 'dark-magic'!
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### no recursion = faster to compile
+<!-- .element: class="fragment" -->
+
+----
+
+#### __type_pack_element (clang) - https://godbolt.org/z/jdM6v47P1
+
+```cpp
+template<class T, auto> struct any { T value{}; };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+template<auto N>
+constexpr auto nth_pack_element = []<class.. TArgs>(TArgs... args) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    struct : any<TArgs, Ns>... { } _{args...}; // unique value types
+    return static_cast<
+      __type_pack_element<N, any<TArgs, Ns>...>&
+    >(_).value;
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }(std::make_index_sequence<sizeof...(args)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### __type_pack_element - requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Concept expansion - goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### clang extension, doesn't work with other compilers
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### supported by the compiler but only works with types
+<!-- .element: class="fragment" -->
+
+----
+
+#### boost.mp11.1 - https://godbolt.org/z/rKjzPf9zK
+
+```cpp
+template<class T, auto N> struct any { T value{}; };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+template<auto N, class... TArgs>
+constexpr auto nth_pack_element(TArgs... args) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    struct : any<TArgs, Ns>... { } _{args...};
+    return static_cast<
+      mp_at_c<mp_inherit<any<TArgs, Ns>...>, N>&
+    >(_).value;
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }(std::make_index_sequence<sizeof...(args)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### boost.mp11.1 - requirements
+
+```cpp
+static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<1>('a', 2, "c"); // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### boost.mp11.1 - goals
+
+* #### Flexibility
+  - #### yes, works with different types
+<!-- .element: class="fragment" -->
+
+* #### Readability
+  - #### A bit better, some stuff hidden behind the library
+<!-- .element: class="fragment" -->
+
+* #### Performance
+  - #### boost.mp11 is well optimized
 <!-- .element: class="fragment" -->
 
 ----
@@ -1422,9 +1425,8 @@ struct tuple : std::tuple<Ts...> {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  template<class I>
-  [[nodiscard]] constexpr auto& operator[](const N) {
-    return std::get<N{}>(*this);
+  [[nodiscard]] constexpr auto& operator[](const auto N) {
+    return std::get<N>(*this);
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1660,7 +1662,8 @@ int main() {
 * ##### 'Clever' solutions scale quite well
 <!-- .element: class="fragment" -->
 
-* ##### @Circle's approach to a `tuple` as a language feature destroys the competition (although std::tuple is not leveraging that)
+* ##### @Circle's approach to a `tuple` as a language feature destroys the competition
+  * std::tuple is not leveraging that
 <!-- .element: class="fragment" -->
 
 ----
