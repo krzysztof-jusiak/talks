@@ -323,8 +323,8 @@ constexpr auto nth_pack_element([[magic]] auto..., auto nth, auto...) {
 ---
 
 ```cpp
-template<auto N, class... TArgs>
-constexpr auto nth_pack_element(TArgs... args) {
+template<auto N>
+constexpr auto nth_pack_element(auto... args) {
   auto t = [[magic]] make_type_id{args...};
   return []<class T>(type_id<T, N>& t) { return *t; }(t);
 }
