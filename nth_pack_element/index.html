@@ -721,7 +721,7 @@ constexpr auto nth_pack_element(auto... args) {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-    return [] (prefix<Is> auto..., auto arg, auto...) {
+    return [](prefix<Is> auto..., auto arg, auto...) {
       return arg;
     }(args...);
 ```
