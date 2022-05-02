@@ -182,6 +182,39 @@ namespace detail {
 
 ----
 
+#### Virtual concepts - https://github.com/andyprowl/virtual-concepts
+
+```cpp
+template<class T>
+virtual concept fooable = requires {
+  auto foo(int, short) -> void; // signature requirement
+};
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+std::vector<virtual fooable> v{}; // type erasure based on concept
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+v.push_back(foo1{});
+v.push_back(foo2{});
+v.push_back(foo3{});
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+for (const auto& f : v) {
+  f.foo(42, {}); // type erased call
+}
+```
+<!-- .element: class="fragment" -->
+
+----
+
 ### Let's constraints all requirements!
 
 ```cpp
@@ -191,6 +224,11 @@ auto bar(auto);                     // 👎
 
 ```cpp
 auto bar(std::integral auto);       // 👍
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto bar(virtual fooable);          // 👍 | not C++
 ```
 <!-- .element: class="fragment" -->
 
