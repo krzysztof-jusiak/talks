@@ -186,7 +186,7 @@ namespace detail {
 
 ```cpp
 template<class T>
-virtual concept fooable = requires {
+concept fooable = requires {
   auto foo(int, short) -> void; // signature requirement
 };
 ```
