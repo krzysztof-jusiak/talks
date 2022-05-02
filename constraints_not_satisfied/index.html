@@ -57,7 +57,25 @@
 
 ----
 
-#### Anything - https://godbolt.org/z/MKq8aEde4
+#### Passing concepts - https://godbolt.org/z/x9dvEjre4
+
+```cpp
+struct foo { int bar; };
+struct bar { };
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(   [](auto foo){ return requires { foo.bar; }; }(foo{}));
+static_assert(not[](auto foo){ return requires { foo.bar; }; }(bar{}));
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Explicit concepts - https://godbolt.org/z/MKq8aEde4
 
 ```cpp
 auto foo(anything auto) -> void;
@@ -84,7 +102,7 @@ static_assert(anything<int &>);
 
 ----
 
-#### Negation - https://godbolt.org/z/d5EEzrcd6
+#### Negating concepts - https://godbolt.org/z/d5EEzrcd6
 
 ```cpp
 auto foo($not(std::integral) auto arg) -> void
@@ -104,7 +122,7 @@ int main() {
 
 ----
 
-#### Negation - https://godbolt.org/z/dsn51TMrf
+#### Negating concepts - https://godbolt.org/z/dsn51TMrf
 
 ```cpp
 namespace detail {
@@ -125,10 +143,10 @@ namespace detail {
 
 ----
 
-#### Function parameters - https://godbolt.org/z/rW9dK3Ydh
+#### Function parameters concepts - https://godbolt.org/z/rW9dK3Ydh
 
 ```cpp
-struct bar {};
+struct bar  { };
 struct foo1 { auto foo(int, auto...) -> void; };
 struct foo2 { auto foo(int, short, auto) -> void; };
 struct foo3 { auto foo(int, double, auto) -> void; };
@@ -161,7 +179,7 @@ static_assert(not fooable<foo3>);
 
 ----
 
-#### Function parameters - https://godbolt.org/z/rW9dK3Ydh
+#### Function parameters concepts - https://godbolt.org/z/rW9dK3Ydh
 
 ```cpp
 namespace detail {
@@ -228,7 +246,7 @@ auto bar(std::integral auto);       // 👍
 <!-- .element: class="fragment" -->
 
 ```cpp
-auto bar(virtual fooable);          // 👍 | not C++
+auto bar(virtual fooable);          // 👍 /* not C++ */
 ```
 <!-- .element: class="fragment" -->
 
