@@ -32,7 +32,7 @@
       }
     </script>
 
-    <meta name="description" content="Law of Demeter: A Practical Guide to Loose Coupling">
+    <meta name="description" content="Constraints not satisifed">
     <meta name="author" content="Kris Jusiak">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -68,8 +68,8 @@ struct bar { };
 ---
 
 ```cpp
-static_assert(   [](auto foo){ return requires { foo.bar; }; }(foo{}));
-static_assert(not[](auto foo){ return requires { foo.bar; }; }(bar{}));
+static_assert(   [](auto t){ return requires { t.bar; }; }(foo{}));
+static_assert(not[](auto t){ return requires { t.bar; }; }(bar{}));
 ```
 <!-- .element: class="fragment" -->
 
