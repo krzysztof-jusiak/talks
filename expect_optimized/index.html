@@ -59,23 +59,24 @@
 
 #### Approaches
 
-* #### Dissasemble and compare instructions
-<!-- .element: class="fragment" -->
-
-    ```cpp
-    objdump -d a.out
-    ```
+* #### Dissasemble and compare instruction
 <!-- .element: class="fragment" -->
 
     ```cpp
     gdb -batch -ex 'file a.out' -ex 'disassemble main'
     ```
 <!-- .element: class="fragment" -->
+    * ##### requires external tools
+<!-- .element: class="fragment" -->
 
 * #### Parse and compare function instructions
 <!-- .element: class="fragment" -->
+    * ##### requires arch specific parser
+<!-- .element: class="fragment" -->
 
-* #### Compare function instruction sizes (<- this talk)
+* #### Compare function instruction sizes
+<!-- .element: class="fragment" -->
+    * ##### requires a baseline (this talk)
 <!-- .element: class="fragment" -->
 
 * #### ...
