@@ -87,6 +87,12 @@
 
 ### Motivation/Goal
 
+```cpp
+std::get<int>(std::tuple{1, 2, 3}); // error: ambigious
+std::get<0>  (std::tuple{1, 2, 3}); // ok
+```
+<!-- .element: class="fragment" -->
+
 ----
 
 #### Motivation - First element
