@@ -1431,7 +1431,7 @@ struct tuple : std::tuple<Ts...> {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  [[nodiscard]] constexpr auto& operator[](const auto N) {
+  [[nodiscard]] constexpr decltype(auto) operator[](const auto N) {
     return std::get<N>(*this);
   }
 ```
@@ -1477,7 +1477,7 @@ struct tuple {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  [[nodiscard]] constexpr auto& operator[](const auto N) {
+  [[nodiscard]] constexpr decltype(auto) operator[](const auto N) {
     return ts...[N];
   }
 ```
