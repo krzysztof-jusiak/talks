@@ -106,7 +106,7 @@ constexpr auto first_pack_element =
 
 ----
 
-#### Motivation - First element ([wg21.link/P1061](wg21.link/P1061))
+#### Motivation - First element ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
 
 ```cpp
 static_assert(1 == first);
@@ -157,7 +157,7 @@ constexpr auto last_pack_element = (..., (args = args)); // ok
 
 ----
 
-#### Motivation - Last element ([wg21.link/P1061](wg21.link/P1061))
+#### Motivation - Last element ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
 
 ```cpp
 static_assert(3 == last);
@@ -234,8 +234,8 @@ static_assert(2 == std::get<1>(std::tuple{1, 2, 3}));
 ---
 
 ```cpp
-templte<auto N>
-[[nodiscard]] constexpr auto get(auto t) {
+template<auto N>
+[[nodiscard]] constexpr auto& get(auto& t) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -967,11 +967,11 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 <!-- .element: class="fragment" -->
 
 * #### Readability
-  - #### Preprocessor, text replacement
+  - #### preprocessor, text replacement
 <!-- .element: class="fragment" -->
 
 * #### Performance
-  - #### Preprocessor + Multiple overloads
+  - #### preprocessor + Multiple overloads
 <!-- .element: class="fragment" -->
 
 ----
@@ -1098,7 +1098,7 @@ constexpr auto nth_pack_element = []<class.. TArgs>(TArgs... args) {
 
 ----
 
-#### __type_pack_element - requirements
+#### __type_pack_element (clang) - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
@@ -1127,7 +1127,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
 
 ----
 
-#### Concept expansion - goals
+#### __type_pack_element (clang) - goals
 
 * #### Flexibility
   - #### yes, works with different types
@@ -1663,7 +1663,8 @@ int main() {
 <!-- .element: class="fragment" -->
 
 * ##### @Circle's approach to a `tuple` as a language feature destroys the competition
-  * std::tuple is not leveraging that
+<!-- .element: class="fragment" -->
+  * ##### std::tuple is not leveraging that
 <!-- .element: class="fragment" -->
 
 ----

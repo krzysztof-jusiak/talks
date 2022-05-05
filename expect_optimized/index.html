@@ -146,17 +146,17 @@ objdump -d optimized.o
 #### Compare function instruction sizes
 
 ```cpp
-baseline size = 0x0a - 0x00 = 0x0a
+baseline fun size = 0x0a - 0x00 = 0x0a
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-ub size       = 0x14 - 0x0a = 0x0a // same as baseline size
+ub fun size       = 0x14 - 0x0a = 0x0a // same as baseline size
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-ok size       = 0x20 - 0x14 = 0x0c // bigger than ub size
+ok fun size       = 0x20 - 0x14 = 0x0c // bigger than ub size
 ```
 <!-- .element: class="fragment" -->
 
@@ -179,7 +179,7 @@ auto optimized(std::invocable auto fopt,
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  ...
+  /* ... */
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -192,6 +192,11 @@ auto optimized(std::invocable auto fopt,
 ----
 
 #### Optimized...
+
+
+```cpp
+/* ... */
+```
 
 ```cpp
     struct test {
