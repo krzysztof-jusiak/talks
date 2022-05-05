@@ -192,7 +192,7 @@ constexpr auto last = [](auto..., auto last) { return last; };
 #### Motivation - First and last element
 
 ```cpp
-static_assert(1 == first(1, 2, 3) and 3 == last(1, 2, 3));
+static_assert(1 == first and 3 == last);
 ```
 <!-- .element: class="fragment" -->
 
@@ -202,7 +202,7 @@ static_assert(1 == first(1, 2, 3) and 3 == last(1, 2, 3));
 constexpr auto [first, last] =
   [](auto first, auto... ts){
     return std::tuple{first, (ts, ...)};
-  };
+  }(1, 2, 3);
 ```
 <!-- .element: class="fragment" -->
 
@@ -235,7 +235,7 @@ static_assert(2 == std::get<1>(std::tuple{1, 2, 3}));
 
 ```cpp
 template<auto N>
-[[nodiscard]] constexpr auto& get(auto& t) {
+[[nodiscard]] constexpr decltype(auto) get(auto& t) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1828,8 +1828,8 @@ int main() {
         ]
       });
 
-      <!--window.addEventListener("mousedown", handleClick, false);-->
-      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+      window.addEventListener("mousedown", handleClick, false);
+      window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);
 
       function handleClick(e) {
         if (1 >= outerHeight - innerHeight) {
