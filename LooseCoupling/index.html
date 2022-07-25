@@ -148,7 +148,7 @@ https://www.quantlab.com/careers
 ### KISS - ~~Keep it simple~~, 'STUPID'
 
 ```cpp
-class accu_talk {
+class talk {
  public:
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -417,7 +417,7 @@ class attendees {
 ### Single Responsibility Principle (SRP)
 
 ```cpp
-class accu_talk {
+class talk {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -527,7 +527,7 @@ class speaker {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-class accu_talk {
+class talk {
   speaker speaker_{};     // Tightly coupled
   attendees attendees_{}; // Tightly coupled
 
@@ -566,7 +566,7 @@ class speaker {
 ### Less coupling - Constructor DI
 
 ```cpp
-class accu_talk {
+class talk {
   speaker speaker_;     // Tightly coupled?
   attendees attendees_; // Tightly coupled?
 ```
@@ -575,7 +575,7 @@ class accu_talk {
 ```cpp
  public:
   // 👍 Dependency Injection!!!
-  accu_talk(speaker speaker, attendees attendees)
+  talk(speaker speaker, attendees attendees)
       : speaker_{speaker}, attendees_{attendees}
   { }
 ```
@@ -602,14 +602,14 @@ class accu_talk {
 ### Not using constructors consistently
 
 ```cpp
-class accu_talk {
+class talk {
   speaker speaker_;                     // Tightly coupled?
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
  public:
-  accu_talk() : speaker_{"Kris"} {}   // Tightly coupled
+  talk() : speaker_{"Kris"} {}   // Tightly coupled
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -624,12 +624,12 @@ class accu_talk {
 ### 👍 Consider using constructor Dependency Injection consistently
 
 ```cpp
-accu_talk() : speaker_{"Kris"} {}                     // 👎
+talk() : speaker_{"Kris"} {}                     // 👎
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-accu_talk(speaker speaker) : speaker_{speaker} {}     // 👍
+talk(speaker speaker) : speaker_{speaker} {}     // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -638,7 +638,7 @@ accu_talk(speaker speaker) : speaker_{speaker} {}     // 👍
 ### Using singletons
 
 ```cpp
-class accu_talk {
+class talk {
  public:
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -667,7 +667,7 @@ speakers::instance().get("Kris")                              // 👎
 <!-- .element: class="fragment" -->
 
 ```cpp
-accu_talk(speaker speaker) : speaker_{speaker} {}           // 👍
+talk(speaker speaker) : speaker_{speaker} {}           // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -676,7 +676,7 @@ accu_talk(speaker speaker) : speaker_{speaker} {}           // 👍
 ### Carrying dependencies
 
 ```cpp
-class accu_talk {
+class talk {
   speaker speaker_; // Tightly coupled
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -684,7 +684,7 @@ class accu_talk {
 ```cpp
  public:
   // 👎 Leaky abstraction
-  explicit accu_talk(std::string name)
+  explicit talk(std::string name)
    : speaker_{name}
   {}
 ```
@@ -701,12 +701,12 @@ class accu_talk {
 ### 👍 Consider passing initialized objects instead of parameters to initialize them
 
 ```cpp
-explicit accu_talk(std::string name) : speaker{name} {}      // 👎
+explicit talk(std::string name) : speaker{name} {}      // 👎
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-explicit accu_talk(speaker speaker)  : speaker_{speaker} {}  // 👍
+explicit talk(speaker speaker)  : speaker_{speaker} {}  // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -717,13 +717,13 @@ explicit accu_talk(speaker speaker)  : speaker_{speaker} {}  // 👍
 ### Carrying dependencies with inheritance
 
 ```cpp
-class accu_talk : speaker { // Tightly coupled to `speaker` API
+class talk : speaker { // Tightly coupled to `speaker` API
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
  public:
-  explicit accu_talk(std::string name) // Common with CRTP?
+  explicit talk(std::string name) // Common with CRTP?
    : speaker{name}
   {}
 ```
@@ -740,12 +740,12 @@ class accu_talk : speaker { // Tightly coupled to `speaker` API
 ### 👍 Prefer composition over inheritance
 
 ```cpp
-class accu_talk : speaker                  // 👎
+class talk : speaker                  // 👎
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-class accu_talk { speaker speaker_;        // 👍
+class talk { speaker speaker_;        // 👍
 ```
 <!-- .element: class="fragment" -->
 
@@ -754,14 +754,14 @@ class accu_talk { speaker speaker_;        // 👍
 ### Talking to your distant friends
 
 ```cpp
-class accu_talk {
+class talk {
   speaker speaker_; // Tightly coupled
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
  public:
-  explicit accu_talk(talk_manager& mgr)
+  explicit talk(talk_manager& mgr)
       // 👎 Distant friends
     : speaker_{mgr.get_speakers().get("Kris")}; // difficult to test
   { }
@@ -996,7 +996,7 @@ template<Speaker TSpeaker, Attendees TAttendees>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-class accu_talk {
+class talk {
   TSpeaker& speaker_;
   TAttendees& attendees_;
 ```
@@ -1004,7 +1004,7 @@ class accu_talk {
 
 ```cpp
  public:
-  accu_talk(TSpeaker& speaker, TAttendees& attendees)
+  talk(TSpeaker& speaker, TAttendees& attendees)
     : speaker_{speaker}, attendees_{attendees}
   { }
 ```
@@ -1036,7 +1036,7 @@ int main() {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  auto talk           = accu_talk{speaker, attendees};
+  auto talk           = talk{speaker, attendees};
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -1160,14 +1160,14 @@ Aiming for 100% coverage! // just for the sake of coverage
 ### Behavior Driven Development (BDD) / [ut](https://github.com/boost-ext/ut)
 
 ```cpp
-given("I have a accu talk") = [] {
+given("I have a talk") = [] {
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
   auto speaker   = fake_speaker{};
   auto attendees = fake_attendees{};
-  auto talk      = accu_talk{speaker, attendees};
+  auto talk      = talk{speaker, attendees};
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
