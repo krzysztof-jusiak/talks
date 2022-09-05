@@ -116,13 +116,11 @@ static_assert((list<int, double, float> | rotate) ==
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-##### Powered by https://github.com/boost-ext/mp
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
 ---
 
-##### Compilation times - https://boost-ext.github.io/mp/benchmark/sort_unique_reverse
-<!-- .element: class="fragment" data-fragment-index="3" -->
+##### Powered by https://github.com/boost-ext/mp | https://boost-ext.github.io/mp/benchmark
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
 ----
 
 ### Circle - https://circle.godbolt.org/z/1Mx6TTEnn
@@ -153,8 +151,8 @@ static_assert(typeid(rotate<int, double, float>) ==
 
 template<template auto... Ts>
 auto showcase = list<Ts...>
- | std::ranges::actions::sort
- | std::ranges::actions::unique
+ | std::ranges::action::sort
+ | std::ranges::action::unique
  | std::ranges::views::reverse
  | std::ranges::views::drop(1)
  | std::ranges::views::take(2);

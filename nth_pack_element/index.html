@@ -43,7 +43,7 @@
       <div class="slides">
           <section data-markdown="">
           <script type="text/template">
-<a href="https://cppnow.org/"><img src="images/cppnow.svg" style="width: 10%; background:none; border:none; box-shadow:none;" /></a>2022
+<a href="https://cppcon.org/"><img src="images/cppcon.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>
 
 ---
 
@@ -64,13 +64,13 @@
 
 * #### Motivation/Goal
 <!-- .element: class="fragment" -->
-    * #### First/Last element
-    <!-- .element: class="fragment" -->
 * #### Nth pack element...
 <!-- .element: class="fragment" -->
     * #### get\<N\>(tuple)
     <!-- .element: class="fragment" -->
 * #### Benchmarks
+    * #### C++ / C++ vs World
+    <!-- .element: class="fragment" -->
 <!-- .element: class="fragment" -->
 * #### Summary
 <!-- .element: class="fragment" -->
@@ -348,22 +348,43 @@ Language feature/extension
 
 #### Solutions
 
-* ##### std::array* (Same types only)
-<!-- .element: class="fragment" -->
-* ##### Recursion
-<!-- .element: class="fragment" -->
-* ##### Arg expansion
-<!-- .element: class="fragment" -->
-* ##### Concept expansion
-<!-- .element: class="fragment" -->
-* ##### boost.mp11
-<!-- .element: class="fragment" -->
-* ##### boost.preprocessor
-<!-- .element: class="fragment" -->
-* ##### __type_pack_element
-<!-- .element: class="fragment" -->
-* ##### @Circle
-<!-- .element: class="fragment" -->
+* ##### Language
+
+  * ##### std::array* (Same types only)
+  <!-- .element: class="fragment" -->
+  * ##### Recursion
+  <!-- .element: class="fragment" -->
+  * ##### Arg expansion
+  <!-- .element: class="fragment" -->
+  * ##### Concept expansion
+  <!-- .element: class="fragment" -->
+
+----
+
+#### Solutions
+
+* ##### Library
+
+  <!-- .element: class="fragment" -->
+  * ##### boost.mp11
+  <!-- .element: class="fragment" -->
+  * ##### boost.preprocessor
+  <!-- .element: class="fragment" -->
+  * ##### mp (https://github.com/boost-ext/mp)
+  <!-- .element: class="fragment" -->
+
+----
+
+#### Solutions
+
+* ##### Languge extension
+
+  * ##### __type_pack_element (clang)
+  <!-- .element: class="fragment" -->
+  * ##### @Circle (https://www.circle-lang.org)
+  <!-- .element: class="fragment" -->
+  * ##### [https://wg21.link/P1061](P1858R2) - Generalized pack declaration and usage
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -393,36 +414,12 @@ constexpr auto nth_pack_element = [](auto... args) [[nodiscard]] {
 
 ----
 
-#### std.array - requirements
-
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+#### std.array - requirements/goals
 
 ```cpp
 nth_pack_element<1>('a', 2, "c"); // error: different types 👎
 ```
 <!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### std.array - goals
 
 * #### Flexibility
   - #### not really, works only for the same types
@@ -1709,7 +1706,7 @@ int main() {
 
 * #### Lack of language features to manipulate/store variadic pack is hearting C++
 <!-- .element: class="fragment" -->
-  * #### C++ would benefit if tuple could be implemented much easier
+  * #### C++ would benefit if tuple could be implemented much easier - ([https://wg21.link/P1061](P1858R2))
 <!-- .element: class="fragment" -->
 
 ==============================================================================

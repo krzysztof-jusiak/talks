@@ -1,0 +1,34 @@
+examples of tuples in different langauges
+  - table - langauge features or library feature
+
+carbon.example
+
+nim/dlang - perf examples
+
+P1858R2 - native tuple support
+
+Fix some examples with POI
+
+tuple for small < 20 elements
+
+namespace xstd {
+    template <typename... Ts>
+    class tuple {
+    public:
+        template <size_t I>
+        auto get() const& -> Ts...[I] const& {
+            return elems...[I];
+        }
+
+    private:
+        Ts... elems;
+    };
+
+why - new approach towards tmp with stl
+
+template <auto N>
+auto nth_pack_element(auto... args) {
+  return values(args...)
+    | std::views::drop(N) 
+    | std::views::take(1);
+};
