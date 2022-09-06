@@ -151,12 +151,12 @@ static_assert(typeid(rotate<int, double, float>) ==
 
 template<template auto... Ts>
 auto showcase = list<Ts...>
- | std::ranges::action::sort
- | std::ranges::action::unique
- | std::ranges::views::reverse
- | std::ranges::views::drop(1)
- | std::ranges::views::take(2);
- | std::ranges::views::filter(
+ | std::action::sort
+ | std::action::unique
+ | std::views::reverse
+ | std::views::drop(1)
+ | std::views::take(2);
+ | std::views::filter(
      [](auto t) { return requires { t.value; }
    )
  | ...
