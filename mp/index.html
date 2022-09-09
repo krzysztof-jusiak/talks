@@ -49,7 +49,7 @@
 
 ---
 
-# ~~Template~~ 
+# MP: ~~Template~~ 
 # Meta-Programming
 
 ---
@@ -149,18 +149,16 @@ static_assert(typeid(rotate<int, double, float>) ==
 ```cpp
 #include <ranges>
 
-template<template auto... Ts>
-auto showcase = list<Ts...>
- | std::action::sort
- | std::action::unique
- | std::views::reverse
- | std::views::drop(1)
- | std::views::take(2);
- | std::views::filter(
-     [](auto t) { return requires { t.value; }
-   )
- | ...
-;
+auto fun_with_tuple = [](auto tuple) {
+  return tuple
+    | std::views::filter<<([](auto i) -> bool { return i % 2; })
+    | std::views::reverse
+    | std::views::drop(1_c);
+};
+
+static_assert(std::tuple{5, 3, 1} == fun_with_tuple(
+  [] { return std::tuple{1, 2, 3, 4, 5, 6, 7}; })
+);
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 

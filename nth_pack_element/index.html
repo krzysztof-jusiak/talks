@@ -64,13 +64,11 @@
 
 * #### Motivation/Goal
 <!-- .element: class="fragment" -->
-* #### Nth pack element...
+* #### \<N\>th pack element...
 <!-- .element: class="fragment" -->
-    * #### get\<N\>(tuple)
+    * #### std::get\<N\>(tuple)
     <!-- .element: class="fragment" -->
 * #### Benchmarks
-    * #### C++ / C++ vs World
-    <!-- .element: class="fragment" -->
 <!-- .element: class="fragment" -->
 * #### Summary
 <!-- .element: class="fragment" -->
@@ -85,17 +83,44 @@
 
 ==============================================================================
 
-### Motivation/Goal
+### Motivation
 
 ```cpp
 std::get<int>(std::tuple{1, 2, 3}); // error: ambigious
-std::get<0>  (std::tuple{1, 2, 3}); // ok
 ```
+<!-- .element: class="fragment" -->
+
+```cpp
+std::get<0>  (std::tuple{1, 2, 3}); // ok
+std::get<1>  (std::tuple{1, 2, 3}); // ok
+std::get<2>  (std::tuple{1, 2, 3}); // ok
+std::get<3>  (std::tuple{1, 2, 3}); // error: out of range
+```
+<!-- .element: class="fragment" -->
+
+---
+
+#### Example use-case
+<!-- .element: class="fragment" -->
+
+```cpp
+const auto t = std::tuple{1, 2, 3}; // std::tuple<int, int, int>
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+[]<auto... Ns>(auto t, auto fn, std::index_sequence<Ns...>) {
+  return fn(std::get<Ns>(t)...);
+}(t, std::make_index_sequence<std::tuple_size_v<decltype(t)>>{});
+```
+<!-- .element: class="fragment" -->
+
+> ☝️ std::apply
 <!-- .element: class="fragment" -->
 
 ----
 
-#### Motivation - First element
+#### Motivation - What can be done?
 
 ```cpp
 static_assert(1 == first_pack_elment(1, 2, 3));
@@ -112,7 +137,7 @@ constexpr auto first_pack_element =
 
 ----
 
-#### Motivation - First element ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
+#### Motivation - What could be done? ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
 
 ```cpp
 static_assert(1 == first);
@@ -128,7 +153,7 @@ constexpr auto [first, ...ts] = std::tuple{1, 2, 3};
 
 ----
 
-#### Motivation - Last element
+#### Motivation - What can be done?
 
 ```cpp
 static_assert(3 == last_pack_element(1, 2, 3));
@@ -143,13 +168,14 @@ static_assert(3 == (1, 2, 3));
 <!-- .element: class="fragment" -->
 
 ```cpp
-constexpr auto last_pack_element = (..., args); // warning: unused-value
+constexpr auto last_pack_element 
+  = (..., args); // warning: unused-value
 ```
 <!-- .element: class="fragment" -->
 
 ----
 
-#### Motivation - Last element
+#### Motivation - What can be done?
 
 ```cpp
 static_assert(3 == (1, 2, 3));
@@ -163,7 +189,7 @@ constexpr auto last_pack_element = (..., (args = args)); // ok
 
 ----
 
-#### Motivation - Last element ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
+#### Motivation - What could be done? ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
 
 ```cpp
 static_assert(3 == last);
@@ -179,7 +205,7 @@ constexpr auto [...ts, last] = std::tuple{1, 2, 3};
 
 ----
 
-#### Motivation - Last element (Non-terminal variadic template parameters)
+#### Motivation - What could be done? (Non-terminal variadic template parameters)
 
 ```cpp
 static_assert(1 == last(1, 2, 3));
@@ -195,7 +221,7 @@ constexpr auto last = [](auto..., auto last) { return last; };
 
 ----
 
-#### Motivation - First and last element
+#### Motivation - What can be done?
 
 ```cpp
 static_assert(1 == first and 3 == last);
@@ -221,7 +247,7 @@ constexpr auto [first, ...ts, last] = std::tuple{1, 2, 3};
 
 ----
 
-#### Motivation - Nth pack element...?
+#### Motivation - What about nth pack element...?
 
 ```cpp
 constexpr auto nth = nth_pack_element<N>(1, 2, 3); // ?
@@ -230,7 +256,7 @@ constexpr auto nth = nth_pack_element<N>(1, 2, 3); // ?
 
 ----
 
-#### Motivation/Goal - Nth pack element...?
+#### Goal - Nth pack element...?
 
 ```cpp
 static_assert(2 == std::get<1>(std::tuple{1, 2, 3}));
@@ -258,7 +284,7 @@ template<auto N>
 
 ==============================================================================
 
-### Nth pack element...
+### Goal - Nth pack element...
 
 ```
 nth_pack_element
@@ -268,7 +294,7 @@ nth_pack_element
 
 ----
 
-#### Requirements
+#### Goal - Requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3));
@@ -297,7 +323,7 @@ nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied
 
 ----
 
-#### Goals
+### Goal - objectives
 
 * #### Flexibility
 <!-- .element: class="fragment" -->
@@ -383,7 +409,7 @@ Language feature/extension
   <!-- .element: class="fragment" -->
   * ##### @Circle (https://www.circle-lang.org)
   <!-- .element: class="fragment" -->
-  * ##### [https://wg21.link/P1061](P1858R2) - Generalized pack declaration and usage
+  * ##### Generalized pack declaration and usage - ([https://wg21.link/P1858](P1858))
   <!-- .element: class="fragment" -->
 
 ----
@@ -403,7 +429,7 @@ constexpr auto nth_pack_element = [](auto... args) [[nodiscard]] {
 
 ```cpp
   return std::array{args...}[N]; // close to ideal syntax,
-                                 // but only for same types
+                                 // but only for the same types
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -430,7 +456,7 @@ nth_pack_element<1>('a', 2, "c"); // error: different types 👎
 <!-- .element: class="fragment" -->
 
 * #### Performance
-  - #### fast to compile as it's a language feature
+  - #### fast? - it's a language feature
 <!-- .element: class="fragment" -->
 
 ----
@@ -455,48 +481,20 @@ template <auto N> requires (N > 0)
 
 ----
 
-#### Recursion.1 - requirements
+#### Recursion.1
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability / yes-ish, requires a bit of magic for final case
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Recursion.1 - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### yes-ish, requires a bit of magic for final case
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### slow to compile
-<!-- .element: class="fragment" -->
+  * #### Performance / slow? 
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -524,48 +522,20 @@ constexpr auto nth_pack_element(auto arg, auto... args) {
 
 ----
 
-#### Recursion.2 - requirements
+#### Recursion.2
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability / yes-ish, requires a bit of magic for final case
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Recursion.2 - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### yes-ish, requires a bit of magic for final case
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### Less overloads than Recursion.1
-<!-- .element: class="fragment" -->
+  * #### Performance / Less overloads than Recursion.1
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -603,7 +573,7 @@ constexpr auto unroll = [](auto expr) {
 
 ```cpp
 int main() {
-  unroll<2>([]{ std::puts("C++Now 2022!"); });
+  unroll<2>([]{ std::puts("CppCon 2022!"); });
 }
 ```
 <!-- .element: class="fragment" -->
@@ -611,7 +581,7 @@ int main() {
 ---
 
 ```cpp
-.LC0: .string "C++Now 2022!"
+.LC0: .string "CppCon 2022!"
 main:
   sub     rsp, 8
   mov     edi, OFFSET FLAT:.LC0
@@ -660,48 +630,20 @@ constexpr auto nth_pack_element(auto... args) {
 
 ----
 
-#### Arg expansion - requirements
+#### Arg expansion
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability / 'dark-magic'!
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Arg expansion - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### 'dark-magic'!
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### no recursion = faster to compile
-<!-- .element: class="fragment" -->
+  * #### Performance / fast? - no recursion
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -742,52 +684,24 @@ constexpr auto nth_pack_element(auto... args) {
 
 ----
 
-#### Concept expansion - requirements
+#### Concept expansion
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability / 'dark-magic'!
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Performance / fast? - no recursion
+  <!-- .element: class="fragment" -->
 
 ----
 
-#### Concept expansion - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### 'dark-magic'!
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### no recursion = faster to compile
-<!-- .element: class="fragment" -->
-
-----
-
-#### boost.mp11.2 - https://godbolt.org/z/zEM1eGqxK
+#### boost.mp11 - https://godbolt.org/z/zEM1eGqxK
 
 ```cpp
 template<auto N>
@@ -819,48 +733,20 @@ constexpr auto nth_pack_element(auto... args) {
 
 ----
 
-#### boost.mp11.2 - requirements
+#### boost.mp11
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability / A bit better, some stuff hidden behind the library
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### boost.mp11.2 - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### A bit better, some stuff hidden behind the library
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### boost.mp11 is well optimized
-<!-- .element: class="fragment" -->
+  * #### Performance / boost.mp11 is well optimized for compilation-times
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -934,51 +820,50 @@ template <auto N> constexpr auto nth_pack_element(auto ...args) {
 
 ----
 
-#### boost.preprocessor - requirements
+#### boost.preprocessor
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability / preprocessor, text replacement
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Performance / preprocessor + Multiple overloads
+  <!-- .element: class="fragment" -->
 
 ----
 
-#### boost.preprocessor - goals
+#### mp (C++20) - https://godbolt.org/z/39cW9a5Mc
 
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### preprocessor, text replacement
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### preprocessor + Multiple overloads
-<!-- .element: class="fragment" -->
+```cpp
+template <auto N> constexpr auto nth_pack_element(auto ...args) {
+  return list(args...)
+    | std::views::drop(N)
+    | std::views::take(1);
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
+#### mp
+
+* #### Requirements
+  - #### ✔️
+<!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
+
+  * #### Readability / Same as at run-time (ranges/stl)
+  <!-- .element: class="fragment" -->
+
+  * #### Performance / fast? - no template instantiations
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -1018,48 +903,20 @@ constexpr auto nth_pack_element = [](auto... args) {
 
 ----
 
-#### Any - requirements
+#### Any
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability / 'dark-magic'!
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Any - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### 'dark-magic'!
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### no recursion = faster to compile
-<!-- .element: class="fragment" -->
+  * #### Performance / fast? - no recursion
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -1101,131 +958,20 @@ constexpr auto nth_pack_element = []<class.. TArgs>(TArgs... args) {
 
 ----
 
-#### __type_pack_element (clang) - requirements
+#### __type_pack_element (clang)
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability / clang extension, doesn't work with other compilers
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### __type_pack_element (clang) - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### clang extension, doesn't work with other compilers
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### supported by the compiler but only works with types
-<!-- .element: class="fragment" -->
-
-----
-
-#### boost.mp11.1 - https://godbolt.org/z/rKjzPf9zK
-
-```cpp
-template<class T, auto N> struct any { T value{}; };
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-template<auto N, class... TArgs>
-constexpr auto nth_pack_element(TArgs... args) {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    struct : any<TArgs, Ns>... { } _{args...};
-    return static_cast<
-      mp_at_c<mp_inherit<any<TArgs, Ns>...>, N>&
-    >(_).value;
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  }(std::make_index_sequence<sizeof...(args)>{});
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### boost.mp11.1 - requirements
-
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### boost.mp11.1 - goals
-
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
-
-* #### Readability
-  - #### A bit better, some stuff hidden behind the library
-<!-- .element: class="fragment" -->
-
-* #### Performance
-  - #### boost.mp11 is well optimized
-<!-- .element: class="fragment" -->
+  * #### Performance / supported by the compiler but only works with types
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -1249,48 +995,63 @@ template<auto N>
 
 ----
 
-#### @Circle - requirements
+#### @Cricle - goals
 
-```cpp
-static_assert(1 == nth_pack_element<0>(1, 2, 3)); // 👍
-```
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility
+    - #### yes, works with different types
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(2 == nth_pack_element<1>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Readability
+    - #### can't be much easier, but it's not C++, yet?
+  <!-- .element: class="fragment" -->
 
-```cpp
-static_assert(3 == nth_pack_element<2>(1, 2, 3)); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<1>('a', 2, "c"); // 👍
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-nth_pack_element<4>(1, 2, 3); // error: constraint not satisfied 👍
-```
-<!-- .element: class="fragment" -->
+  * #### Performance
+    - #### fast? - it's a language feature
+  <!-- .element: class="fragment" -->
 
 ----
 
-#### @Cricle - goals
+#### Generalized pack declaration and usage - ([https://wg21.link/P1858](P1858))
 
-* #### Flexibility
-  - #### yes, works with different types
-<!-- .element: class="fragment" -->
+```cpp
+template<auto N>
+[[nodiscard]] constexpr auto nth_pack_element(auto... args) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-* #### Readability
-  - #### can't be much easier, but it's not C++
-<!-- .element: class="fragment" -->
+```cpp
+  return args...[N]; // Expressiveness! 👍 // Yes, same as Circle
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-* #### Performance
-  - #### fast to compile as it's a language feature
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### Generalized pack declaration and usage - ([https://wg21.link/P1858](P1858))
+
+* #### Requirements
+  - #### ✔️
 <!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility
+    - #### yes, works with different types
+  <!-- .element: class="fragment" -->
+
+  * #### Readability
+    - #### can't be much easier, but it's not C++, yet
+  <!-- .element: class="fragment" -->
+
+  * #### Performance
+    - #### fast? - it's a language feature
+  <!-- .element: class="fragment" -->
 
 ==============================================================================
 
@@ -1485,6 +1246,9 @@ struct tuple {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+#### ☝️ Generalized pack declaration and usage - ([https://wg21.link/P1858](P1858))
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
 <!-- .slide: data-background="darkblue" -->
 
 ==============================================================================
@@ -1501,7 +1265,7 @@ struct tuple {
 | Solution            |  |
 | --------------------| ----------- |
 | Arg/Concept expansion       |'dark-magic'! |
-| boost::preprocessor |text replacement |
+| boost.preprocessor |text replacement |
 | __type_pack_element |compiler extension |
 
 ----
@@ -1511,8 +1275,9 @@ struct tuple {
 | Solution            |  |
 | --------------------| ----------- |
 | Recursion           |requires a bit of magic for the final case |
-| boost::mp11         |better, some stuff hidden behind the library |
-| @Circle             |can't be much easier, but it's not C++ |
+| boost.mp11         |better, some stuff hidden behind the library |
+| mp                  |nice, same as at run-time (ranges/stl)|
+| @Circle/P1858       |can't be much easier, but it's not C++ |
 
 ----
 
@@ -1590,7 +1355,7 @@ int main() {
 
 ---
 
-* ##### Up to 20 elements it doesn't matter
+* ##### For small number of elements < 20 (small but a lot
 <!-- .element: class="fragment" -->
 
 * ##### Recursive solutions don't scale well
@@ -1605,6 +1370,9 @@ int main() {
 <!-- .element: class="fragment" -->
 
 * ##### @Circle approach with a language feature destroys the competition
+<!-- .element: class="fragment" -->
+
+* ##### P1858?
 <!-- .element: class="fragment" -->
 
 ----
@@ -1688,6 +1456,31 @@ int main() {
 | nth_pack_element              | (rec.1) 129.90s | (rec.1) 106.01s | (rec.1) 28.73s |
 | tuple                         | (rec.1) 144.39s | (rec.1)  108.31 | (rec.1) 31.36s |
 
+----
+
+#### How does it compare to different Languages? - https://godbolt.org/z/e7vEcfGcq
+
+---
+
+#### <= 20 elements
+<!-- .element: class="fragment" -->
+
+<img src="images/perf3.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+
+----
+
+#### How does it compare to different Languages? - https://godbolt.org/z/e7vEcfGcq
+
+---
+
+#### > 20 elements
+<!-- .element: class="fragment" -->
+
+<img src="images/perf1.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
 ==============================================================================
 
 ### Summary
@@ -1706,7 +1499,7 @@ int main() {
 
 * #### Lack of language features to manipulate/store variadic pack is hearting C++
 <!-- .element: class="fragment" -->
-  * #### C++ would benefit if tuple could be implemented much easier - ([https://wg21.link/P1061](P1858R2))
+  * #### C++ would benefit if tuple could be implemented much easier - ([https://wg21.link/P1858](P1858))
 <!-- .element: class="fragment" -->
 
 ==============================================================================
