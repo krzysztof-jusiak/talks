@@ -98,10 +98,9 @@ std::get<3>  (std::tuple{1, 2, 3}); // error: out of range
 ```
 <!-- .element: class="fragment" -->
 
----
+----
 
-#### Example use-case
-<!-- .element: class="fragment" -->
+### Motivation - example use-case
 
 ```cpp
 const auto t = std::tuple{1, 2, 3}; // std::tuple<int, int, int>
@@ -110,7 +109,7 @@ const auto t = std::tuple{1, 2, 3}; // std::tuple<int, int, int>
 
 ```cpp
 []<auto... Ns>(auto t, auto fn, std::index_sequence<Ns...>) {
-  return fn(std::get<Ns>(t)...);
+  return fn(std::get<Ns>(t)...); // nth_pack_element...
 }(t, std::make_index_sequence<std::tuple_size_v<decltype(t)>>{});
 ```
 <!-- .element: class="fragment" -->
@@ -120,7 +119,11 @@ const auto t = std::tuple{1, 2, 3}; // std::tuple<int, int, int>
 
 ----
 
-#### Motivation - What can be done?
+### Motivation / Where are we now?
+
+----
+
+#### Motivation - first element
 
 ```cpp
 static_assert(1 == first_pack_elment(1, 2, 3));
@@ -137,23 +140,7 @@ constexpr auto first_pack_element =
 
 ----
 
-#### Motivation - What could be done? ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
-
-```cpp
-static_assert(1 == first);
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-constexpr auto [first, ...ts] = std::tuple{1, 2, 3};
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Motivation - What can be done?
+#### Motivation - last element
 
 ```cpp
 static_assert(3 == last_pack_element(1, 2, 3));
@@ -175,7 +162,7 @@ constexpr auto last_pack_element
 
 ----
 
-#### Motivation - What can be done?
+#### Motivation - last element
 
 ```cpp
 static_assert(3 == (1, 2, 3));
@@ -189,39 +176,7 @@ constexpr auto last_pack_element = (..., (args = args)); // ok
 
 ----
 
-#### Motivation - What could be done? ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
-
-```cpp
-static_assert(3 == last);
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-constexpr auto [...ts, last] = std::tuple{1, 2, 3};
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Motivation - What could be done? (Non-terminal variadic template parameters)
-
-```cpp
-static_assert(1 == last(1, 2, 3));
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-constexpr auto last = [](auto..., auto last) { return last; };
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Motivation - What can be done?
+#### Motivation - first/last element
 
 ```cpp
 static_assert(1 == first and 3 == last);
@@ -238,7 +193,61 @@ constexpr auto [first, last] =
 ```
 <!-- .element: class="fragment" -->
 
+----
+
+### Motivation / What's the future like?
+
+----
+
+#### Motivation - first element ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
+
+```cpp
+static_assert(1 == first);
+```
+<!-- .element: class="fragment" -->
+
 ---
+
+```cpp
+constexpr auto [first, ...ts] = std::tuple{1, 2, 3};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Motivation - last element ([P1061 - Structured Bindings can introduce a Pack](https://wg21.link/P1061))
+
+```cpp
+static_assert(3 == last);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+constexpr auto [...ts, last] = std::tuple{1, 2, 3};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Motivation - last element (Non-terminal variadic template parameters)
+
+```cpp
+static_assert(1 == last(1, 2, 3));
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+constexpr auto last = [](auto..., auto last) { return last; };
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Motivation - first/last element
 
 ```cpp
 constexpr auto [first, ...ts, last] = std::tuple{1, 2, 3};
@@ -247,7 +256,11 @@ constexpr auto [first, ...ts, last] = std::tuple{1, 2, 3};
 
 ----
 
-#### Motivation - What about nth pack element...?
+### Motivation - What about nth pack element...?
+
+----
+
+#### Motivation - nth pack element...
 
 ```cpp
 constexpr auto nth = nth_pack_element<N>(1, 2, 3); // ?
@@ -256,7 +269,7 @@ constexpr auto nth = nth_pack_element<N>(1, 2, 3); // ?
 
 ----
 
-#### Goal - Nth pack element...?
+#### Goal - nth pack element...
 
 ```cpp
 static_assert(2 == std::get<1>(std::tuple{1, 2, 3}));
@@ -284,7 +297,7 @@ template<auto N>
 
 ==============================================================================
 
-### Goal - Nth pack element...
+### Goal - nth pack element...
 
 ```
 nth_pack_element
@@ -294,7 +307,7 @@ nth_pack_element
 
 ----
 
-#### Goal - Requirements
+### Goal - requirements
 
 ```cpp
 static_assert(1 == nth_pack_element<0>(1, 2, 3));
@@ -407,7 +420,7 @@ Language feature/extension
   <!-- .element: class="fragment" -->
   * ##### @Circle (https://www.circle-lang.org)
   <!-- .element: class="fragment" -->
-  * ##### Generalized pack declaration and usage - ([https://wg21.link/P1858](P1858))
+  * ##### Generalized pack declaration and usage ([https://wg21.link/P1858](P1858))
   <!-- .element: class="fragment" -->
 
 ----
@@ -969,21 +982,18 @@ template<auto N>
   - #### ✔️
 <!-- .element: class="fragment" -->
 * #### Goals
-  * #### Flexibility
-    - #### yes, works with different types
+  * #### Flexibility / yes, works with different types
   <!-- .element: class="fragment" -->
 
-  * #### Readability
-    - #### can't be much easier, but it's not C++, yet?
+  * #### Readability / can't be much easier, but it's not C++, yet?
   <!-- .element: class="fragment" -->
 
-  * #### Performance
-    - #### fast? - it's a language feature
+  * #### Performance / fast? - it's a language feature
   <!-- .element: class="fragment" -->
 
 ----
 
-#### Generalized pack declaration and usage - ([https://wg21.link/P1858](P1858))
+#### Generalized pack declaration and usage ([https://wg21.link/P1858](P1858))
 
 ```cpp
 template<auto N>
@@ -1003,22 +1013,19 @@ template<auto N>
 
 ----
 
-#### Generalized pack declaration and usage - ([https://wg21.link/P1858](P1858))
+#### Generalized pack declaration and usage ([https://wg21.link/P1858](P1858))
 
 * #### Requirements
   - #### ✔️
 <!-- .element: class="fragment" -->
 * #### Goals
-  * #### Flexibility
-    - #### yes, works with different types
+  * #### Flexibility / yes, works with different types
   <!-- .element: class="fragment" -->
 
-  * #### Readability
-    - #### can't be much easier, but it's not C++, yet?
+  * #### Readability / can't be much easier, but it's not C++, yet?
   <!-- .element: class="fragment" -->
 
-  * #### Performance
-    - #### fast? - it's a language feature
+  * #### Performance / fast? - it's a language feature
   <!-- .element: class="fragment" -->
 
 ==============================================================================
@@ -1214,7 +1221,7 @@ struct tuple {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-#### ☝️ Generalized pack declaration and usage - ([https://wg21.link/P1858](P1858))
+#### ☝️ Generalized pack declaration and usage ([https://wg21.link/P1858](P1858))
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 <!-- .slide: data-background="darkblue" -->
@@ -1487,7 +1494,7 @@ int main() {
 
 * #### Readability
 <!-- .element: class="fragment" -->
-  * #### 'Dark-magic' should be hidden behind tests and user friendly interfaces in libraries
+  * #### 'Clever' implementations should be hidden behind tests and user friendly interfaces in libraries
 <!-- .element: class="fragment" -->
 
 * #### Performance
