@@ -396,8 +396,6 @@ Language feature/extension
   <!-- .element: class="fragment" -->
   * ##### boost.preprocessor
   <!-- .element: class="fragment" -->
-  * ##### mp (https://github.com/boost-ext/mp)
-  <!-- .element: class="fragment" -->
 
 ----
 
@@ -837,36 +835,6 @@ template <auto N> constexpr auto nth_pack_element(auto ...args) {
 
 ----
 
-#### mp (C++20) - https://godbolt.org/z/39cW9a5Mc
-
-```cpp
-template <auto N> constexpr auto nth_pack_element(auto ...args) {
-  return list(args...)
-    | std::views::drop(N)
-    | std::views::take(1);
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### mp
-
-* #### Requirements
-  - #### ✔️
-<!-- .element: class="fragment" -->
-* #### Goals
-  * #### Flexibility / yes, works with different types
-  <!-- .element: class="fragment" -->
-
-  * #### Readability / Same as at run-time (ranges/stl)
-  <!-- .element: class="fragment" -->
-
-  * #### Performance / fast? - no template instantiations
-  <!-- .element: class="fragment" -->
-
-----
-
 #### Any - https://godbolt.org/z/vravKn7h3
 
 ```cpp
@@ -1024,7 +992,7 @@ template<auto N>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  return args...[N]; // Expressiveness! 👍 // Yes, same as Circle
+  return args...[N]; // Expressiveness! 👍 // Notice the difference?
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1046,7 +1014,7 @@ template<auto N>
   <!-- .element: class="fragment" -->
 
   * #### Readability
-    - #### can't be much easier, but it's not C++, yet
+    - #### can't be much easier, but it's not C++, yet?
   <!-- .element: class="fragment" -->
 
   * #### Performance
@@ -1251,6 +1219,39 @@ struct tuple {
 
 <!-- .slide: data-background="darkblue" -->
 
+----
+
+##### mp (https://github.com/boost-ext/mp)
+
+```cpp
+#include <ranges>
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+template<auto N>
+auto fn = [](auto t) {
+  return t 
+    | std::views::filter([](auto i) { return i % 2; })
+    | std::views::reverse
+    | std::views::drop(1);
+};
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(
+  fn([] { return std::tuple{1, 2, 3, 4, 5, 6, 7}; })) ==
+                 std::tuple{5, 3, 1}
+)
+```
+<!-- .element: class="fragment" -->
+
+##### https://godbolt.org/z/o8rrzGMEf
+<!-- .element: class="fragment" -->
+
 ==============================================================================
 
 ### Benchmarks
@@ -1276,7 +1277,6 @@ struct tuple {
 | --------------------| ----------- |
 | Recursion           |requires a bit of magic for the final case |
 | boost.mp11         |better, some stuff hidden behind the library |
-| mp                  |nice, same as at run-time (ranges/stl)|
 | @Circle/P1858       |can't be much easier, but it's not C++ |
 
 ----
@@ -1322,7 +1322,7 @@ int main() {
 
 ----
 
-<h4><p style="color:black">GCC-11<a> - benchmark/nth_pack_element</a></h4>
+<h4><p style="color:black">GCC-12<a> - benchmark/nth_pack_element</a></h4>
 
 <iframe src="benchmark/nth_pack_element.gcc.html" width="100%" height="500px"></iframe>
 
@@ -1332,7 +1332,7 @@ int main() {
 
 ----
 
-<h4><p style="color:black">Clang-13<a> - benchmark/nth_pack_element</a></h4>
+<h4><p style="color:black">Clang-15<a> - benchmark/nth_pack_element</a></h4>
 
 <iframe src="benchmark/nth_pack_element.clang.html" width="100%" height="500px"></iframe>
 
@@ -1341,7 +1341,7 @@ int main() {
 <h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
 ----
 
-<h4><p style="color:black">Circle-168<a> - benchmark/nth_pack_element</a></h4>
+<h4><p style="color:black">Circle-170<a> - benchmark/nth_pack_element</a></h4>
 
 <iframe src="benchmark/nth_pack_element.circle.html" width="100%" height="500px"></iframe>
 
@@ -1355,7 +1355,7 @@ int main() {
 
 ---
 
-* ##### For small number of elements < 20 (small but a lot
+* ##### For small number of elements < 20 (small but a lot of them)
 <!-- .element: class="fragment" -->
 
 * ##### Recursive solutions don't scale well
@@ -1394,7 +1394,7 @@ int main() {
 
 ----
 
-<h4><p style="color:black">GCC-11<a> - benchmark/tuple</a></h4>
+<h4><p style="color:black">GCC-12<a> - benchmark/tuple</a></h4>
 
 <iframe src="benchmark/tuple.gcc.html" width="100%" height="500px"></iframe>
 
@@ -1404,7 +1404,7 @@ int main() {
 
 ----
 
-<h4><p style="color:black">Clang-13<a> - benchmark/tuple</a></h4>
+<h4><p style="color:black">Clang-15<a> - benchmark/tuple</a></h4>
 
 <iframe src="benchmark/tuple.clang.html" width="100%" height="500px"></iframe>
 
@@ -1415,7 +1415,7 @@ int main() {
 
 ----
 
-<h4><p style="color:black">Circle-168<a> - benchmark/tuple</a></h4>
+<h4><p style="color:black">Circle-170<a> - benchmark/tuple</a></h4>
 
 <iframe src="benchmark/tuple.circle.html" width="100%" height="500px"></iframe>
 
@@ -1442,7 +1442,7 @@ int main() {
 
 #### Performance | notes
 
-| Best solution (200 elements) | GCC-11        | Clang-13          | Circle-168      |
+| Best solution (200 elements) | GCC-12        | Clang-15          | Circle-170      |
 |-|-|-|-|
 | nth_pack_element             |  (arg) 6.66s  | (concept) 3.98s | (@circle) 0.27s |
 | tuple                        |  (std::tuple) 9.95s | (concept) 6.13s | (@circle) 0.09s |
@@ -1451,7 +1451,7 @@ int main() {
 
 #### Performance | notes
 
-| Worst solution (200 elements) | GCC-11                | Clang-13              | Circle-168           |
+| Worst solution (200 elements) | GCC-12                | Clang-15              | Circle-170           |
 |-|-|-|-|
 | nth_pack_element              | (rec.1) 129.90s | (rec.1) 106.01s | (rec.1) 28.73s |
 | tuple                         | (rec.1) 144.39s | (rec.1)  108.31 | (rec.1) 31.36s |
@@ -1462,7 +1462,7 @@ int main() {
 
 ---
 
-#### <= 20 elements
+##### (tuple.get) <= 20 elements
 <!-- .element: class="fragment" -->
 
 <img src="images/perf3.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
@@ -1475,7 +1475,7 @@ int main() {
 
 ---
 
-#### > 20 elements
+##### (tuple.get) > 20 elements
 <!-- .element: class="fragment" -->
 
 <img src="images/perf1.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
