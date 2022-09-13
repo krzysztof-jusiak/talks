@@ -98,10 +98,10 @@ int main() {
 
 ----
 
-### C++20 - https://godbolt.org/z/Ksxj61EaG
+### C++20 - 
 
 ```cpp
-auto rotate = [](std::range auto types) -> auto std::range {
+auto rotate = [](std::ranges::range auto types) -> std::ranges::range auto {
   std::ranges::rotate(types, std::begin(types) + 1);
   return types;
 };
