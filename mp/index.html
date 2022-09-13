@@ -101,7 +101,7 @@ int main() {
 ### C++20 - 
 
 ```cpp
-auto rotate = [](std::ranges::range auto types) -> std::ranges::range auto {
+auto rotate = [](std::ranges::range auto types) {
   std::ranges::rotate(types, std::begin(types) + 1);
   return types;
 };
