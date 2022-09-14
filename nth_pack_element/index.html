@@ -41,19 +41,7 @@
   <body>
     <div class="reveal">
       <div class="slides">
-          <section data-markdown="">
-          <script type="text/template">
-<a href="https://cppcon.org/"><img src="images/cppcon.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>
-
----
-
-# Nth pack element...
-## A Case Study
-
----
-
-###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
-          </script>
+          <section data-markdown="" data-background-image="images/cppcon.png">
           </section>
           <section data-markdown=""
                    data-separator="^====+$"
@@ -1237,8 +1225,8 @@ struct tuple {
 
 ```cpp
 template<auto N>
-auto fn = [](auto t) {
-  return t 
+auto fn = [](auto list) {
+  return l##### Generalized pack declaration and usage ([https://wg21.link/P1858](P1858))ist
     | std::views::filter([](auto i) { return i % 2; })
     | std::views::reverse
     | std::views::drop(1);
@@ -1283,8 +1271,24 @@ static_assert(
 | Solution            |  |
 | --------------------| ----------- |
 | Recursion           |requires a bit of magic for the final case |
-| boost.mp11         |better, some stuff hidden behind the library |
+| boost.mp11          |better, some stuff hidden behind the library |
 | @Circle/P1858       |can't be much easier, but it's not C++ |
+
+----
+
+### Performance - use cases
+
+* #### A lot of tuples with less than 20 elements
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+* #### A few big tuples with more than 100/1000 elements
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+* #### A lot of tuples with both: less than 20 and more than 100/1000 elements
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+> #### C++ limitations - ATM count in thousands...
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
@@ -1361,7 +1365,9 @@ int main() {
 
 ---
 
-* ##### For small number of elements < 20 (small but a lot of them)
+* ##### For small number of elements < 20
+<!-- .element: class="fragment" -->
+  * ##### Not a clean winner, a lot of noise
 <!-- .element: class="fragment" -->
 
 * ##### Recursive solutions don't scale well
@@ -1372,13 +1378,10 @@ int main() {
 * ##### 'Clever' solutions scale quite well
 <!-- .element: class="fragment" -->
 
-* ##### GCC std::tuple is the fastest although still slower than Clang/@Circle
-<!-- .element: class="fragment" -->
-
 * ##### @Circle approach with a language feature destroys the competition
 <!-- .element: class="fragment" -->
 
-* ##### P1858?
+* ##### Generalized pack declaration and usage ([https://wg21.link/P1858](P1858))?
 <!-- .element: class="fragment" -->
 
 ----
@@ -1433,10 +1436,15 @@ int main() { // median of 3
 
 #### Performance - tuple | highlights
 
-* ##### Recursive solutions don't scale well
+* ##### Recursive solutions (again) don't scale well
 <!-- .element: class="fragment" -->
 
 * ##### 'Clever' solutions scale quite well
+<!-- .element: class="fragment" -->
+
+* ##### GCC and Clang std::tuple is the fastest although still slower than @Circle
+<!-- .element: class="fragment" -->
+  * ##### Wasn't the case for Clang before Clang-14!
 <!-- .element: class="fragment" -->
 
 * ##### @Circle's approach to a `tuple` as a language feature destroys the competition
@@ -1450,8 +1458,8 @@ int main() { // median of 3
 
 | Best solution (200 elements) | GCC-12        | Clang-15          | Circle-170      |
 |-|-|-|-|
-| nth_pack_element             |  (arg) 6.66s  | (concept) 3.98s | (@circle) 0.27s |
-| tuple                        |  (std::tuple) 9.95s | (concept) 6.13s | (@circle) 0.09s |
+| nth_pack_element             |  (arg) 7.00s  | (concept) 4.28s | (@circle) 0.25s |
+| tuple                        |  (std::tuple) 7.92s | (std::tuple) 5.90s | (@circle) 0.10s |
 
 ----
 
@@ -1459,8 +1467,8 @@ int main() { // median of 3
 
 | Worst solution (200 elements) | GCC-12                | Clang-15              | Circle-170           |
 |-|-|-|-|
-| nth_pack_element              | (rec.1) 129.90s | (rec.1) 106.01s | (rec.1) 28.73s |
-| tuple                         | (rec.1) 144.39s | (rec.1)  108.31 | (rec.1) 31.36s |
+| nth_pack_element              | (rec.1) 131.52s | (rec.1) 106.28s | (rec.1) 27.73s |
+| tuple                         | (rec.1) 146.02s | (rec.1)  111.62 | (rec.1) 28.83s |
 
 ----
 
@@ -1474,14 +1482,13 @@ int main() { // median of 3
 <img src="images/perf3.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
-
 ----
 
 #### How does it compare to different Languages? - https://godbolt.org/z/e7vEcfGcq
 
 ---
 
-##### (tuple.get) > 20 elements
+##### (tuple.get) > 100 elements
 <!-- .element: class="fragment" -->
 
 <img src="images/perf1.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
@@ -1510,13 +1517,12 @@ int main() { // median of 3
 
 ==============================================================================
 
-#### https://www.quantlab.com/careers
-
 ---
 
 ## Let's pack... some more language features?!
 
 ---
+
 ##### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
           </script>
         </section>
