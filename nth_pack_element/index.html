@@ -291,7 +291,7 @@ static_assert(2 == std::get<1>(std::tuple{1, 2, 3}));
 
 ```cpp
 template<auto N>
-[[nodiscard]] constexpr decltype(auto) get(auto& t) {
+[[nodiscard]] constexpr auto get(auto t) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
