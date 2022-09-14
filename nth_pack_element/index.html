@@ -71,24 +71,49 @@
 
 ==============================================================================
 
-### Motivation
+### Motivation - use cases
+
+* #### Performance
+<!-- .element: class="fragment" -->
+* #### Reflection
+<!-- .element: class="fragment" -->
+* #### Serialization
+<!-- .element: class="fragment" -->
+* #### ...
+<!-- .element: class="fragment" -->
+
+----
+
+### Motivation - nth_pack_element
 
 ```cpp
 std::get<int>(std::tuple{1, 2, 3}); // error: ambigious
 ```
 <!-- .element: class="fragment" -->
 
+---
+
 ```cpp
 std::get<0>  (std::tuple{1, 2, 3}); // ok
 std::get<1>  (std::tuple{1, 2, 3}); // ok
 std::get<2>  (std::tuple{1, 2, 3}); // ok
-std::get<3>  (std::tuple{1, 2, 3}); // error: out of range
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+std::get<3>  (std::tuple{1, 2, 3}); // ?
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+> error: out of range // actually there will be a nasty error message
 ```
 <!-- .element: class="fragment" -->
 
 ----
 
-### Motivation - example use-case
+### Motivation - nth_pack_element aka std::get
+
 
 ```cpp
 const auto t = std::tuple{1, 2, 3}; // std::tuple<int, int, int>
@@ -96,13 +121,27 @@ const auto t = std::tuple{1, 2, 3}; // std::tuple<int, int, int>
 <!-- .element: class="fragment" -->
 
 ```cpp
-[]<auto... Ns>(auto t, auto fn, std::index_sequence<Ns...>) {
-  return fn(std::get<Ns>(t)...); // nth_pack_element...
-}(t, std::make_index_sequence<std::tuple_size_v<decltype(t)>>{});
+auto print = 
+  []<auto... Ns>(auto t, auto fn, std::index_sequence<Ns...>) {
+    return fn(std::get<Ns>(t)...); // nth_pack_element...
+  };
 ```
 <!-- .element: class="fragment" -->
 
 > ☝️ std::apply
+<!-- .element: class="fragment" -->
+
+```cpp
+print(t,
+  [](auto t){ std::print("{} ", t); } 
+  std::make_index_sequence<std::tuple_size_v<decltype(t)>>{}
+);
+```
+<!-- .element: class="fragment" -->
+
+```sh
+1 2 3
+```
 <!-- .element: class="fragment" -->
 
 ----
