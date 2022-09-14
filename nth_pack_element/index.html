@@ -1255,7 +1255,16 @@ struct tuple {
 
 ----
 
-##### mp (https://github.com/boost-ext/mp)
+### std.tuple manipulation
+
+---
+
+#### Powered by `mp` library (C++20) - https://github.com/boost-ext/mp
+<!-- .element: class="fragment" -->
+
+----
+
+#### tuple.get
 
 ```cpp
 #include <ranges>
@@ -1263,11 +1272,11 @@ struct tuple {
 <!-- .element: class="fragment" -->
 
 ```cpp
-auto fn = [](auto list) {
-  return list
-    | std::views::filter([](auto i) { return i % 2; })
-    | std::views::reverse
-    | std::views::drop(1);
+template<auto N>
+auto get = [](auto tuple) {
+  return tuple
+    | std::views::drop(N)
+    | std::views::take(1);
 };
 ```
 <!-- .element: class="fragment" -->
@@ -1275,14 +1284,36 @@ auto fn = [](auto list) {
 ---
 
 ```cpp
+static_assert(get<1>([] { return std::tuple{1, 2, 3}; }) == 2));
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### tuple.fitler/etc...
+
+```cpp
+#include <ranges>
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+template<auto N>
+auto fn = [](auto tuple) {
+  return tuple 
+    | std::views::filter([](auto i) { return i % 2; })
+    | std::views::reverse
+    | std::views::drop(1);
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
 static_assert(
   fn([] { return std::tuple{1, 2, 3, 4, 5, 6, 7}; })) ==
                  std::tuple{5, 3, 1}
 )
 ```
-<!-- .element: class="fragment" -->
-
-##### https://godbolt.org/z/o8rrzGMEf
 <!-- .element: class="fragment" -->
 
 ==============================================================================
