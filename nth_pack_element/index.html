@@ -106,7 +106,7 @@ std::get<3>  (std::tuple{1, 2, 3}); // ?
 <!-- .element: class="fragment" -->
 
 ```cpp
-error: out of range
+                                    // error: out of range
 ```
 <!-- .element: class="fragment" -->
 
@@ -133,7 +133,7 @@ auto print =
 
 ```cpp
 print(t,
-  [](auto t){ std::print("{} ", t); } 
+  [](auto... ts){ (std::print("{} ", t), ...); } 
   std::make_index_sequence<std::tuple_size_v<decltype(t)>>{}
 );
 ```
