@@ -1265,7 +1265,7 @@ struct tuple {
 ```cpp
 template<auto N>
 auto fn = [](auto list) {
-  return l##### Generalized pack declaration and usage ([https://wg21.link/P1858](P1858))ist
+  return list
     | std::views::filter([](auto i) { return i % 2; })
     | std::views::reverse
     | std::views::drop(1);
