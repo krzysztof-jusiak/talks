@@ -1263,7 +1263,6 @@ struct tuple {
 <!-- .element: class="fragment" -->
 
 ```cpp
-template<auto N>
 auto fn = [](auto list) {
   return list
     | std::views::filter([](auto i) { return i % 2; })
