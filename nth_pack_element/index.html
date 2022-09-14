@@ -258,22 +258,6 @@ constexpr auto [...ts, last] = std::tuple{1, 2, 3};
 
 ----
 
-#### Motivation - last element (Non-terminal variadic template parameters)
-
-```cpp
-static_assert(1 == last(1, 2, 3));
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-constexpr auto last = [](auto..., auto last) { return last; };
-```
-<!-- .element: class="fragment" -->
-
-----
-
 #### Motivation - first/last element
 
 ```cpp
