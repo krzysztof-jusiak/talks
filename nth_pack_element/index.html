@@ -462,24 +462,25 @@ constexpr auto nth_pack_element = [](auto... args) [[nodiscard]] {
 
 ----
 
-#### std.array - requirements/goals
+#### std.array
 
-```cpp
-nth_pack_element<1>('a', 2, "c"); // error: different types 👎
-```
-<!-- .element: class="fragment" -->
+* #### Requirements
+  <!-- .element: class="fragment" -->
 
-* #### Flexibility
-  - #### not really, works only for the same types
-<!-- .element: class="fragment" -->
+  ```cpp
+  nth_pack_element<1>('a', 2, "c"); // error: different types 👎
+  ```
+  <!-- .element: class="fragment" -->
 
-* #### Readability
-  - #### yes, simple to follow
-<!-- .element: class="fragment" -->
+* #### Goals
+  * #### Flexibility / really, works only for the same types
+  <!-- .element: class="fragment" -->
 
-* #### Performance
-  - #### fast? - it's a language feature
-<!-- .element: class="fragment" -->
+  * #### Readability / yes, simple to follow
+  <!-- .element: class="fragment" -->
+
+  * #### Performance / fast? - it's a language feature
+  <!-- .element: class="fragment" -->
 
 ----
 
