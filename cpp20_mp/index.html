@@ -175,6 +175,7 @@ static_assert(string<'f', 'o', 'o'> == to_string<"foo">)
 #### 4. Reflection - to_tuple
 
 ```cpp
+// clang-format off
   template <class T>
   [[nodiscard]] constexpr auto to_tuple(T&& obj) {
     // ...
@@ -253,7 +254,7 @@ static_assert(mp::list<val const> ==
 ```cpp
 int main() {
   "hello world"_test = [] {
-    std::vector list{"int", ...}; // generate, fuzz...
+    std::vector list{"int", ...}; // generate, fuzz, ...
     const auto result = hello_world(list, 
                                     fake_add_const,
                                     fake_has_value);
