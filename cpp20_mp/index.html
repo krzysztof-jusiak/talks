@@ -99,7 +99,7 @@ constexpr auto unroll = [](auto expr) {
 
 ---
 
-#### P1061 - Structured Bindings can introduce a Pack
+#### [P1061](https://wg21.link/P1061) - Structured Bindings can introduce a Pack
 <!-- .element: class="fragment" -->
 
 ```cpp
@@ -177,6 +177,7 @@ static_assert(string<'f', 'o', 'o'> == to_string<"foo">)
 ```cpp
   template <class T>
   [[nodiscard]] constexpr auto to_tuple(T&& obj) {
+    // ...
     if constexpr (requires { [&obj] { auto&& [p1, p2] = obj; }; }) {
       auto&& [p1, p2] = std::forward<T>(obj);
       return std::tuple{p1, p2};
@@ -193,41 +194,46 @@ static_assert(string<'f', 'o', 'o'> == to_string<"foo">)
 ---
 
 ```cpp
-struct foo {
-  int i{};
-  bool b{};
-};
+struct foo { int i{}; bool b{}; };
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
 static_assert(std::tuple{42, true} ==
-  to_tuple(foo{.i = 42, .b = true})
+            to_tuple(foo{.i = 42, .b = true})
 )
 ```
 <!-- .element: class="fragment" -->
 
 ----
 
-### 5. constexpr std::vector - https://github.com/boost-ext/mp
+### 5. constexpr std::vector
+#### https://github.com/boost-ext/mp
 
 ```cpp
 #include <ranges>
-```
-<!-- .element: class="fragment" -->
 
-```cpp
-auto hello_world = [](auto list) {
- return list // int, foo, val, bar 
-  | std::views::drop(1_c)
-  | std::views::reverse
-  | std::views::take(2_c)
-  | std::views::transform([]<class T> -> T const {})
-  | std::views::filter([]<class T>{ return requires(T t){ t.value; };};
+auto hello_world = [](auto list, auto add_const, auto has_value){
+ return list                          // int, foo, val, bar
+  | std::views::drop(1_c)             // foo, val, bar
+  | std::views::reverse               // bar, val, foo
+  | std::views::take(2_c)             // bar, val
+  | std::views::transform(add_const)  // bar const, val const
+  | std::views::filter(has_value)     // val const
 };
 ```
 <!-- .element: class="fragment" -->
 
+```cpp
+auto add_const = []<class T> -> T const {};
+auto has_value = []<class T> { return requires(T t) { t.value; }; };
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### 5. constexpr std::vector
+#### https://github.com/boost-ext/mp
 
 ```cpp
 struct bar {};
@@ -237,9 +243,22 @@ struct val { int value; };
 <!-- .element: class="fragment" -->
 
 ```cpp
-static_assert(list<val const>() ==
-  hello_world(list<int, foo, val, bar>)
+static_assert(mp::list<val const> ==
+  hello_world(mp::list<int, foo, val, bar>, add_const, has_value)
 );
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+int main() {
+  "hello world"_test = [] {
+    std::vector list{"int", ...}; // generate, fuzz...
+    const auto result = hello_world(list, 
+                                    fake_add_const,
+                                    fake_has_value);
+    expect(std::vector{...} == result);
+  };
+}
 ```
 <!-- .element: class="fragment" -->
 
