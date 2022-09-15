@@ -238,9 +238,7 @@ auto has_value = []<class T> { return requires(T t) { t.value; }; };
 #### https://github.com/boost-ext/mp
 
 ```cpp
-struct bar {};
-struct foo { int value; };
-struct val { int value; };
+struct bar {}; struct foo { int value; }; struct val { int value; };
 ```
 <!-- .element: class="fragment" -->
 
@@ -254,11 +252,14 @@ static_assert(mp::list<val const> ==
 ```cpp
 int main() {
   "hello world"_test = [] {
-    std::vector list{"int", ...}; // generate, fuzz, ...
-    const auto result = hello_world(list, 
-                                    fake_add_const,
-                                    fake_has_value);
-    expect(std::vector{...} == result);
+    std::vector list{ // generate, fuzz...
+      unique_stub_type{}, unique_stub_type_with_value{}, ...
+    };
+
+    const auto result = hello_world(list, add_const, has_value);
+
+    expect(1 == std::size(result) and result[0].has_const 
+                                  and result[0].has_value);
   };
 }
 ```
