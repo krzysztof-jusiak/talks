@@ -220,6 +220,7 @@ auto hello_world = [](auto list, auto add_const, auto has_value){
   | std::views::take(2_c)             // bar, val
   | std::views::transform(add_const)  // bar const, val const
   | std::views::filter(has_value)     // val const
+  ;
 };
 ```
 <!-- .element: class="fragment" -->
