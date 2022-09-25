@@ -58,7 +58,7 @@
 
 ----
 
-### Agenda
+#### Agenda
 
 * #### Motivation/Goal
 <!-- .element: class="fragment" -->
@@ -75,7 +75,7 @@
 
 ----
 
-### Agenda
+#### Agenda
 
 * #### Showcase
   <!-- .element: class="fragment" -->
@@ -91,14 +91,14 @@
 
 ----
 
-#### Motivation
+### Motivation
 
 ##### [Case study] Explore new ways of Meta-Programming enabled by C++20
 <!-- .element: class="fragment" -->
 
 ----
 
-#### Goal
+### Goal
 
 ##### Make ~~Template~~ Meta-Programming easier by leveraging C++20 features
 <!-- .element: class="fragment" -->
@@ -296,18 +296,18 @@ static_assert(typeid(ct_string<'f', 'o', 'o'>) == foo);
 <!-- .element: class="fragment" -->
 
 ```cpp
-template<class T> auto foo;
+template<class T> auto foo();
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-foo<"foo"_cs>            // error: invalid explicitly-specified
-                         // argument for template parameter T
+foo<"foo"_cs>();           // error: invalid explicitly-specified
+                           // argument for template parameter T
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-foo<decltype("foo"_cs)>; // okay
+foo<decltype("foo"_cs)>(); // okay
 ```
 <!-- .element: class="fragment" -->
 
@@ -421,7 +421,9 @@ auto has_value = []<class T> { return requires(T t) { t.value; }; };
 <!-- .element: class="fragment" -->
 
 ```cpp
-struct bar {}; struct foo { int value; }; struct val { int value; };
+struct empty {};
+struct val1 { int value; };
+struct val2 { int value; };
 ```
 <!-- .element: class="fragment" -->
 
@@ -430,8 +432,8 @@ struct bar {}; struct foo { int value; }; struct val { int value; };
 #### C++20 - https://github.com/boost-ext/mp
 
 ```cpp
-static_assert(mp::list<val const> ==
-  hello_world(mp::list<int, foo, val, bar>, add_const, has_value)
+static_assert(list<val2 const> ==
+  hello_world(list<int, val1, val2, empty>, add_const, has_value)
 );
 ```
 <!-- .element: class="fragment" -->
@@ -439,32 +441,32 @@ static_assert(mp::list<val const> ==
 ---
 
 ```cpp
- return list                          // int, foo, val, bar
+ return list                          // int, val1, val2, empty
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-  | std::views::drop(1_c)             // foo, val, bar
+  | std::views::drop(1_c)             // val1, val2, empty
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-  | std::views::reverse               // bar, val, foo
+  | std::views::reverse               // empty, val2, val1
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-  | std::views::take(2_c)             // bar, val
+  | std::views::take(2_c)             // empty, val2
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-  | std::views::transform(add_const)  // bar const, val const
+  | std::views::transform(add_const)  // empty const, val2 const
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-  | std::views::filter(has_value)     // val const
+  | std::views::filter(has_value)     // val2 const
   ;
 ```
 <!-- .element: class="fragment" -->
@@ -490,16 +492,16 @@ auto slice = [](auto list, auto begin, auto end) {
 
 ```cpp
 // type_list
-static_assert(slice(mp::list<int, double, float, short>, 1_c, 3_c) ==
-                    mp::list<double, float>);
+static_assert(slice(list<int, double, float, short>, 1_c, 3_c) ==
+                    list<double, float>);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
 // variant.type
 static_assert(std::is_same_v<
-  mp::typeof<slice, std::variant<int, double, float, short>, 1_c, 3_c>,
-                    std::variant<double, float>>
+  typeof<slice, std::variant<int, double, float, short>, 1_c, 3_c>,
+                std::variant<double, float>>
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -510,15 +512,15 @@ static_assert(std::is_same_v<
 
 ```cpp
 // value_list
-static_assert(slice(mp::list<1, 2, 3, 4>, 1_c, 3_c) ==
-                    mp::list<2, 3>);
+static_assert(slice(list<1, 2, 3, 4>, 1_c, 3_c) ==
+                    list<2, 3>);
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
 // fixed_string
-static_assert(slice(mp::list<"foobar">, 1_c, 3_c) ==
-                    mp::list<"oo">);
+static_assert(slice(list<"foobar">, 1_c, 3_c) ==
+                    list<"oo">);
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -682,11 +684,11 @@ int main() {
 #### C++20 - SML.front-end / transition (fixed_string)
 
 ```cpp
-template<mp::fixed_string Src = "",
+template<fixed_string Src = "",
         class TEvent  = none,
         class TGuard  = always,
         class TAction = none,
-        mp::fixed_string Dst = "">
+        fixed_string Dst = "">
 struct transition {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -718,7 +720,8 @@ struct transition {
 #### C++20 - SML.utils (constexpr std::vector + std::ranges)
 
 ```cpp
-template<auto Fn> constexpr auto unique = [](auto types) {
+template<auto Fn> constexpr auto unique =
+  []<class... Ts>(std::ranges::range auto types) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -735,7 +738,7 @@ template<auto Fn> constexpr auto unique = [](auto types) {
 
 ```cpp
   auto [first, last] = std::ranges::unique(types,
-    [&]( auto lhs, auto rhs) { return fns[lhs] == fns[rhs]; });
+    [&](auto lhs, auto rhs) { return fns[lhs] == fns[rhs]; });
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -774,7 +777,7 @@ template<auto transitions> class sm {
 
 ```cpp
   constexpr auto events = transitions
-    | std::views::transform([]<class T>() -> typename T::event {})
+    | std::views::transform([]<class T> -> typename T::event {})
     | unique<by_type>
     ;
 ```
@@ -793,9 +796,9 @@ Example: connect, established, ping, timeout, disconnect
 
 ```cpp
   constexpr auto states = transitions
-    | []<class... Ts>() { return mp::list<Ts::src..., Ts::dst...>; }
-    | std::views::filter([]<mp::fixed_string State> {
-        return not std::empty(std::string_view(State));
+    | []<class... Ts> { return list<Ts::src..., Ts::dst...>; }
+    | std::views::filter([]<fixed_string State> {
+        return not std::empty(State);
       })
     | unique<by_name>
     ;
@@ -824,7 +827,7 @@ static constexpr auto mappings = events
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-         | std::views::transform([]<mp::fixed_string State> {
+         | std::views::transform([]<fixed_string State> {
             return transitions
               | std::views::filter([]<class T> {
                   return T::src == State and
@@ -833,9 +836,9 @@ static constexpr auto mappings = events
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
-              | []<class... Ts> {
+              | []<auto... Transitions> {
                    [](const auto& event, auto& current_state) {
-                     (... or Ts(event, current_event));
+                     (... or Transitions(event, current_event));
                    }
                 }
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -893,7 +896,7 @@ Example:
 
 ```cpp
     // find transitions for current state
-    mp::for_each(auto index, const auto& transition) {
+    for_each(auto index, const auto& transition) {
       if (index == current_state_) {
         transition(event, current_state_); // execute transition
       }
@@ -917,8 +920,8 @@ Example:
 #### C++20 - SML.front-end/back-end / transition (fixed_string)
 
 ```cpp
-template<mp::fixed_string Src, class TEvent,
-        class TGuard, class TAction, mp::fixed_string Dst>
+template<fixed_string Src, class TEvent,
+        class TGuard, class TAction, fixed_string Dst>
 struct transition {
   // ...
 
@@ -949,7 +952,7 @@ struct transition {
 
 ----
 
-#### SML in action...
+#### C++20 (SML) in action...
 
 ---
 
@@ -962,7 +965,7 @@ struct transition {
 * #### C++20 enables new ways of Template Meta-Programming (~~T~~MP)
 <!-- .element: class="fragment" -->
 
-* #### constexpr std::vector + std::ranges can is a powerful TMP combination
+* #### constexpr std::vector + std::ranges is a powerful TMP combination
 <!-- .element: class="fragment" -->
 
 * #### https://github.com/boost-ext/mp leverages new C++20 TMP techniques
