@@ -555,12 +555,13 @@ int main(int argc, const char**) {
 
 #### State Machine Language (UML 2.5)
 
-<img src="images/transition_table.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-
 | |
 |-|
 |<center>Transition</center>|
 |<center>![Transition](images/transition.png)</center>|
+
+<img src="images/transition_table.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -690,10 +691,10 @@ int main() {
 
 ```cpp
 template<fixed_string Src = "",
-        class TEvent  = none,
-        class TGuard  = always,
-        class TAction = none,
-        fixed_string Dst = "">
+         class TEvent  = none,
+         class TGuard  = always,
+         class TAction = none,
+         fixed_string Dst = "">
 struct transition {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -706,11 +707,11 @@ struct transition {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  constexpr auto operator*() const;
-  constexpr auto operator+(auto state) const;
+  constexpr auto operator* () const;
+  constexpr auto operator+ (auto state) const;
   constexpr auto operator[](auto guard) const;
-  constexpr auto operator/(auto action) const;
-  constexpr auto operator=(auto state) const;
+  constexpr auto operator/ (auto action) const;
+  constexpr auto operator= (auto state) const;
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -725,13 +726,13 @@ struct transition {
 #### C++20 - SML.utils (constexpr std::vector + std::ranges)
 
 ```cpp
-template<auto Fn> constexpr auto unique =
+constexpr auto unique =
   []<class... Ts>(std::ranges::range auto types) {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  const auto std::array fns = {Fn.template operator()<Ts>()...};
+  const auto std::array fns = {typeid(Ts).name()...};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -771,7 +772,7 @@ template<auto transitions> class sm {
   constexpr auto process_event(const auto& event) -> void;
 
  private:
-  std::size_t> current_state_{};
+  std::size_t current_state_{};
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -783,7 +784,7 @@ template<auto transitions> class sm {
 ```cpp
   constexpr auto events = transitions
     | std::views::transform([]<class T> -> typename T::event {})
-    | unique<by_type>
+    | unique
     ;
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -805,7 +806,7 @@ Example: connect, established, ping, timeout, disconnect
     | std::views::filter([]<fixed_string State> {
         return not std::empty(State);
       })
-    | unique<by_name>
+    | unique
     ;
 ```
 
@@ -901,11 +902,12 @@ Example:
 
 ```cpp
     // find transitions for current state
-    for_each(auto index, const auto& transition) {
-      if (index == current_state_) {
+    auto index = 0u;
+    for_each(ts, [&](const auto& transition) {
+      if (index++ == current_state_) {
         transition(event, current_state_); // execute transition
       }
-    }, ts);
+    });
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -957,7 +959,7 @@ struct transition {
 
 ----
 
-#### C++20 (SML) in action...
+### C++20 (SML) in action...
 
 ---
 
