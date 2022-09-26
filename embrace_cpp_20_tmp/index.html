@@ -644,26 +644,17 @@ sm connection = [] {
 ```
 <!-- .element: class="fragment" -->
 
-----
+##### *state = initial state
+<!-- .element: class="fragment" -->
 
-#### SML - Domain Specific Language (DSL)
+---
 
 ```cpp
 int main() {
-  sm connection{Connection{}};
-  assert(connection.is("Disconnected"_s));
-
   connection.process_event(connect{});
-  assert(connection.is("Connecting"_s));
-
   connection.process_event(established{});
-  assert(connection.is("Connected"_s));
-
   connection.process_event(ping{true});
-  assert(connection.is("Connected"_s));
-
   connection.process_event(disconnect{});
-  assert(connection.is("Disconnected"_s));
 }
 ```
 <!-- .element: class="fragment" -->
@@ -684,14 +675,14 @@ int main() {
 
 ---
 
-* ##### Front-End : DSL -> list of transitions
+* ##### Front-End : DSL -> transitions...
 <!-- .element: class="fragment" -->
-  * ___src + event [ guard ] / action = dst___
+  * ##### _src + event [ guard ] / action = dst_
 <!-- .element: class="fragment" -->
 
-* ##### Back-End : executes list of transitions with events
+* ##### Back-End : executes transitions... per event/state
 <!-- .element: class="fragment" j-->
-  * ___process_event___
+  * ##### _process_event_
 <!-- .element: class="fragment" -->
 
 ----
@@ -716,11 +707,11 @@ struct transition {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  constexpr auto operator* () const;
-  constexpr auto operator+ (auto state) const;
-  constexpr auto operator[](auto guard) const;
-  constexpr auto operator/ (auto action) const;
-  constexpr auto operator= (auto state) const;
+  constexpr auto operator* () const;            // *initial_state
+  constexpr auto operator+ (auto state) const;  // src_state + event
+  constexpr auto operator[](auto guard) const;  // event<T> [ guard ]
+  constexpr auto operator/ (auto action) const; // [ guard ] / action
+  constexpr auto operator= (auto state) const;  // = dst_state
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -775,11 +766,24 @@ constexpr auto unique =
 ```cpp
 template<auto transitions> class sm {
   // ...
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
+```cpp
  public:
   constexpr explicit(true) sm(auto& transitions);
-  constexpr auto process_event(const auto& event) -> void;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
+```cpp
+  /**
+   * Executes transitions... for state/event
+   */
+  constexpr auto process_event(const auto& event) -> void;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
  private:
   std::size_t current_state_{};
 };
