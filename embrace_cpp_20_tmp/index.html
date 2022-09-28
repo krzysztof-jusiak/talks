@@ -384,13 +384,13 @@ foo<"bar">(); // okay
 ```cpp
 template <fixed_string Str>
 constexpr auto to_string = []<auto... Ns>(std::index_sequence<Ns...>) {
-  return string<Str.data[Ns]...>{};
+  return ct_string<Str.data[Ns]...>{};
 }(std::make_index_sequence<Str.size()>{});
 ```
 <!-- .element: class="fragment" -->
 
 ```
-static_assert(string<'f', 'o', 'o'> == to_string<"foo">)
+static_assert(ct_string<'f', 'o', 'o'> == to_string<"foo">)
 ```
 <!-- .element: class="fragment" -->
 
