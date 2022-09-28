@@ -306,7 +306,7 @@ template <class T, T... Cs> // gnu-string-literal-operator-template
 
 ```cpp
 constexpr auto foo = "foo"_cs;
-static_assert(typeid(ct_string<'f', 'o', 'o'>) == foo);
+static_assert(typeid(ct_string<'f', 'o', 'o'>) == typeid(foo));
 ```
 <!-- .element: class="fragment" -->
 
@@ -1148,8 +1148,8 @@ struct transition {
         ]
       });
 
-      window.addEventListener("mousedown", handleClick, false);
-      window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
 
       function handleClick(e) {
         if (1 >= outerHeight - innerHeight) {
