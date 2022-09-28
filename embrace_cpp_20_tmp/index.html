@@ -734,10 +734,10 @@ struct transition {
 
 ```cpp
   constexpr auto operator* () const;            // *initial_state
-  constexpr auto operator+ (auto state) const;  // src_state + event
-  constexpr auto operator[](auto guard) const;  // event<T> [ guard ]
+  constexpr auto operator+ (auto state)  const; // src_state + event
+  constexpr auto operator[](auto guard)  const; // event<T> [ guard ]
   constexpr auto operator/ (auto action) const; // [ guard ] / action
-  constexpr auto operator= (auto state) const;  // = dst_state
+  constexpr auto operator= (auto state)  const; // = dst_state
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
