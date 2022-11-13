@@ -916,14 +916,15 @@ static constexpr auto mappings = events
 
 ```sh
 Example:
-  std::pair<ping,
-    list<>,                       // state.Connecting
-    list<transition<"Connected",
-                    ping,
-                    is_valid,
-                    reset,
-                    "">           // state.Connected
-    list<>,                       // state.Disconnected
+  std::pair<ping, list<
+      list<>,                       // state.Connecting
+      list<transition<"Connected",
+                      ping,
+                      is_valid,
+                      reset,
+                      "">           // state.Connected
+      list<>,                       // state.Disconnected
+    >
   >, ...>;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1009,7 +1010,7 @@ struct transition {
 
 ---
 
-##### https://godbolt.org/z/1TEoezq5c
+##### https://godbolt.org/z/8EPs5xx8r
 
 <!-- .slide: data-background-image="images/bg.png" -->
 ==============================================================================

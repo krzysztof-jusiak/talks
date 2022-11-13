@@ -41,12 +41,25 @@
   <body>
     <div class="reveal">
       <div class="slides">
-          <section data-markdown="" data-background-image="images/cppcon.png">
-          </section>
           <section data-markdown=""
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
+<a href="https://meetingcpp.org/"><img src="images/studiobackground.png" style="width: 20%; float:left; background:none; border:none; box-shadow:none;" /></a>
+
+
+&nbsp;
+
+---
+
+## Nth pack element...
+### A Case Study
+
+---
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+----
 
 ### Agenda
 
@@ -112,37 +125,9 @@ std::get<3>  (std::tuple{1, 2, 3}); // ?
 
 ----
 
-### Motivation - nth_pack_element aka std::get
+### Motivation / Where are we now?
 
-
-```cpp
-const auto t = std::tuple{1, 2, 3}; // std::tuple<int, int, int>
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-auto print = 
-  []<auto... Ns>(auto t, auto fn, std::index_sequence<Ns...>) {
-    return fn(std::get<Ns>(t)...); // nth_pack_element...
-  };
-```
-<!-- .element: class="fragment" -->
-
-> ☝️ std::apply
-<!-- .element: class="fragment" -->
-
-```cpp
-print(t,
-  [](auto... ts){ (std::print("{} ", t), ...); } 
-  std::make_index_sequence<std::tuple_size_v<decltype(t)>>{}
-);
-```
-<!-- .element: class="fragment" -->
-
-```sh
-1 2 3
-```
-<!-- .element: class="fragment" -->
+<img src="images/andrei.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
 
 ----
 
@@ -488,7 +473,8 @@ constexpr auto nth_pack_element = [](auto... args) [[nodiscard]] {
 
 ```cpp
 template <auto N> requires (N == 0)
-[[nodiscard]] constexpr auto nth_pack_element(auto arg, auto...) {
+[[nodiscard]]
+constexpr auto nth_pack_element(auto arg, auto...) {
     return arg;
 }
 ```
@@ -496,7 +482,8 @@ template <auto N> requires (N == 0)
 
 ```cpp
 template <auto N> requires (N > 0)
-[[nodiscard]] constexpr auto nth_pack_element(auto arg, auto... args) {
+[[nodiscard]]
+constexpr auto nth_pack_element(auto arg, auto... args) {
     return nth_pack_element<N - 1>(args...);
 }
 ```
@@ -596,7 +583,7 @@ constexpr auto unroll = [](auto expr) {
 
 ```cpp
 int main() {
-  unroll<2>([]{ std::puts("CppCon 2022!"); });
+  unroll<2>([]{ std::puts("Meeting C++ 2022!"); });
 }
 ```
 <!-- .element: class="fragment" -->
@@ -604,7 +591,7 @@ int main() {
 ---
 
 ```cpp
-.LC0: .string "CppCon 2022!"
+.LC0: .string "Meeting C++ 2022!"
 main:
   sub     rsp, 8
   mov     edi, OFFSET FLAT:.LC0
@@ -1571,7 +1558,9 @@ int main() { // median of 3
 
 ==============================================================================
 
-<a href="https://cppcon.org/"><img src="images/cppcon2022.png" style="width: 60%; background:none; border:none; box-shadow:none;" /></a>
+<a href="https://meetingcpp.org/"><img src="images/studiobackground.png" style="width: 20%; float:left; background:none; border:none; box-shadow:none;" /></a>
+
+&nbsp;
 
 ---
 
