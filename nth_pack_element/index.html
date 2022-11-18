@@ -128,10 +128,7 @@ std::get<3>  (std::tuple{1, 2, 3}); // ?
 ### Motivation / Where are we now?
 
 <img src="images/andrei.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-
-----
-
-### Motivation / Where are we now?
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -146,7 +143,7 @@ static_assert(1 == first_pack_elment(1, 2, 3));
 
 ```cpp
 constexpr auto first_pack_element =
-  [](auto first, auto... args) { return first; }(args...);
+  [](auto first, auto...) { return first; };
 ```
 <!-- .element: class="fragment" -->
 
@@ -822,7 +819,7 @@ BOOST_PP_REPEAT(                                              \
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
-template <auto N> constexpr auto nth_pack_element(auto ...args) {
+template <auto N> constexpr auto nth_pack_element(auto... args) {
   return nth_pack_element<N>(args...);
 }
 ```
