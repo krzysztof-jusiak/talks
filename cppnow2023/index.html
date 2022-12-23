@@ -1,0 +1,852 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>TMP C++20</title>
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
+    <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
+    <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
+    <link rel="stylesheet" href="extensions/css/custom.css">
+
+    <style>
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
+    </style>
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+      function set_address(self, remote, local) {
+        if (window.location.search.match("local")) {
+          self.href = local;
+        } else {
+          self.href = remote;
+        }
+      }
+    </script>
+
+    <meta name="description" content="~~Template~~ Meta-Programming">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+          <script type="text/template">
+          </script>
+          </section>
+
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$">
+          <script type="text/template">
+#### Idea
+
+* Daisy
+
+  * Introduce and explain the technique
+
+* Kris
+
+  * Showcase potential applications
+
+----
+
+> C++Now 2023
+
+* Title bikesheding
+
+  * Cute C++ tricks: (Part 3 of N)
+  * Future of TMP with C++20
+  * Cute C++ tricks: (Future of TMP part 1)
+  * Raise of the Cute C++ tricks
+  * C++20: The only cute C++ trick you need
+  * ...
+
+----
+
+#### Agenda
+
+* #### Motivation/Goal
+<!-- .element: class="fragment" -->
+* #### Using STL/Ranges with type_list
+<!-- .element: class="fragment" -->
+  * #### Why and How?
+    <!-- .element: class="fragment" -->
+    * ##### Techniques (based on std::ranges::sort?)
+    <!-- .element: class="fragment" -->
+
+----
+
+#### Agenda
+
+* #### Showcase
+  <!-- .element: class="fragment" -->
+  * ##### MP library based on the idea
+  <!-- .element: class="fragment" -->
+  * ##### State Machine Language
+  <!-- .element: class="fragment" -->
+* #### Summary
+<!-- .element: class="fragment" -->
+
+
+---
+
+###### Powered by [Compiler Explorer](https://godbolt.org)
+<!-- .element: class="fragment" -->
+
+
+----
+
+Daisy - TODO...
+
+----
+
+#### MP - ~~Template~~ Meta Programming
+
+```cpp
+constexpr std::vector v{4, 2, 1, 3};
+std::ranges::sort(v);
+static_assert(std::vector{1, 2, 3, 4} == v);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+##### std::tuple?
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++20 - https://github.com/boost-ext/mp
+
+```cpp
+#include <ranges>
+
+auto hello_world = [](auto list, auto add_const, auto has_value){
+ return list
+  | std::views::drop(1_c)
+  | std::views::reverse
+  | std::views::take(2_c)
+  | std::views::transform(add_const)
+  | std::views::filter(has_value)
+  ;
+};
+```
+<!-- .element: class="fragment" -->
+
+---
+
+##### `N`_c = std::integral_constant<int, `N`> // aka constexpr parameter
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++20 - https://github.com/boost-ext/mp
+
+```cpp
+auto add_const = []<class T> -> T const {};
+auto has_value = []<class T> { return requires(T t) { t.value; }; };
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+struct empty {};
+struct val1 { int value; };
+struct val2 { int value; };
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++20 - https://github.com/boost-ext/mp
+
+```cpp
+static_assert(list<val2 const> ==
+  hello_world(list<int, val1, val2, empty>, add_const, has_value)
+);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+ return list                          // int, val1, val2, empty
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+  | std::views::drop(1_c)             // val1, val2, empty
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+  | std::views::reverse               // empty, val2, val1
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+  | std::views::take(2_c)             // empty, val2
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+  | std::views::transform(add_const)  // empty const, val2 const
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+  | std::views::filter(has_value)     // val2 const
+  ;
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++20 - https://github.com/boost-ext/mp
+
+```cpp
+#include <ranges>
+
+auto slice = [](auto list, auto begin, auto end) {
+  return list
+    | std::views::drop(begin)
+    | std::views::take(end - 1_c)
+    ;
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++20 - https://github.com/boost-ext/mp
+
+```cpp
+// type_list
+static_assert(slice(list<int, double, float, short>, 1_c, 3_c) ==
+                    list<double, float>);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+// variant.type
+static_assert(std::is_same_v<
+  typeof<slice, std::variant<int, double, float, short>, 1_c, 3_c>,
+                std::variant<double, float>>
+);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### C++20 - https://github.com/boost-ext/mp
+
+```cpp
+// value_list
+static_assert(slice(list<1, 2, 3, 4>, 1_c, 3_c) ==
+                    list<2, 3>);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+// fixed_string
+static_assert(slice(list<"foobar">, 1_c, 3_c) ==
+                    list<"oo">);
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+// tuple of values
+static_assert(slice(std::tuple{1, 2, 3, 4}, 1_c, 3_c) ==
+                    std::tuple{2, 3});
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
+#include <cassert>
+
+int main(int argc, const char**) {
+  // run-time tuple of values
+  assert((slice(std::tuple{1, argc, 3, 4}, 1_c, 3_c) ==
+                std::tuple{argc, 3}));
+}
+```
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
+==============================================================================
+
+### C++20 - Showcase
+
+----
+
+#### State Machine Language (UML 2.5)
+
+| |
+|-|
+|<center>Transition</center>|
+|<center>![Transition](images/transition.png)</center>|
+
+<img src="images/transition_table.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### SML - Domain Specific Language (DSL)
+
+```cpp
+* -> Disconnected : connect / establish              -> Connecting
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+     Connecting   : established                      -> Connected
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+     Connected    : ping [ is_valid ] / reset
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+     Connected    : timeout                          -> Connecting
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+     Connected    : disconnect                       -> Disconnected
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### SML - Domain Specific Language (DSL)
+
+```cpp
+// events
+struct connect {};
+struct established{};
+struct ping { bool valid{}; };
+struct timeout {};
+struct disconnect {};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+// guards/actions
+auto establish = []{ std::puts("establish"); };
+auto close     = []{ std::puts("close"); };
+auto is_valid  = [](const auto& event) { return event.valid; };
+auto setup     = []{ std::puts("setup"); };
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### SML - Domain Specific Language (DSL)
+
+```cpp
+sm connection = [] {
+  /**
+   * src_state + event [ guard ] / action = dst_state
+   */
+  return transition_table{
+   * "Disconnected"_s + event<connect> / establish  = "Connecting"_s,
+     "Connecting"_s   + event<established>          = "Connected"_s,
+     "Connected"_s    + event<ping> [ is_valid ] / reset,
+     "Connected"_s    + event<timeout> / establish  = "Connecting"_s,
+     "Connected"_s    + event<disconnect> / close   = "Disconnected"_s,
+  };
+};
+```
+<!-- .element: class="fragment" -->
+
+##### *state = initial state
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+int main() {
+  connection.process_event(connect{});
+  connection.process_event(established{});
+  connection.process_event(ping{true});
+  connection.process_event(disconnect{});
+}
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++20 - Performance
+
+<img src="images/asm.png" style="width: 49%; background:none; border:none; box-shadow:none;" />
+<img src="images/asm1.png" style="width: 49%; background:none; border:none; box-shadow:none;" />
+
+> Zero overhead abstraction
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++20 - SML
+
+---
+
+* ##### Front-End : DSL -> transitions...
+<!-- .element: class="fragment" -->
+  * ##### _src + event [ guard ] / action = dst_
+<!-- .element: class="fragment" -->
+
+* ##### Back-End : executes transitions... per event/state
+<!-- .element: class="fragment" j-->
+  * ##### _process_event_
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++20 - SML.front-end / transition (fixed_string)
+
+```cpp
+template<fixed_string Src = "",
+         class TEvent  = none,
+         class TGuard  = always,
+         class TAction = none,
+         fixed_string Dst = "">
+struct transition {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  static constexpr auto src = Src;
+  static constexpr auto dst = Dst;
+  using event = TEvent;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  constexpr auto operator* () const;            // *initial_state
+  constexpr auto operator+ (auto state)  const; // src_state + event
+  constexpr auto operator[](auto guard)  const; // event<T> [ guard ]
+  constexpr auto operator/ (auto action) const; // [ guard ] / action
+  constexpr auto operator= (auto state)  const; // = dst_state
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  // ...
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### C++20 - SML.utils (constexpr std::vector + std::ranges)
+
+```cpp
+constexpr auto unique =
+  []<class... Ts>(std::ranges::range auto types) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  const auto std::array fns = {typeid(Ts).name()...};
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  std::ranges::sort(types,
+    [&](auto lhs, auto rhs) { return fns[lhs] < fns[rhs]; });
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  auto [first, last] = std::ranges::unique(types,
+    [&](auto lhs, auto rhs) { return fns[lhs] == fns[rhs]; });
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+  types.erase(first, last);
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
+  return types;
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### C++20 - SML.back-end / sm (constexpr std::vector)
+
+```cpp
+template<auto transitions> class sm {
+  // ...
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+ public:
+  constexpr explicit(true) sm(auto& transitions);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  /**
+   * Executes transitions... for state/event
+   */
+  constexpr auto process_event(const auto& event) -> void;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+ private:
+  std::size_t current_state_{};
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++20 - SML.back-end / events (constexpr std::vector + std::ranges)
+
+```cpp
+  constexpr auto events = transitions
+    | std::views::transform([]<class T> -> typename T::event {})
+    | unique
+    ;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```sh
+Example: connect, established, ping, timeout, disconnect
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### C++20 - SML.back-end / states (constexpr std::vector + std::ranges)
+
+```cpp
+  constexpr auto states = transitions
+    | []<class... Ts> { return list<Ts::src..., Ts::dst...>; }
+    | std::views::filter([]<fixed_string State> {
+        return not std::empty(State);
+      })
+    | unique
+    ;
+```
+
+---
+
+```sh
+Example: Disconnected, Connecting, Connected, Disconnected
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### C++20 - SML.back-end / mappings (constexpr std::vector + std::ranges)
+
+```cpp
+static constexpr auto mappings = events
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  | std::views::transform([]<class TEvent> {
+      return std::pair{TEvent{}, states
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+         | std::views::transform([]<fixed_string State> {
+            return transitions
+              | std::views::filter([]<class T> {
+                  return T::src == State and
+                         typeid(typename T::event) == typeid(TEvent);
+                })
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+              | []<auto... Transitions> {
+                   [](const auto& event, auto& current_state) {
+                     (... or Transitions(event, current_event));
+                   }
+                }
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+          })
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+      };
+    })
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```
+  ;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++20 - SML.back-end / mappings
+
+```sh
+Example:
+  std::pair<ping, list<
+      list<>,                       // state.Connecting
+      list<transition<"Connected",
+                      ping,
+                      is_valid,
+                      reset,
+                      "">           // state.Connected
+      list<>,                       // state.Disconnected
+    >
+  >, ...>;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### C++20 - SML.back-end / process_event (IIFE)
+
+```cpp
+  constexpr auto process_event(const auto& event) -> void {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  [this, &event]<class T>(const std::pair<TEvent, T>& transitions) {
+    auto& [_, ts] = transitions;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    // find transitions for current state
+    auto index = 0u;
+    for_each(ts, [&](const auto& transition) {
+      if (index++ == current_state_) {
+        transition(event, current_state_); // execute transition
+      }
+    });
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  // find transitions for corresponding event
+  (mappings);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++20 - SML.front-end/back-end / transition (fixed_string)
+
+```cpp
+template<fixed_string Src, class TEvent,
+        class TGuard, class TAction, fixed_string Dst>
+struct transition {
+  // ...
+
+  [[no_unique_address]] TGuard guard;
+  [[no_unique_address]] TAction action;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  [[nodiscard]] constexpr auto
+  operator()(const TEvent& event, auto& current_state) const {
+    if (guard(event) {        // execute guard
+        action(event);        // execute action
+        current_state_ = dst; // update current state
+        return true;          // stop processing next transitions
+    } else {
+      return false;
+    }
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+### C++20 (SML) in action...
+
+---
+
+##### https://godbolt.org/z/8EPs5xx8r
+
+==============================================================================
+
+### Summary
+
+* #### C++20 enables new ways of Template Meta-Programming (~~T~~MP)
+<!-- .element: class="fragment" -->
+
+* #### constexpr std::vector + std::ranges is a powerful TMP combination
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+---
+
+### Let's embrace C++20 Meta-Programming!
+
+---
+          </script>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
+          { src: 'extensions/plugin/line-numbers/line-numbers.js' }
+        ]
+      });
+
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
+    </script>
+
+  </body>
+</html>
