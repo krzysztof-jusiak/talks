@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>Embracing C++20 Meta Programming</title>
+    <title>TMP C++20</title>
 
     <link rel="stylesheet" href="reveal.js/css/reveal.css">
     <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
@@ -41,7 +41,6 @@
   <body>
     <div class="reveal">
       <div class="slides">
-          <section data-markdown="" data-background-image="images/title.png">
           <script type="text/template">
           </script>
           </section>
@@ -50,28 +49,49 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
+#### Idea
+
+* Daisy
+
+  * Introduce and explain the technique
+
+* Kris
+
+  * Showcase potential applications
+
+----
+
+> C++Now 2023
+
+* Title bikesheding
+
+  * Cute C++ tricks: (Part 3 of N)
+  * Future of TMP with C++20
+  * Cute C++ tricks: (Future of TMP part 1)
+  * Raise of the Cute C++ tricks
+  * C++20: The only cute C++ trick you need
+  * ...
+
+----
+
 #### Agenda
 
 * #### Motivation/Goal
 <!-- .element: class="fragment" -->
-* #### C++20 Meta-Programming
+* #### Using STL/Ranges with type_list
 <!-- .element: class="fragment" -->
-  * ##### Design By Introspection
-  <!-- .element: class="fragment" -->
-  * ##### Immediately Invoked Function Expression
-  <!-- .element: class="fragment" -->
-  * ##### std::fixed_string
-  <!-- .element: class="fragment" -->
-  * ##### constexpr std::vector
-  <!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
+  * #### Why and How?
+    <!-- .element: class="fragment" -->
+    * ##### Techniques (based on std::ranges::sort?)
+    <!-- .element: class="fragment" -->
 
 ----
 
 #### Agenda
 
 * #### Showcase
+  <!-- .element: class="fragment" -->
+  * ##### MP library based on the idea
   <!-- .element: class="fragment" -->
   * ##### State Machine Language
   <!-- .element: class="fragment" -->
@@ -84,320 +104,14 @@
 ###### Powered by [Compiler Explorer](https://godbolt.org)
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 
 ----
 
-### Motivation
+Daisy - TODO...
 
-* ##### Performance
-<!-- .element: class="fragment" -->
-  * ##### Do as much as possible at compile-time
-  <!-- .element: class="fragment" -->
-  * ##### Generate code at compile-time to run at run-time
-  <!-- .element: class="fragment" -->
-  * ##### Minimize compilation times
-  <!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
-### Goal
-
-* ##### Achive performance goals by
-<!-- .element: class="fragment" -->
-  * ##### Making C++ ~~Template~~ Meta-Programming easier and more powerful
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-==============================================================================
-
-#### C++20 - Design By Introspection
-
-<center>
-  <a href="https://www.youtube.com/watch?v=29h6jGtZD-U">
-    <img src="images/dbi.png" style="width: 90%; background:none; border:none; box-shadow:none;" />
-  </a>
-</center>
-<!-- .element: class="fragment" -->
-
-#### https://www.youtube.com/watch?v=29h6jGtZD-U
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++20 - Design By Introspection
-
-```cpp
-consteval auto get(auto t) {
-  return t.value; // error: bar doesn't have value
-}
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-consteval auto get(auto t) {
-  if (t.value) { // error: bar doesn't have value
-    return t.value;
-  } else {
-    return 0;
-  }
-}
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-...
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++20 - Design By Introspection
-
-```cpp
-consteval auto get(auto t) {
-  if constexpr (requires{ t.value; }) { // ok 👍
-    return t.value;
-  } else {
-    return 0; // base case
-  }
-}
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-struct {
-  int value{42};
-} f;
-
-static_assert(42 == foo(f));
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-struct { } b;
-
-static_assert(0 == foo(b));
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++20 - Immediately-Invoked Function Expression (`IIFE`)
-
-##### < C++20
-
-```cpp
-template<auto N>
-constexpr auto foo = [] {
-  // expand over N... // before C++20 requires
-                      /// an external function call
-};
-```
-<!-- .element: class="fragment" -->
-
----
-
-##### >= C++20
-
-```cpp
-template<auto N>
-constexpr auto unroll = [](auto expr) {
-  [expr]<auto ...Is>(std::index_sequence<Is...>) {
-    ((expr(), void(Is)), ...);
-  }(std::make_index_sequence<N>{});
-};
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++2X - [[P1061](https://wg21.link/P1061)] Structured Bindings can introduce a Pack
-
-```cpp
-template<auto N>
-constexpr auto unroll = [](auto expr) {
-  auto [... Is] = std::make_index_sequence<N>{};
-  ((expr(), void(Is)), ...);
-};
-```
-<!-- .element: class="fragment" -->
-
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++20 - Immediately-Invoked Function Expression (`IIFE`)
-
-```cpp
-int main() {
-  unroll<2>([]{ std::puts("CppSummit 2022!"); });
-}
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-.LC0: .string "CppSummit 2022!"
-main:
-  sub     rsp, 8
-  mov     edi, OFFSET FLAT:.LC0
-  call    puts
-  mov     edi, OFFSET FLAT:.LC0
-  call    puts
-  xor     eax, eax
-  add     rsp, 8
-  ret
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++20 - Fixed String
-
-```cpp
-template<class T> auto foo();
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-foo<"bar">; // error: invalid explicitly-specified
-            // argument for template parameter T
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### GNU++17 - Wgnu-string-literal-operator-template
-
-```cpp
-template<char... Cs>
-struct ct_string {
-  static constexpr char str[] = {Cs..., 0};
-  static constexpr auto name() -> std::string_view {
-      return std::string_view{str, sizeof...(Cs)};
-  }
-};
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-template <class T, T... Cs> // gnu-string-literal-operator-template
-[[nodiscard]] constexpr auto operator""_cs() {
-    return ct_string<Cs...>{};
-}
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### GNU++17 - Wgnu-string-literal-operator-template
-
-```cpp
-constexpr auto foo = "foo"_cs;
-static_assert(typeid(ct_string<'f', 'o', 'o'>) == typeid(foo));
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-template<class T> auto foo();
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-foo<"foo"_cs>();           // error: invalid explicitly-specified
-                           // argument for template parameter T
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-foo<decltype("foo"_cs)>(); // okay
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++20 - fixed_string
-
-```cpp
-template <std::size_t N> struct fixed_string {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  std::array<char, N + 1> data{};
-  static constexpr auto size = N;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  constexpr explicit(true) fixed_string(const auto... cs)
-    : data{cs...} { }
-
-  constexpr explicit(false) fixed_string(const char (&str)[N + 1]) {
-    std::copy_n(str, N + 1, std::data(data));
-  }
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-  [[nodiscard]]
-  constexpr auto operator<=>(const fixed_string&) const = default;
-
-  [[nodiscard]]
-  constexpr explicit(false) operator std::string_view() const {
-    return {std::data(data), N};
-  }
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++20 - fixed_string
-
-```cpp
-template<fixed_string> auto foo();
-foo<"bar">(); // okay
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-template <fixed_string Str>
-constexpr auto to_string = []<auto... Ns>(std::index_sequence<Ns...>) {
-  return ct_string<Str.data[Ns]...>{};
-}(std::make_index_sequence<Str.size()>{});
-```
-<!-- .element: class="fragment" -->
-
-```
-static_assert(ct_string<'f', 'o', 'o'> == to_string<"foo">)
-```
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
-----
-
-#### C++20 - constexpr std::vector
+#### MP - ~~Template~~ Meta Programming
 
 ```cpp
 constexpr std::vector v{4, 2, 1, 3};
@@ -411,7 +125,6 @@ static_assert(std::vector{1, 2, 3, 4} == v);
 ##### std::tuple?
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - https://github.com/boost-ext/mp
@@ -436,7 +149,6 @@ auto hello_world = [](auto list, auto add_const, auto has_value){
 ##### `N`_c = std::integral_constant<int, `N`> // aka constexpr parameter
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - https://github.com/boost-ext/mp
@@ -454,7 +166,6 @@ struct val2 { int value; };
 ```
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - https://github.com/boost-ext/mp
@@ -499,7 +210,6 @@ static_assert(list<val2 const> ==
 ```
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - https://github.com/boost-ext/mp
@@ -516,7 +226,6 @@ auto slice = [](auto list, auto begin, auto end) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - https://github.com/boost-ext/mp
@@ -537,7 +246,6 @@ static_assert(std::is_same_v<
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - https://github.com/boost-ext/mp
@@ -573,13 +281,11 @@ int main(int argc, const char**) {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="6" -->
-<!-- .slide: data-background-image="images/bg.png" -->
 
 ==============================================================================
 
 ### C++20 - Showcase
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### State Machine Language (UML 2.5)
@@ -592,7 +298,6 @@ int main(int argc, const char**) {
 <img src="images/transition_table.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### SML - Domain Specific Language (DSL)
@@ -622,7 +327,6 @@ int main(int argc, const char**) {
 ```
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### SML - Domain Specific Language (DSL)
@@ -646,7 +350,6 @@ auto setup     = []{ std::puts("setup"); };
 ```
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### SML - Domain Specific Language (DSL)
@@ -682,7 +385,6 @@ int main() {
 ```
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - Performance
@@ -693,7 +395,6 @@ int main() {
 > Zero overhead abstraction
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML
@@ -710,7 +411,6 @@ int main() {
   * ##### _process_event_
 <!-- .element: class="fragment" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.front-end / transition (fixed_string)
@@ -747,7 +447,6 @@ struct transition {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.utils (constexpr std::vector + std::ranges)
@@ -786,7 +485,6 @@ constexpr auto unique =
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.back-end / sm (constexpr std::vector)
@@ -818,7 +516,6 @@ template<auto transitions> class sm {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.back-end / events (constexpr std::vector + std::ranges)
@@ -838,7 +535,6 @@ Example: connect, established, ping, timeout, disconnect
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.back-end / states (constexpr std::vector + std::ranges)
@@ -860,7 +556,6 @@ Example: Disconnected, Connecting, Connected, Disconnected
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.back-end / mappings (constexpr std::vector + std::ranges)
@@ -909,7 +604,6 @@ static constexpr auto mappings = events
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.back-end / mappings
@@ -929,7 +623,6 @@ Example:
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.back-end / process_event (IIFE)
@@ -967,7 +660,6 @@ Example:
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 #### C++20 - SML.front-end/back-end / transition (fixed_string)
@@ -1003,7 +695,6 @@ struct transition {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ----
 
 ### C++20 (SML) in action...
@@ -1012,7 +703,6 @@ struct transition {
 
 ##### https://godbolt.org/z/8EPs5xx8r
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ==============================================================================
 
 ### Summary
@@ -1023,20 +713,13 @@ struct transition {
 * #### constexpr std::vector + std::ranges is a powerful TMP combination
 <!-- .element: class="fragment" -->
 
-* #### https://github.com/boost-ext/mp leverages new C++20 TMP techniques
-<!-- .element: class="fragment" -->
-
-<!-- .slide: data-background-image="images/bg.png" -->
 ==============================================================================
 
 ---
 
 ### Let's embrace C++20 Meta-Programming!
 
-<!-- .slide: data-background-image="images/bg.png" -->
 ---
-
-###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
           </script>
         </section>
 
