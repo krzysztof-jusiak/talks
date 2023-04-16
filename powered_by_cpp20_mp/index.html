@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>C++20: A new way of meta-programming?</title>
+    <title>Powered by C++20: MP?</title>
 
     <link rel="stylesheet" href="reveal.js/css/reveal.css">
     <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
@@ -45,11 +45,14 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-<a href="https://cppcon.org/"><img src="images/cppcon.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>
+
+#### C++Now 2023
 
 ---
 
-## Adapting C++20 Ranges Algorithms for Most Metaprogramming Needs in Fewer Than 1,000 Lines of Code
+
+## Powered by C++20
+## Meta-Programming (MP)
 
 ---
 
@@ -57,227 +60,235 @@
 
 ----
 
-#### 1. Design By Introspection
-
-```cpp
-consteval auto foo(auto t) {
-  if constexpr (requires{ t.foo; }) {
-    return t.foo;
-  } else {
-    return 0;
-  }
-}
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-constexpr struct { int foo{42}; } f;
-static_assert(42 == foo(f));
-
-constexpr struct { int bar{42}; } b;
-static_assert(0 == foo(b));
-```
-<!-- .element: class="fragment" -->
+### Objective - implement declarative State Machine Langauge (SML) with zero-overhead!
 
 ----
 
-#### 2. Immediately-Invoked Function Expression (`IIFE`)
+#### State Machine
 
-```cpp
-template<auto N>
-constexpr auto unroll = [](auto expr) {
-  [expr]<auto ...Is>(std::index_sequence<Is...>) {
-    ((expr(), void(Is)), ...);
-  }(std::make_index_sequence<N>{});
-};
-```
-<!-- .element: class="fragment" -->
-
----
-
-#### [P1061](https://wg21.link/P1061) - Structured Bindings can introduce a Pack
-<!-- .element: class="fragment" -->
-
-```cpp
-template<auto N>
-constexpr auto unroll = [](auto expr) {
-  auto [... Is] = std::make_index_sequence<N>{};
-  ((expr(), void(Is)), ...);
-};
-```
-<!-- .element: class="fragment" -->
-
+<img src="images/diagrams.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
 
 ----
 
-#### 2. Immediately-Invoked Function Expression (`IIFE`)
+#### SML - Domain Specific Language (DSL)
 
 ```cpp
-int main() {
-  unroll<2>([]{ std::puts("CppCon 2022!"); });
-}
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-.LC0: .string "CppCon 2022!"
-main:
-  sub     rsp, 8
-  mov     edi, OFFSET FLAT:.LC0
-  call    puts
-  mov     edi, OFFSET FLAT:.LC0
-  call    puts
-  xor     eax, eax
-  add     rsp, 8
-  ret
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### 3. Fixed String
-
-> #### gnu-C++17
-```cpp
-foo<decltype("bar"_cs)>;
-```
-<!-- .element: class="fragment" -->
-
-> #### C++20
-```cpp
-foo<"bar">
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-template <stdext::fixed_string Str>
-static auto to_string = []<auto... Ns>(std::index_sequence<Ns...>) {
-  return string<Str.data[Ns]...>{};
-}(std::make_index_sequence<Str.size()>{});
-```
-<!-- .element: class="fragment" -->
-
-```
-static_assert(string<'f', 'o', 'o'> == to_string<"foo">)
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### 4. Reflection - to_tuple
-
-```cpp
-// clang-format off
-  template <class T>
-  [[nodiscard]] constexpr auto to_tuple(T&& obj) {
-    // ...
-    if constexpr (requires { [&obj] { auto&& [p1, p2] = obj; }; }) {
-      auto&& [p1, p2] = std::forward<T>(obj);
-      return std::tuple{p1, p2};
-    } else if constexpr (requires { [&obj] { auto&& [p1] = obj; }; }) {
-      auto&& [p1] = std::forward<T>(obj);
-      return std::tuple{p1};
-    } else {
-      return std::tuple{};
-    }
+sm connection = [] {
+  /**
+   * src_state + event [ guard ] / action = dst_state
+   */
+  return transition_table{
+   * "Disconnected"_s + event<connect> / establish  = "Connecting"_s,
+     "Connecting"_s   + event<established>          = "Connected"_s,
+     "Connected"_s    + event<ping> [ is_valid ] / reset,
+     "Connected"_s    + event<timeout> / establish  = "Connecting"_s,
+     "Connected"_s    + event<disconnect> / close   = "Disconnected"_s,
   };
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-struct foo { int i{}; bool b{}; };
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(std::tuple{42, true} ==
-            to_tuple(foo{.i = 42, .b = true})
-)
+};
 ```
 <!-- .element: class="fragment" -->
 
 ----
 
-### 5. constexpr std::vector
-#### https://github.com/boost-ext/mp
+#### SML - State Machine Language (on the slide)
+
+<img src="images/sml.jpeg" style="width: 70%; background:none; border:none; box-shadow:none;" />
+
+----
+
+#### SML - Performance
+
+<img src="images/asm.png" style="width: 49%; background:none; border:none; box-shadow:none;" />
+<img src="images/asm1.png" style="width: 49%; background:none; border:none; box-shadow:none;" />
+
+> Zero overhead abstraction
+<!-- .element: class="fragment" -->
+
+----
+
+#### Implementation (https://github.com/boost-ext/mp)
+
+----
+
+#### C++20 - SML.back-end / sm (constexpr std::vector)
 
 ```cpp
-#include <ranges>
+template<auto transitions> class sm {
+  // ...
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-auto hello_world = [](auto list, auto add_const, auto has_value){
- return list                          // int, foo, val, bar
-  | std::views::drop(1_c)             // foo, val, bar
-  | std::views::reverse               // bar, val, foo
-  | std::views::take(2_c)             // bar, val
-  | std::views::transform(add_const)  // bar const, val const
-  | std::views::filter(has_value)     // val const
+```cpp
+ public:
+  constexpr explicit(true) sm(auto& transitions);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  /**
+   * Executes transitions... for state/event
+   */
+  constexpr auto process_event(const auto& event) -> void;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+ private:
+  std::size_t current_state_{};
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++20 - SML.back-end / events (constexpr std::vector + std::ranges)
+
+```cpp
+  constexpr auto events = transitions
+    | std::views::transform([]<class T> -> typename T::event {})
+    | unique
+    ;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```sh
+Example: connect, established, ping, timeout, disconnect
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### C++20 - SML.back-end / states (constexpr std::vector + std::ranges)
+
+```cpp
+  constexpr auto states = transitions
+    | []<class... Ts> { return list<Ts::src..., Ts::dst...>; }
+    | std::views::filter([]<fixed_string State> {
+        return not std::empty(State);
+      })
+    | unique
+    ;
+```
+
+---
+
+```sh
+Example: Disconnected, Connecting, Connected, Disconnected
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### C++20 - SML.back-end / mappings (constexpr std::vector + std::ranges)
+
+```cpp
+static constexpr auto mappings = events
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  | std::views::transform([]<class TEvent> {
+      return std::pair{TEvent{}, states
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+         | std::views::transform([]<fixed_string State> {
+            return transitions
+              | std::views::filter([]<class T> {
+                  return T::src == State and
+                         typeid(typename T::event) == typeid(TEvent);
+                })
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+              | []<auto... Transitions> {
+                   [](const auto& event, auto& current_state) {
+                     (... or Transitions(event, current_event));
+                   }
+                }
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+          })
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+      };
+    })
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```
   ;
-};
 ```
-<!-- .element: class="fragment" -->
-
-```cpp
-auto add_const = []<class T> -> T const {};
-auto has_value = []<class T> { return requires(T t) { t.value; }; };
-```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-### 5. constexpr std::vector
-#### https://github.com/boost-ext/mp
+#### C++20 - SML.back-end / mappings
 
-```cpp
-struct bar {}; struct foo { int value; }; struct val { int value; };
+```sh
+Example:
+  std::pair<ping, list<
+      list<>,                       // state.Connecting
+      list<transition<"Connected",
+                      ping,
+                      is_valid,
+                      reset,
+                      "">           // state.Connected
+      list<>,                       // state.Disconnected
+    >
+  >, ...>;
 ```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(mp::list<val const> ==
-  hello_world(mp::list<int, foo, val, bar>, add_const, has_value)
-);
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-int main() {
-  "hello world"_test = [] {
-    std::vector list{ // generate, fuzz...
-      unique_stub_type{}, unique_stub_type_with_value{}, ...
-    };
-
-    const auto result = hello_world(list, add_const, has_value);
-
-    expect(1 == std::size(result) and result[0].has_const 
-                                  and result[0].has_value);
-  };
-}
-```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-<h4><p style="color:black">[Benchmark - compilation time]<a> - https://github.com/boost-ext/mp#benchmarks</a></h4>
+#### C++20 - SML.back-end / process_event (IIFE)
 
-<iframe src="benchmark/sort_unique_reverse.html" width="100%" height="500px"></iframe>
+```cpp
+  constexpr auto process_event(const auto& event) -> void {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-<h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
+```cpp
+  [this, &event]<class T>(const std::pair<TEvent, T>& transitions) {
+    auto& [_, ts] = transitions;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
-<!-- .slide: data-background="white" -->
+```cpp
+    // find transitions for current state
+    auto index = 0u;
+    for_each(ts, [&](const auto& transition) {
+      if (index++ == current_state_) {
+        transition(event, current_state_); // execute transition
+      }
+    });
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  // find transitions for corresponding event
+  (mappings);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-<a href="https://cppcon.org/"><img src="images/cppcon.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>
+### Let's embrace C++20 Meta-Programming!
 
----
-
-## Let's embrace C++20 Meta-Programming!
+* ##### https://github.com/boost-ext/mp
+* #####  https://godbolt.org/z/czj9bExrT
 
 ---
 
@@ -412,3 +423,4 @@ int main() {
 
   </body>
 </html>
+

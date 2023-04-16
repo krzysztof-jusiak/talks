@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>C++20: A new way of meta-programming?</title>
+    <title>Powered by C++20: MP?</title>
 
     <link rel="stylesheet" href="reveal.js/css/reveal.css">
     <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
@@ -45,11 +45,14 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-<a href="https://cppcon.org/"><img src="images/cppcon.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>
+
+#### C++Now 2023
 
 ---
 
-## Adapting C++20 Ranges Algorithms for Most Metaprogramming Needs in Fewer Than 1,000 Lines of Code
+### Static Reflection on the budget
+
+## C++23
 
 ---
 
@@ -57,227 +60,49 @@
 
 ----
 
-#### 1. Design By Introspection
+#### to_tuple (C++17) / struct -> tuple
 
-```cpp
-consteval auto foo(auto t) {
-  if constexpr (requires{ t.foo; }) {
-    return t.foo;
-  } else {
-    return 0;
-  }
-}
-```
-<!-- .element: class="fragment" -->
+<img src="images/to_tuple.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
 
-```cpp
-constexpr struct { int foo{42}; } f;
-static_assert(42 == foo(f));
-
-constexpr struct { int bar{42}; } b;
-static_assert(0 == foo(b));
-```
-<!-- .element: class="fragment" -->
+#### https://godbolt.org/z/o94Prh73z
 
 ----
 
-#### 2. Immediately-Invoked Function Expression (`IIFE`)
+#### meta_contains (C++23) / find by string
 
-```cpp
-template<auto N>
-constexpr auto unroll = [](auto expr) {
-  [expr]<auto ...Is>(std::index_sequence<Is...>) {
-    ((expr(), void(Is)), ...);
-  }(std::make_index_sequence<N>{});
-};
-```
-<!-- .element: class="fragment" -->
+<img src="images/meta_contains.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
+
+#### https://godbolt.org/z/qfendboT1
+
+----
+
+#### reflexpr (C++20) / string to type
+
+<img src="images/reflexpr.png" style="width: 55%; background:none; border:none; box-shadow:none;" />
+
+#### https://godbolt.org/z/6TfWx8K67
+
+----
+
+#### reflexpr (C++20) / typeof
+
+<img src="images/typeof.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
+
+#### https://godbolt.org/z/1q5fb6Pd1
+
+----
+
+#### __builtin_dump_struct (clang-15) / struct dump
+
+<img src="images/dump_struct.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
+
+#### https://godbolt.org/z/GGe6vrWd8
+
+----
 
 ---
 
-#### [P1061](https://wg21.link/P1061) - Structured Bindings can introduce a Pack
-<!-- .element: class="fragment" -->
-
-```cpp
-template<auto N>
-constexpr auto unroll = [](auto expr) {
-  auto [... Is] = std::make_index_sequence<N>{};
-  ((expr(), void(Is)), ...);
-};
-```
-<!-- .element: class="fragment" -->
-
-
-----
-
-#### 2. Immediately-Invoked Function Expression (`IIFE`)
-
-```cpp
-int main() {
-  unroll<2>([]{ std::puts("CppCon 2022!"); });
-}
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-.LC0: .string "CppCon 2022!"
-main:
-  sub     rsp, 8
-  mov     edi, OFFSET FLAT:.LC0
-  call    puts
-  mov     edi, OFFSET FLAT:.LC0
-  call    puts
-  xor     eax, eax
-  add     rsp, 8
-  ret
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### 3. Fixed String
-
-> #### gnu-C++17
-```cpp
-foo<decltype("bar"_cs)>;
-```
-<!-- .element: class="fragment" -->
-
-> #### C++20
-```cpp
-foo<"bar">
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-template <stdext::fixed_string Str>
-static auto to_string = []<auto... Ns>(std::index_sequence<Ns...>) {
-  return string<Str.data[Ns]...>{};
-}(std::make_index_sequence<Str.size()>{});
-```
-<!-- .element: class="fragment" -->
-
-```
-static_assert(string<'f', 'o', 'o'> == to_string<"foo">)
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### 4. Reflection - to_tuple
-
-```cpp
-// clang-format off
-  template <class T>
-  [[nodiscard]] constexpr auto to_tuple(T&& obj) {
-    // ...
-    if constexpr (requires { [&obj] { auto&& [p1, p2] = obj; }; }) {
-      auto&& [p1, p2] = std::forward<T>(obj);
-      return std::tuple{p1, p2};
-    } else if constexpr (requires { [&obj] { auto&& [p1] = obj; }; }) {
-      auto&& [p1] = std::forward<T>(obj);
-      return std::tuple{p1};
-    } else {
-      return std::tuple{};
-    }
-  };
-```
-<!-- .element: class="fragment" -->
-
----
-
-```cpp
-struct foo { int i{}; bool b{}; };
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(std::tuple{42, true} ==
-            to_tuple(foo{.i = 42, .b = true})
-)
-```
-<!-- .element: class="fragment" -->
-
-----
-
-### 5. constexpr std::vector
-#### https://github.com/boost-ext/mp
-
-```cpp
-#include <ranges>
-
-auto hello_world = [](auto list, auto add_const, auto has_value){
- return list                          // int, foo, val, bar
-  | std::views::drop(1_c)             // foo, val, bar
-  | std::views::reverse               // bar, val, foo
-  | std::views::take(2_c)             // bar, val
-  | std::views::transform(add_const)  // bar const, val const
-  | std::views::filter(has_value)     // val const
-  ;
-};
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-auto add_const = []<class T> -> T const {};
-auto has_value = []<class T> { return requires(T t) { t.value; }; };
-```
-<!-- .element: class="fragment" -->
-
-----
-
-### 5. constexpr std::vector
-#### https://github.com/boost-ext/mp
-
-```cpp
-struct bar {}; struct foo { int value; }; struct val { int value; };
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-static_assert(mp::list<val const> ==
-  hello_world(mp::list<int, foo, val, bar>, add_const, has_value)
-);
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-int main() {
-  "hello world"_test = [] {
-    std::vector list{ // generate, fuzz...
-      unique_stub_type{}, unique_stub_type_with_value{}, ...
-    };
-
-    const auto result = hello_world(list, add_const, has_value);
-
-    expect(1 == std::size(result) and result[0].has_const 
-                                  and result[0].has_value);
-  };
-}
-```
-<!-- .element: class="fragment" -->
-
-----
-
-<h4><p style="color:black">[Benchmark - compilation time]<a> - https://github.com/boost-ext/mp#benchmarks</a></h4>
-
-<iframe src="benchmark/sort_unique_reverse.html" width="100%" height="500px"></iframe>
-
-<h6><p style="font-size:12pt; color:black">Powered by <a>http://metaben.ch</a></p></h6>
-
-<!-- .slide: data-background="white" -->
-
-----
-
-<a href="https://cppcon.org/"><img src="images/cppcon.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>
-
----
-
-## Let's embrace C++20 Meta-Programming!
+## Let's make static reflection C++2X feature!
 
 ---
 
@@ -412,3 +237,4 @@ int main() {
 
   </body>
 </html>
+
