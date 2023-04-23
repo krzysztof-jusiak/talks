@@ -49,67 +49,207 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-#### Idea
+----
 
-* Daisy
 
-  * Introduce and explain the technique
+### Overview
 
-* Kris
-
-  * Showcase potential applications
+https://github.com/boost-ext/mp
 
 ----
 
-> C++Now 2023
+#### Motivation example
 
-* Title bikesheding
+```gherkin
+Given I have list of commands
+ | command | id |
+ | start   |  0 |
+ | add     |  1 |
+ | add     |  2 |
+ | add     |  3 |
+ | mod     |  2 |
+ | del     |  1 |
+When I apply parse
+Then I should get new list of commands
+ | command |
+ | mod     |
+ | add     |
+```
 
-  * Cute C++ tricks: (Part 3 of N)
-  * Future of TMP with C++20
-  * Cute C++ tricks: (Future of TMP part 1)
-  * Raise of the Cute C++ tricks
-  * C++20: The only cute C++ trick you need
-  * ...
 
-----
 
-#### Agenda
-
-* #### Motivation/Goal
-<!-- .element: class="fragment" -->
-* #### Using STL/Ranges with type_list
-<!-- .element: class="fragment" -->
-  * #### Why and How?
-    <!-- .element: class="fragment" -->
-    * ##### Techniques (based on std::ranges::sort?)
-    <!-- .element: class="fragment" -->
 
 ----
 
-#### Agenda
+gp4 solution
 
-* #### Showcase
-  <!-- .element: class="fragment" -->
-  * ##### MP library based on the idea
-  <!-- .element: class="fragment" -->
-  * ##### State Machine Language
-  <!-- .element: class="fragment" -->
-* #### Summary
+----
+
+#### Motivation example - std::ranges (run-time)
+
+
+
+```cpp
+#include <ranges>
+```
 <!-- .element: class="fragment" -->
 
+```cpp
+auto parse = [](auto v, auto transform, auto filter){
+  return v
+   | std::views::drop(1)
+   | std::views::reverse
+   | std::views::transform(transform)
+   | std::views::filter(filter)
+   ;
+};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Motivation example - std::ranges (run-time)
+
+```cpp
+  return v
+   | std::views::drop(1)
+   | std::views::reverse
+   | std::views::filter(filter)
+   | std::views::transform(transform)
+   ;
+};
+```
+<!-- .element: class="fragment" -->
+
+
+tuple or variant
+
+```cpp
+struct cmd {
+  std::string_view name{};
+  std::size_t id{};
+};
+const auto v = std::vector{cmd{.name="start", 2, 3};
+const auto transform = [](const auto& v) { return v+1; }
+const auto filter = [](const auto& v) { return v%2; }
+```
+<!-- .element: class="fragment" -->
 
 ---
 
-###### Powered by [Compiler Explorer](https://godbolt.org)
+> ?
+
+```cpp
+4
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Motivation example - boost::mp11 (compile-time)
+
+```cpp
+```
+
+----
+
+> Implementation: spot the difference
+
+<img src="images/spot.jpeg" style="width: 100%; background:none; border:none; box-shadow:none;" />
+
+----
+
+Okay - let's do it with mp, shall we?
+
+----
+
+```cpp
+#include <ranges>
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto parse = [](auto v, auto transform, auto filter){
+  return v
+   | std::views::drop(1)
+   | std::views::reverse
+   | std::views::take(1)
+   | std::views::transform(transform)
+   | std::views::filter(filter)
+   ;
+};
+```
 <!-- .element: class="fragment" -->
 
 
 ----
 
-Daisy - TODO...
+# return requries
+
+return requires
+
+Design by introspection
+
+static_assert([]{});
+
+darkblue
 
 ----
+
+> Implementation: spot the difference
+
+<img src="images/spot.jpeg" style="width: 100%; background:none; border:none; box-shadow:none;" />
+
+----
+
+okay let's change the run-time version a bit
+
+sport the difference again?
+
+----
+
+How?
+
+https://godbolt.org/z/8rrn5vxK8
+
+
+Why?
+
+assembly
+
+----
+
+What?
+
+ranges:
+  rotate filter tuple to tupes relfection -> pack
+
+  views
+  actions
+  algorithms
+
+----
+
+Testing/Deugging(run-time)
+
+  at-runtime
+
+----
+
+Compilation time performance benchmark
+
+----
+
+Is it perfect?
+
+> No
+
+Is it worth it?
+
+> Yes?
+
+----
+
 
 #### MP - ~~Template~~ Meta Programming
 
