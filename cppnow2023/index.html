@@ -587,6 +587,29 @@ auto transform = []<class T> { return cmd<T::name>{};; });
 #### How? (https://godbolt.org/z/j4W1WE1x4)
 
 ```cpp
+struct foo { int f{}; };
+struct bar { int b{}; };
+struct baz { int b{}; };
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+static_assert(
+    std::tuple{foo{}, bar{}, baz{}} |
+      std::views::filter([]<class T> { return requires(T t) { t.b; }; })
+    ==
+    std::tuple{bar{}, baz{}}
+);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### How? (https://godbolt.org/z/j4W1WE1x4)
+
+```cpp
 template <template <class...> class T, class... Ts,
           template <class...> class TRng, class A, class Fn>
 ```
