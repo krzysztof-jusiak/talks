@@ -49,7 +49,11 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-#### Why?
+### Showcase
+
+----
+
+#### Use case / why?
 
 ```cpp
 struct not_packed {
@@ -69,7 +73,7 @@ static_assert(sizeof(not_packed) == 12u);
 
 ----
 
-#### Why?
+#### Use case / why?
 
 ```cpp
 struct not_packed {
@@ -121,16 +125,12 @@ template <class T> [[nodiscard]] constexpr auto to_tuple(T&& obj) {
   if constexpr (requires { [&obj] { auto&& [p1, p2] = obj; }; }) {
     auto&& [p1, p2] = std::forward<T>(obj);
     return std::tuple{p1, p2};
-  }
+  } else {
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
-  else if constexpr (requires { [&obj] { auto&& [p1] = obj; }; }) {
-    auto&& [p1] = std::forward<T>(obj);
-    return std::tuple{p1};
-  } else {
-    return std::tuple{};
+    ... // for 0..N
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
@@ -148,7 +148,8 @@ struct foo { int i{}; bool b{}; };
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-static_assert(std::tuple{42, true} == to_tuple(foo{.i = 42, .b = true}));
+static_assert(std::tuple{42, true} 
+           == to_tuple(foo{.i = 42, .b = true}));
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -241,7 +242,10 @@ struct cmd {
 
 ----
 
-#### Let's do it at compile-time, shall we?
+### Let's do it at compile-time...
+
+#### ...for performance and correctness!
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -346,6 +350,8 @@ static_assert(std::same_as<int, int>);
 
 ---
 
+#### typeid
+
 ```cpp
 // types
 static_assert(typeid(int) == typeid(int));
@@ -387,14 +393,6 @@ auto transform = [](const auto& c) { return cmd{.name=c.name}; };
 ----
 
 #### boost.mp11: compile-time
-
-```cpp
-template<fixed_string Name, std::size_t Id = 0u>
-struct cmd {
-  static constexpr auto name = Name;
-  static constexpr auto id = Id;
-};
-```
 
 ```cpp
 template<class Id> struct is_id {
@@ -490,6 +488,11 @@ constexpr auto f = foo([] { return 42; }); // okay
 ```
 <!-- .element: class="fragment" data-fragment-index="7" -->
 
+---
+
+`"N"_c -> std::integral_constant<decltype(N), N>{}`
+<!-- .element: class="fragment" data-fragment-index="8" -->
+
 <!-- .slide: data-background="darkblue" -->
 
 ----
@@ -557,14 +560,6 @@ auto transform = [](const auto& c) { return cmd{.name=c.name}; };
 ----
 
 #### mp+std.ranges - compile-time
-
-```cpp
-template<fixed_string Name, std::size_t Id = 0u>
-struct cmd {
-  static constexpr auto name = Name;
-  static constexpr auto id = Id;
-};
-```
 
 ```cpp
 auto execute = [](auto&& v, auto&& filter, auto&& transform){
