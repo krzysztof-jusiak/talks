@@ -12,10 +12,6 @@
     <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
     <link rel="stylesheet" href="extensions/css/custom.css">
 
-    <style>
-      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
-    </style>
-
     <script>
       var link = document.createElement( 'link' );
       link.rel = 'stylesheet';
@@ -638,6 +634,28 @@ template <template <class...> class T, class... Ts,
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+<code>
+operator|(std::tuple< foo, bar, baz >, TRng< filter, []<class T> { return requires(T t) { t.b; }; } >)
+</code>
+<br/>
+<!-- .element: class="fragment" data-fragment-index="2" style="font-size:15px" -->
+
+<code>
+fns = {false, true, true} |
+</code>
+<!-- .element: class="fragment" data-fragment-index="3" style="font-size:15px" -->
+
+<code>
+indicies = static_vector{1, 2}
+</code>
+<br/>
+<!-- .element: class="fragment" data-fragment-index="4" style="font-size:15px" -->
+
+<code>
+return std::tuple{std::get<1>(t), std::get<2>(t)}
+</code>
+<!-- .element: class="fragment" data-fragment-index="6" style="font-size:15px" -->
 
 ----
 
