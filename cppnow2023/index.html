@@ -595,8 +595,10 @@ struct baz { int b{}; };
 
 ```cpp
 static_assert(
-    std::tuple{foo{}, bar{}, baz{}} |
-      std::views::filter([]<class T> { return requires(T t) { t.b; }; })
+    std::tuple{foo{}, bar{}, baz{}} 
+      | std::views::filter(
+          []<class T> { return requires(T t) { t.b; }; }
+        )
     ==
     std::tuple{bar{}, baz{}}
 );
