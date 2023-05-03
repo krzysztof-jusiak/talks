@@ -160,6 +160,33 @@ static_assert(std::tuple{42, true}
 
 ----
 
+#### Motivation example
+
+```gherkin
+Given I have the following commands
+  start, add, mod, del
+```
+<!-- .element: class="fragment" -->
+
+```gherkin
+When I execute the following commands
+  start
+  add(id:1)
+  add(id:2)
+  add(id:3)
+  mod(id:2)
+  del(id:1)
+```
+<!-- .element: class="fragment" -->
+
+```gherkin
+Then I should get
+  ... // comming next
+```
+<!-- .element: class="fragment" -->
+
+----
+
 #### Motivation example - std::ranges (run-time)
 
 ```cpp
@@ -450,6 +477,8 @@ constexpr auto foo = [](auto v) { return v; };
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+---
+
 ```cpp
 constexpr auto f = foo(42); // error: v is not constexpr
 ```
@@ -457,37 +486,14 @@ constexpr auto f = foo(42); // error: v is not constexpr
 
 ```cpp
 constexpr auto f = foo(std::integral_constant<int, 42>{}); // okay
+                    // ^
+                    // |
+                    // 42_c
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
----
-
-```cpp
-template<auto V> constexpr auto foo = [] { return v; };
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-```cpp
-constexpr auto f = foo<42>(); // okay
-```
+###### Alternatives: NTTP, lambda
 <!-- .element: class="fragment" data-fragment-index="5" -->
-
----
-
-```cpp
-constexpr auto foo = [](auto v) { return v(); };
-```
-<!-- .element: class="fragment" data-fragment-index="6" -->
-
-```cpp
-constexpr auto f = foo([] { return 42; }); // okay
-```
-<!-- .element: class="fragment" data-fragment-index="7" -->
-
----
-
-`"N"_c -> std::integral_constant<decltype(N), N>{}`
-<!-- .element: class="fragment" data-fragment-index="8" -->
 
 <!-- .slide: data-background="darkblue" -->
 
@@ -655,7 +661,7 @@ indicies = static_vector{1, 2}
 <code>
 return std::tuple{std::get<1>(t), std::get<2>(t)}
 </code>
-<!-- .element: class="fragment" data-fragment-index="6" style="font-size:15px" -->
+<!-- .element: class="fragment" data-fragment-index="5" style="font-size:15px" -->
 
 ----
 
@@ -733,7 +739,7 @@ int main(int argc, const char**) {
 
 ### Compile-time benchmarks...
 
-#### ...is that even fast to compile?
+#### ...that can't be fast to compile since std.ranges are slow to compile?
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
