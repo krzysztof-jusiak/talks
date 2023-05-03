@@ -169,7 +169,7 @@ Given I have the following commands
 <!-- .element: class="fragment" -->
 
 ```gherkin
-When I execute the following commands
+When I call `execute` on the following commands
   start
   add(id:1)
   add(id:2)
@@ -181,7 +181,8 @@ When I execute the following commands
 
 ```gherkin
 Then I should get
-  ... // comming next
+  mod(id:0)
+  add(id:0)
 ```
 <!-- .element: class="fragment" -->
 
