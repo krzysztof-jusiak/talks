@@ -163,13 +163,13 @@ static_assert(std::tuple{42, true}
 #### Motivation example
 
 ```gherkin
-Given I have the following commands
+Given I have the following type of commands
   start, add, mod, del
 ```
 <!-- .element: class="fragment" -->
 
 ```gherkin
-When I call `execute` on the following commands
+When I call `execute` with the following commands
   start
   add(id:1)
   add(id:2)
