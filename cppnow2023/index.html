@@ -153,7 +153,7 @@ static_assert(std::tuple{42, true}
 
 ----
 
-### Template ~~Meta-Programming~~ with std.ranges
+### Template ~~Meta-Programming~~ with std.ranges (C++20)
 
 ##### Powered by https://github.com/boost-ext/mp
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -164,7 +164,10 @@ static_assert(std::tuple{42, true}
 
 ```gherkin
 Given I have the following type of commands
-  start, add, mod, del
+  start - starts the command sequence
+  add   - add command, takes id
+  mod   - modify command, takes id
+  del   - delete command, takes id
 ```
 <!-- .element: class="fragment" -->
 
@@ -180,7 +183,7 @@ When I call `execute` with the following commands
 <!-- .element: class="fragment" -->
 
 ```gherkin
-Then I should get
+Then I should get # after applying execute operations
   mod(id:0)
   add(id:0)
 ```
@@ -188,7 +191,7 @@ Then I should get
 
 ----
 
-#### Motivation example - std::ranges (run-time)
+#### Motivation example - C++20 std::ranges (run-time)
 
 ```cpp
 #include <ranges>
@@ -198,10 +201,10 @@ Then I should get
 ```cpp
 auto execute = [](auto&& v, auto&& filter, auto&& transform){
   return v
-   | std::views::drop(1)
-   | std::views::reverse
-   | std::views::filter(filter)
-   | std::views::transform(transform)
+   | std::views::drop(1)                // remove start
+   | std::views::reverse                // lifo
+   | std::views::filter(filter)         // id == 2
+   | std::views::transform(transform)   // id = 0
    ;
 };
 ```
@@ -215,7 +218,7 @@ auto transform = [](const auto& c) { return cmd{.name=c.name}; };
 
 ----
 
-#### Motivation example - std::ranges (run-time)
+#### Motivation example - C++20 std::ranges (run-time)
 
 ```cpp
 struct cmd {
@@ -228,7 +231,7 @@ struct cmd {
 
 ----
 
-#### Motivation example - std::ranges (run-time)
+#### Motivation example - C++20 std::ranges (run-time)
 
 ```cpp
 "std.ranges.execute"_test = [] {
