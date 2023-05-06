@@ -52,30 +52,34 @@
 #### Use case / why?
 
 ```cpp
-struct not_packed {
-  char c{};
-  int i{};
-  std::byte b{};
+struct not_aligned {
+  char c{};       // 1 byte(s)
+  int i{};        // 4 byte(s)
+  std::byte b{};  // 1 byte(s)
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+
+> "[intro.memory]/1: Object types have alignment requirements ([basic.align])... Objects of a given type shall be allocated at addresses that are multiples of its alignment."
+<!-- .element: class="fragment" data-fragment-index="1" style="font-size:25px" -->
+
 ---
 
 ```cpp
-static_assert(sizeof(not_packed) == 12u);
+static_assert(sizeof(not_aligned) == 12u);
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
 #### Use case / why?
 
 ```cpp
-struct not_packed {
-  char c{};
-  int i{};
-  std::byte b{};
+struct not_aligned {
+  char c{};      // 1 byte(s)
+  int i{};       // 4 byte(s)
+  std::byte b{}; // 1 byte(s)
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -83,7 +87,7 @@ struct not_packed {
 ---
 
 ```cpp
-template <auto Fn>
+template<auto Fn>
 auto sort = [](auto types) {
   std:sort(std::begin(types), std::end(types), Fn);
   return types;
@@ -97,14 +101,15 @@ auto by_size = [](auto lhs, auto rhs) { return lhs.size < rhs.size; };
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
 ```cpp
-constexpr auto pack = [](auto&& t) {
-  return reflection::to_tuple(t) | sort<by_size>;
+auto align = [](auto&& t) {
+  return reflection::to_tuple(t) 
+       | sort<by_size>; // operator|(...) = magic;
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-static_assert(sizeof(pack(not_packed{})) == 8u);
+static_assert(sizeof(align(not_aligned{})) == 8u);
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -183,7 +188,7 @@ When I call `execute` with the following commands
 <!-- .element: class="fragment" -->
 
 ```gherkin
-Then I should get # after applying execute operations
+Then I should get # after applying operations from execute
   mod(id:0)
   add(id:0)
 ```
@@ -445,7 +450,7 @@ template<class T> using execute_t = boost::mp11::mp_transform<
 
 ----
 
-### Can we get closer to run-time...
+### Can we get closer to run-time?...
 
 #### ...C++20 to the rescue!
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -511,7 +516,7 @@ constexpr auto f = foo(std::integral_constant<int, 42>{}); // okay
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-    auto v = boost::mp::type_list<
+    auto v = boost::mp::list<
         cmd<"start">,
         cmd<"add", 1>,
         cmd<"add", 2>,
@@ -524,7 +529,7 @@ constexpr auto f = foo(std::integral_constant<int, 42>{}); // okay
 
 ```cpp
     static_asssert(
-      boost::mp::type_list<
+      boost::mp::list<
         cmd<"mod">,
         cmd<"add">
       >
@@ -681,8 +686,6 @@ return std::tuple{std::get<1>(t), std::get<2>(t)}
 #### The power of declarative design!
 
 ```cpp
-#include <ranges>
-
 auto slice = [](auto&& v, auto&& begin, auto&& end) {
   return v
     | std::views::drop(begin)
