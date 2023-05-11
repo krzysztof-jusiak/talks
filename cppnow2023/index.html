@@ -51,9 +51,21 @@
           <script type="text/template">
 ### Showcase
 
+---
+
+<pre>
+Why did the C++ template class refuse to go to the party?
+</pre>
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+<pre>
+Because it didn't want to be **instantiated** with the wrong crowd.
+</pre>
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
 ----
 
-#### Use case / why?
+#### Why? / Use case
 
 ```cpp
 struct not_aligned {
@@ -77,7 +89,7 @@ static_assert(sizeof(not_aligned) == 12u);
 
 ----
 
-#### Use case / why?
+#### Why? / Use case
 
 ```cpp
 struct not_aligned {
@@ -91,23 +103,8 @@ struct not_aligned {
 ---
 
 ```cpp
-template<auto Fn>
-auto sort = [](auto types) {
-  std:sort(std::begin(types), std::end(types), Fn);
-  return types;
-};
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-```cpp
-auto by_size = [](auto lhs, auto rhs) { return lhs.size < rhs.size; };
-```
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
-```cpp
 auto align = [](auto&& t) {
-  return reflection::to_tuple(t) 
-       | sort<by_size>; // operator|(...) = magic;
+  return reflection::to_tuple(t) | sort; // operator|(...) = magic;
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -153,7 +150,7 @@ struct foo { int i{}; bool b{}; };
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-static_assert(std::tuple{42, true} 
+static_assert(std::tuple{42, true}
            == to_tuple(foo{.i = 42, .b = true}));
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -169,70 +166,12 @@ static_assert(std::tuple{42, true}
 
 ----
 
-#### Motivation example
-
-```gherkin
-Given I have the following type of commands
-  start - starts the command sequence
-  add   - add command, takes id
-  mod   - modify command, takes id
-  del   - delete command, takes id
-```
-<!-- .element: class="fragment" -->
-
-```gherkin
-When I call `execute` with the following commands
-  start
-  add(id:1)
-  add(id:2)
-  add(id:3)
-  mod(id:2)
-  del(id:1)
-```
-<!-- .element: class="fragment" -->
-
-```gherkin
-Then I should get # after applying operations from execute
-  mod(id:0)
-  add(id:0)
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Motivation example - C++20 std::ranges (run-time)
-
-```cpp
-#include <ranges>
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-auto execute = [](auto&& v, auto&& filter, auto&& transform){
-  return v
-   | std::views::drop(1)                // remove start
-   | std::views::reverse                // lifo
-   | std::views::filter(filter)         // id == 2
-   | std::views::transform(transform)   // id = 0
-   ;
-};
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-auto filter    = [](const auto& c) { return c.id == 2;};
-auto transform = [](const auto& c) { return cmd{.name=c.name}; };
-```
-<!-- .element: class="fragment" -->
-
-----
-
 #### Motivation example - C++20 std::ranges (run-time)
 
 ```cpp
 struct cmd {
-  std::string_view name{};
-  std::size_t id{};
+  std::string_view name{}; // start, add, mod, del
+  std::size_t id{};        // 1..N, 0=special
   constexpr auto operator<=>(const cmd&) const = default;
 };
 ```
@@ -243,7 +182,7 @@ struct cmd {
 #### Motivation example - C++20 std::ranges (run-time)
 
 ```cpp
-"std.ranges.execute"_test = [] {
+"std.ranges"_test = [] {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -266,7 +205,7 @@ struct cmd {
         cmd{.name="add"},
       }
       ==
-      execute(v, filter, transform));
+      execute(v, pred, op));
     );
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -278,14 +217,49 @@ struct cmd {
 
 ----
 
-### Let's do it at compile-time...
+#### Motivation example - C++20 std::ranges (run-time)
 
-#### ...for performance and correctness!
-<!-- .element: class="fragment" data-fragment-index="1" -->
+```cpp
+#include <ranges>
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto execute = [](auto&& v, auto&& pred, auto&& op){
+  return v
+   | std::views::drop(1)        // remove start
+   | std::views::reverse        // lifo
+   | std::views::filter(pred)   // id == 2
+   | std::views::transform(op)  // id = 0
+   ;
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto pred  = [](const auto& c) { return c.id == 2;};
+auto op    = [](const auto& c) { return cmd{.name=c.name}; };
+```
+<!-- .element: class="fragment" -->
+
+----
+
+### Let's do it at compile-time...
 
 ----
 
 #### Motivation example - boost.mp11 (compile-time)
+
+```cpp
+struct cmd {
+  std::string_view name{};
+  std::size_t id{};
+  constexpr auto operator<=>(const cmd&) const = default;
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
 
 ```cpp
 template<fixed_string Name, std::size_t Id = 0u>
@@ -301,38 +275,7 @@ struct cmd {
 #### Motivation example - boost.mp11 (compile-time)
 
 ```cpp
-template<class Id> struct is_id {
-  template<class T>
-  using fn = std::bool_constant<T::id == Id::value>;
-};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-template<class T> using zero_id = cmd<T::name>;
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-template<class T>
-using execute_t = boost::mp11::mp_transform<
-  zero_id,
-  boost::mp11::mp_filter_q<
-    is_id<boost::mp11::mp_int<2>>,
-    boost::mp11::mp_reverse<
-      boost::mp11::mp_drop_c<T, 1>
-    >
-  >
->;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### Motivation example - boost.mp11 (compile-time)
-
-```cpp
-"mp11.execute"_test = [] {
+"mp11"_test = [] {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -404,26 +347,57 @@ static_assert(typeid(42) == typeid(int));
 
 -----
 
-> run-time vs compile-time: spot the difference?
+#### Motivation example - boost.mp11 (compile-time)
+
+```cpp
+template<class Id> struct pred {
+  template<class T>
+  using fn = std::bool_constant<T::id == Id::value>;
+};
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+template<class T> using op = cmd<T::name>;
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+template<class T> using execute_t =
+  boost::mp11::mp_transform<
+    op,
+    boost::mp11::mp_filter_q<
+      pred<boost::mp11::mp_int<2>>,
+      boost::mp11::mp_reverse<
+        boost::mp11::mp_drop_c<T, 1>
+      >
+    >
+  >;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+> run-time vs compile-time?
 
 ----
 
 #### std::ranges - run-time
 
 ```cpp
-auto execute = [](auto&& v, auto&& filter, auto&& transform){
+auto execute = [](auto&& v, auto&& pred, auto&& op){
   return v
    | std::views::drop(1)
    | std::views::reverse
-   | std::views::filter(filter)
-   | std::views::transform(transform)
+   | std::views::filter(pred)
+   | std::views::transform(op)
    ;
 };
 ```
 
 ```cpp
-auto filter    = [](const auto& c) { return c.id == 2;};
-auto transform = [](const auto& c) { return cmd{.name=c.name}; };
+auto pred = [](const auto& c) { return c.id == 2;};
+auto op   = [](const auto& c) { return cmd{.name=c.name}; };
 ```
 
 ----
@@ -431,20 +405,20 @@ auto transform = [](const auto& c) { return cmd{.name=c.name}; };
 #### boost.mp11: compile-time
 
 ```cpp
-template<class Id> struct is_id {
+template<class Id> struct pred {
   template<class T> using fn = std::bool_constant<T::id == Id::value>;
 };
 ```
 
 ```cpp
-template<class T> using zero_id = cmd<T::name>;
+template<class T> using op = cmd<T::name>;
 ```
 
 ```cpp
 template<class T> using execute_t = boost::mp11::mp_transform<
-  zero_id,
+  op,
   boost::mp11::mp_filter_q<
-    is_id<boost::mp11::mp_int<2>>,
+    pred<boost::mp11::mp_int<2>>,
     boost::mp11::mp_reverse<
       boost::mp11::mp_drop_c<T, 1>
     >
@@ -454,9 +428,44 @@ template<class T> using execute_t = boost::mp11::mp_transform<
 
 ----
 
-### Can we get closer to run-time?...
+### Can we do better?...
 
-#### ...C++20 to the rescue!
+----
+
+#### Motivation example - mp+std::ranges (compile-time)
+
+```cpp
+"mp+std.ranges"_test = [] {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    auto v = boost::mp::list<
+        cmd<"start">,
+        cmd<"add", 1>,
+        cmd<"add", 2>,
+        cmd<"add", 3>,
+        cmd<"mod", 2>,
+        cmd<"del", 1>
+    >;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    static_asssert(
+      boost::mp::list<
+        cmd<"mod">,
+        cmd<"add">
+      >
+      ==
+      execute(v, pred, op))
+    );
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+};
+```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
@@ -464,20 +473,20 @@ template<class T> using execute_t = boost::mp11::mp_transform<
 #### Motivation example - mp+std::ranges (compile-time)
 
 ```cpp
-auto execute = [](auto&& v, auto&& filter, auto&& transform){
+auto execute = [](auto&& v, auto&& pred, auto&& op){
   return v
    | std::views::drop(1_c) // constexpr parameter
    | std::views::reverse
-   | std::views::filter(filter)
-   | std::views::transform(transform)
+   | std::views::filter(pred)
+   | std::views::transform(op)
    ;
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-auto filter    = []<class T> { return T::id == 2; };
-auto transform = []<class T> { return cmd<T::name>{};; });
+auto pred = []<class T> { return T::id == 2; };
+auto op   = []<class T> { return cmd<T::name>{};; });
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -505,71 +514,30 @@ constexpr auto f = foo(std::integral_constant<int, 42>{}); // okay
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
-###### Alternatives: NTTP, lambda
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
 <!-- .slide: data-background="darkblue" -->
 
 ----
 
-#### Motivation example - mp+std::ranges (compile-time)
-
-```cpp
-"mp+std.ranges.execute"_test = [] {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-    auto v = boost::mp::list<
-        cmd<"start">,
-        cmd<"add", 1>,
-        cmd<"add", 2>,
-        cmd<"add", 3>,
-        cmd<"mod", 2>,
-        cmd<"del", 1>
-    >;
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    static_asssert(
-      boost::mp::list<
-        cmd<"mod">,
-        cmd<"add">
-      >
-      ==
-      execute(v, filter, transform))
-    );
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-> run-time vs compile-time: spot the difference?
+> run-time vs compile-time?
 
 ----
 
 #### std.ranges - run-time
 
 ```cpp
-auto execute = [](auto&& v, auto&& filter, auto&& transform){
+auto execute = [](auto&& v, auto&& pred, auto&& op){
   return v
    | std::views::drop(1)
    | std::views::reverse
-   | std::views::filter(filter)
-   | std::views::transform(transform)
+   | std::views::filter(pred)
+   | std::views::transform(op)
    ;
 };
 ```
 
 ```cpp
-auto filter    = [](const auto& c) { return c.id == 2;};
-auto transform = [](const auto& c) { return cmd{.name=c.name}; };
+auto pred  = [](const auto& c) { return c.id == 2;};
+auto op    = [](const auto& c) { return cmd{.name=c.name}; };
 ```
 
 ----
@@ -577,19 +545,39 @@ auto transform = [](const auto& c) { return cmd{.name=c.name}; };
 #### mp+std.ranges - compile-time
 
 ```cpp
-auto execute = [](auto&& v, auto&& filter, auto&& transform){
+auto execute = [](auto&& v, auto&& pred, auto&& op){
   return v
    | std::views::drop(1_c)
    | std::views::reverse
-   | std::views::filter(filter)
-   | std::views::transform(transform)
+   | std::views::filter(pred)
+   | std::views::transform(op)
    ;
 };
 ```
 
 ```cpp
-auto filter    = []<class T> { return T::id == 2; };
-auto transform = []<class T> { return cmd<T::name>{};; });
+auto pred  = []<class T> { return T::id == 2; };
+auto op    = []<class T> { return cmd<T::name>{};; });
+```
+
+----
+
+#### std.ranges - run-time (constexpr prameters)
+
+```cpp
+auto execute = [](auto&& v, auto&& pred, auto&& op){
+  return v
+   | std::views::drop(1_c)
+   | std::views::reverse
+   | std::views::filter(pred)
+   | std::views::transform(op)
+   ;
+};
+```
+
+```cpp
+auto pred  = [](const auto& c) { return c.id == 2;};
+auto op    = [](const auto& c) { return cmd{.name=c.name}; };
 ```
 
 ----
@@ -607,7 +595,7 @@ struct baz { int b{}; };
 
 ```cpp
 static_assert(
-    std::tuple{foo{}, bar{}, baz{}} 
+    std::tuple{foo{}, bar{}, baz{}}
       | std::views::filter(
           []<class T> { return requires(T t) { t.b; }; }
         )
@@ -619,13 +607,18 @@ static_assert(
 
 ----
 
-#### How? (https://godbolt.org/z/j4W1WE1x4)
+#### How? (https://godbolt.org/z/j4W1WE1x4) / Simplified
 
 ```cpp
 template <template <class...> class T, class... Ts,
           template <class...> class TRng, class A, class Fn>
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  requires is_mp_range<T<Ts...>, TRng<A, T<Fn>>>
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
 [[nodiscard]] constexpr auto operator|(T<Ts...>&& t, TRng<A, T<Fn>>&&) {
@@ -635,59 +628,34 @@ template <template <class...> class T, class... Ts,
 ```cpp
     constexpr auto fns = std::array{Fn{}.template operator()<Ts>()...};
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
     constexpr auto indices = std::views::iota(0u, sizeof...(Ts))
         | A{}([&fns](auto i) { return fns[i]; })
         | std::ranges::to<static_vector<std::size_t, sizeof...(Ts)>>();
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="5" -->
 
 ```cpp
     return [&]<auto... Is>(std::index_sequence<Is...>) {
         return T{std::get<indices[Is]>(t)...};
     }(std::make_index_sequence<indices.size()>());
 ```
-<!-- .element: class="fragment" data-fragment-index="5" -->
+<!-- .element: class="fragment" data-fragment-index="6" -->
 
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-<code>
-operator|(std::tuple< foo, bar, baz >, TRng< filter, []<class T> { return requires(T t) { t.b; }; } >)
-</code>
-<br/>
-<!-- .element: class="fragment" data-fragment-index="2" style="font-size:15px" -->
-
-<code>
-fns = {false, true, true} |
-</code>
-<!-- .element: class="fragment" data-fragment-index="3" style="font-size:15px" -->
-
-<code>
-indicies = static_vector{1, 2}
-</code>
-<br/>
-<!-- .element: class="fragment" data-fragment-index="4" style="font-size:15px" -->
-
-<code>
-return std::tuple{std::get<1>(t), std::get<2>(t)}
-</code>
-<!-- .element: class="fragment" data-fragment-index="5" style="font-size:15px" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
-### Not convinced? What about...
-
-#### ...being DRY (Don't Repeat Yourself)
-<!-- .element: class="fragment" data-fragment-index="0" -->
+### Don't Repeat Yourself (DRY)
 
 ----
 
-#### The power of declarative design!
+#### DRY
 
 ```cpp
 auto slice = [](auto&& v, auto&& begin, auto&& end) {
@@ -716,7 +684,7 @@ static_assert(slice(std::variant<int, double, float, short>{}, 1_c, 3_c)
 
 ----
 
-#### The power of declarative design!
+#### DRY
 
 ```cpp
 // value_list
@@ -751,9 +719,6 @@ int main(int argc, const char**) {
 ----
 
 ### Compile-time benchmarks...
-
-#### ...that can't be fast to compile since std.ranges are slow to compile?
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
