@@ -498,14 +498,16 @@ auto op   = []<class T> { return cmd<T::name>{};; });
 #### 'constexpr' parameters
 
 ```cpp
-constexpr auto foo = [](auto v) { return v; };
+constexpr auto foo = [](auto v) { 
+  return std::array<int, v>{};
+};
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
 ```cpp
-constexpr auto f = foo(42); // error: v is not constexpr
+constexpr auto f = foo(42); // error: v is not constant expression
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
