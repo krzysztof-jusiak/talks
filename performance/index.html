@@ -1,0 +1,1159 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Performance @ maystreet.com</title>
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
+    <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
+    <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
+    <link rel="stylesheet" href="extensions/css/custom.css">
+
+    <style>
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
+    </style>
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+      function set_address(self, remote, local) {
+        if (window.location.search.match("local")) {
+          self.href = local;
+        } else {
+          self.href = remote;
+        }
+      }
+    </script>
+
+    <meta name="description" content="Performance @ maystreet.com">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+          <script type="text/template">
+          </script>
+          </section>
+
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$">
+          <script type="text/template">
+
+## Performance @ maystreet.com
+
+----
+
+#### Agenda
+
+- #### Performance
+<!-- .element: class="fragment" -->
+
+  - #### Overview
+<!-- .element: class="fragment" -->
+  - #### Benchmarking/Sampling/Profiling
+<!-- .element: class="fragment" -->
+
+- #### Low latency
+<!-- .element: class="fragment" -->
+
+  - #### How to design for performance
+<!-- .element: class="fragment" -->
+
+- #### Performance @ maystreet.com
+<!-- .element: class="fragment" -->
+
+  - #### Framework / Demo / Case studies
+<!-- .element: class="fragment" -->
+
+----
+
+#### Performance
+
+<img src="images/bolt.png" style="width: 60%; background:none; border:none; box-shadow:none;" />
+
+##### Performance refers to the efficiency and speed with which a computer system or a specific program executes tasks
+<!-- .element: class="fragment" -->
+
+----
+
+#### Performance
+
+- #### Low latency vs High throughput
+<!-- .element: class="fragment" -->
+  - #### High Frequency Trading (HFT)
+<!-- .element: class="fragment" -->
+  - #### Backtesting
+<!-- .element: class="fragment" -->
+
+- #### Bound?
+<!-- .element: class="fragment" -->
+
+  - #### cpu bound
+<!-- .element: class="fragment" -->
+  - #### memory bound
+<!-- .element: class="fragment" -->
+  - #### cache bound
+<!-- .element: class="fragment" -->
+  - #### io bound
+<!-- .element: class="fragment" -->
+
+----
+
+#### Latency numbers every programmer should know
+
+```
+Speed of light ............................ ~1 foot/ns
+```
+<!-- .element: class="fragment" -->
+
+```
+L1 cache reference ......................... 0.5 ns
+Branch mispredict ............................ 5 ns
+L2 cache reference ........................... 7 ns
+Mutex lock/unlock ........................... 25 ns
+Main memory reference ...................... 100 ns             
+Send 2K bytes over 1 Gbps network ....... 20,000 ns  =  20 µs
+SSD random read ........................ 150,000 ns  = 150 µs
+Read 1 MB sequentially from memory ..... 250,000 ns  = 250 µs
+Round trip within same datacenter ...... 500,000 ns  = 0.5 ms
+Read 1 MB sequentially from SSD .....  1,000,000 ns  =   1 ms
+Read 1 MB sequentially from disk .... 20,000,000 ns  =  20 ms
+Send packet CA->UK->CA ....          150,000,000 ns  = 150 ms
+```
+<!-- .element: class="fragment" -->
+
+- #### How much predicted branch cost?
+<!-- .element: class="fragment" -->
+
+- #### What's the cache line size (modern x86-64 cpu)?
+<!-- .element: class="fragment" -->
+
+----
+
+#### [CPU](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html) - Raptor Lake (https://wikichip.org)
+
+<img src="images/raptor_lake.png" style="width: 60%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+```
+Cache L1 - 80 KB per core
+      L2 -  2 MB per core
+      L3 - Up to 36 MB shared
+```
+<!-- .element: class="fragment" -->
+
+```
+Pipelining
+Out of order execution
+Branch prediction
+Speculative execution
+Single Instruction Multiple Data (SIMD)
+...
+```
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+### Benchmarking/Sampling/Profiling
+
+----
+
+### Always measure!
+
+----
+
+#### Micro-Benchmarking
+
+- #### Google Benchmark (https://github.com/google/benchmark)
+<!-- .element: class="fragment" -->
+
+- #### nanobench (https://github.com/martinus/nanobench)
+<!-- .element: class="fragment" -->
+
+----
+
+#### nanobench
+
+```cpp
+#define ANKERL_NANOBENCH_IMPLEMENT
+#include <nanobench.h>
+
+int main() {
+  double d = 1.0;
+  nanobench::Bench().run("double ops", [&] {
+      d += 1.0 / d;
+      if (d > 5.0) {
+          d -= 5.0;
+      }
+      nanobench::doNotOptimizeAway(d);
+  });
+}
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### nanobench
+
+```sh
+| ns/op |           op/s |  err% | total | benchmark
+|------:|---------------:|------:|------:|:----------
+|  7.52 | 132,948,239.79 |  1.1% | 0.001 | `double ops`
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```
+- ns/op - nanosecond per operation (smaller = better)
+- op/s  - operations per second (bigger = better)
+- err%  - median percentage error [how stable the results are] (smaller = better)
+- total - total time (smaller = better)
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### nanobench
+
+```cpp
+void doNotOptimizeAway(const auto& value) {
+  asm volatile("" : : "r,m"(value) : "memory");
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```
+Ensures that variable won't be optimized away (keeps optimizations!)
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Sampling
+
+- #### gperftools - https://github.com/gperftools/gperftools
+<!-- .element: class="fragment" -->
+
+- #### magictrace - https://github.com/janestreet/magic-trace
+<!-- .element: class="fragment" -->
+
+- #### pprof - https://github.com/google/pprof
+<!-- .element: class="fragment" -->
+
+* #### linux perf - https://perf.wiki.kernel.org
+<!-- .element: class="fragment" -->
+
+---
+
+- ##### Samples with specified frequency
+<!-- .element: class="fragment" -->
+
+- ##### Based on performance counters
+<!-- .element: class="fragment" -->
+
+----
+
+#### linux-perf
+
+```
+perf stat taskset 1 ./itch 01302020.NASDAQ_ITCH50
+```
+<!-- .element: class="fragment" -->
+
+---
+
+##### Prefer perf stat over /usr/bin/time
+<!-- .element: class="fragment" -->
+
+----
+
+#### linux-perf
+
+<img src="images/perf.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### linux-perf in practice
+
+```
+perf stat -e task-clock,
+             cycles,
+             instructions,
+             cache-misses,
+             branches,
+             branch-misses,
+             faults -r 3 taskset 1 ./itch 01302020.NASDAQ_ITCH50
+```
+<!-- .element: class="fragment" -->
+
+---
+
+##### Always execute with perf stat and monitor results
+<!-- .element: class="fragment" -->
+
+
+----
+
+#### Profiling
+
+- #### callgrind - https://valgrind.org/docs/manual/cl-manual.html
+<!-- .element: class="fragment" -->
+
+- #### vtune - https://www.intel.com/content/www/us/en/docs/vtune-profiler
+<!-- .element: class="fragment" -->
+
+----
+
+#### callgrind
+
+```cpp
+#include <valgrind/callgrind.h>
+
+void run() {
+  while (true) {
+    CALLGRIND_START_INSTRUMENTATION;
+    if (should_buy()) {
+      buy();
+      CALLGRIND_STOP_INSTRUMENTATION;
+      CALLGRIND_DUMP_STATS;
+    }
+  }
+}
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### callgrind
+
+```sh
+valgrind --tool=callgrind --instr-atstart=no ./ts
+```
+<!-- .element: class="fragment" -->
+
+---
+
+<img src="images/callgrind.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### Profiling - bottlenecks
+
+- #### iostreams
+<!-- .element: class="fragment" -->
+- #### RTTI (dynamic polymorphism), std::any, std::function, std::shared_ptr, ...
+<!-- .element: class="fragment" -->
+- #### not cache friendly containers (std::list, std::map, ...)
+<!-- .element: class="fragment" -->
+- #### allocations in the hot path (malloc, new, std::make_unique, ...)
+<!-- .element: class="fragment" -->
+- #### exceptions*
+<!-- .element: class="fragment" -->
+- #### 99% of the time when everything seems equally slow (no obvious bottlenecks) it means that the data access is slow!
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+### Low latency
+
+---
+
+#### Spectrum (High Frequency Trading .. Passive Trading)
+<!-- .element: class="fragment" -->
+
+----
+
+#### High Frequency Trading (HFT)
+
+<img src="images/fast.png" style="width: 75%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+#### Burj Khalifa ~ 2.772 feet / Speed of light  ~1 foot/ns
+<!-- .element: class="fragment" -->
+
+----
+
+#### High Frequency Trading (HFT) - Extreme Low Latency
+
+---
+
+- #### Responsible for ~50% of all trading volume
+<!-- .element: class="fragment" -->
+
+- #### The more volatility (VIX) the more opportunities (inefficiencies)
+<!-- .element: class="fragment" -->
+
+- #### 99.9% of time the trading system is idle
+<!-- .element: class="fragment" -->
+
+- #### Long tails = likely out of business shortly
+<!-- .element: class="fragment" -->
+
+- #### L3 cache misses = likely too slow
+<!-- .element: class="fragment" -->
+
+----
+
+### How to design for performance?
+
+----
+
+### "Premature optimization is the root of all evil" - Donald Knuth
+
+---
+
+#### [[gnu::always_inline]], [[likely]], [[unlikely]]
+<!-- .element: class="fragment" -->
+
+----
+
+#### Design for performance
+
+```cpp
+class feed_handler { // ?
+```
+<!-- .element: class="fragment" -->
+
+---
+
+#### The most important is to understand the data,
+<!-- .element: class="fragment" -->
+
+#### algorithms,
+<!-- .element: class="fragment" -->
+
+#### ...
+<!-- .element: class="fragment" -->
+
+----
+
+### Examples
+
+---
+
+- #### dynamic vs static polymorphism
+<!-- .element: class="fragment" -->
+
+- #### data oriented design
+<!-- .element: class="fragment" -->
+
+- #### branchless computing
+<!-- .element: class="fragment" -->
+
+- #### cache warming
+<!-- .element: class="fragment" -->
+
+----
+
+#### Dynamic vs static polymorphism (Curiously recurring template pattern - CRTP)
+
+```cpp
+struct BaseBook {
+    virtual ~BaseBook() noexcept(true) = default;
+    virtual bool is_crossed() const = 0;
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+struct PriceLevelOrderBook : BaseBook {
+    bool is_crossed() const override final {
+        std::puts("PriceLevelOrderBook");
+        return true;
+    }
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+struct LimitOrderBook : BaseBook {
+    bool is_crossed() const override final {
+        std::puts("LimitOrderBook");
+        return true;
+    }
+};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Dynamic vs static polymorphism (Curiously recurring template pattern - CRTP)
+
+```cpp
+int main() {
+    auto book = std::make_unique<LimitOrderBook>();
+    return book->is_crossed();
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```asm
+main:
+  pushq %r14
+  movl $8, %edi
+  pushq %rbx
+  subq $8, %rsp
+  call operator new(unsigned long)
+  movl $.LC0, %edi
+  movq $vtable for LimitOrderBook+16, (%rax)
+  movq %rax, %rbx
+  call puts
+  movq (%rbx), %rax
+  movq %rbx, %rdi
+  call *8(%rax)
+  addq $8, %rsp
+  movl $1, %eax
+
+  ... # and much more
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Dynamic vs static polymorphism (Curiously recurring template pattern - CRTP)
+
+```cpp
+struct BaseBook {
+    bool is_crossed(this auto&& self) { return self.is_crossed_impl(); }
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+struct PriceLevelOrderBook : BaseBook {
+    bool is_crossed_impl() {
+        std::puts("PriceLevelOrderBook");
+        return true;
+    }
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+struct LimitOrderBook : BaseBook {
+    bool is_crossed_impl() {
+        std::puts("LimitOrderBook");
+        return true;
+    }
+};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Dynamic vs static polymorphism (Curiously recurring template pattern - CRTP)
+
+```cpp
+int main() {
+    LimitOrderBook book{};
+    return book.is_crossed();
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```asm
+.LC0:
+  .string "LimitOrderBook"
+main:
+  subq $8, %rsp
+  movl $.LC0, %edi
+  call puts
+  movl $1, %eax
+  addq $8, %rsp
+  ret
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Minimal perfect hashing
+
+```cpp
+auto symbols = mph::map{
+  {"AAPL    ", 1},
+  {"AMZN    ", 2},
+  {"GOOGL   ", 3},
+  {"MSFT    ", 4},
+  {"NVDA    ", 5},
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+[[nodiscard]] constexpr auto parse(const auto symbol) {
+  return symbols[symbol];
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```
+parse:
+  movq 8(%rsi), %rax
+  movl $436207616, %edx
+  movq (%rax), %rax
+  pext %rdx, %rax, %rdx # bmi2 (SIMD)
+  cmpq %rax, mph::v_1_0_0::pext<...>
+  movl $0, %eax
+  cmove mph::v_1_0_0::pext<...>
+  ret
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Minimal perfect hashing
+
+```
+|  ns/op |            op/s |  err% |  total | benchmark
+|-------:|----------------:|------:|-------:|:----------
+|  30.01 |   33,325,429.88 |  0.3% |   0.36 | `std.map`
+|  21.27 |   47,022,378.77 |  0.1% |   0.25 | `std.unordered_map`
+|  19.45 |   51,407,017.79 |  0.2% |   0.23 | `boost.unordered_map`
+|  34.04 |   29,375,189.14 |  0.3% |   0.41 | `boost.flat_map`
+|  15.30 |   65,352,367.13 |  0.1% |   0.18 | `gperf`
+|   3.28 |  304,843,585.79 |  0.2% |   0.04 | `mph`
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Branchless computing
+
+```cpp
+template<class THandler>
+struct feed_handler {
+  constexpr auto on(const auto& msg) {
+    handlers[msg.symbol].on(msg);
+  }
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+ private:
+  std::unordered_map<std::string, THandler> handlers{};
+};
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+assembly too long to show
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Branchless computing
+
+```cpp
+template<class THandler>
+struct feed_handler {
+  constexpr auto on(const auto& msg) {
+    handlers[symbols[msg.symbol]].on(msg);
+  }
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+ private:
+  std::array<THandler, std::size(symbols)+1> handlers{};
+};
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+sub rsp, 8
+mov edi, OFFSET FLAT:.LC0
+movq 8(%rsi), %rax # inlined parse
+movl $436207616, %edx
+movq (%rax), %rax
+pext %rdx, %rax, %rdx # bmi2 (SIMD)
+cmpq %rax, mph::v_1_0_0::pext<...>
+movl $0, %eax
+cmove mph::v_1_0_0::pext<...>
+xor eax, eax
+add rsp, 8
+ret
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Branchless computing
+
+```cpp
+boost::container::flat_map<std::int64_t, Level> buy_;
+boost::container::flat_map<std::int64_t, Level> sell_;
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+auto FeedHnadler::Add(bool is_buy) {
+  auto &side = is_buy ? buy_ : sell_;
+  // ...
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+FeedHandler::Add(bool):
+  test sil, sil
+  je .L2
+  mov eax, DWORD PTR [rdi]
+  ret
+.L2:
+  mov eax, DWORD PTR [rdi+4]
+  ret
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Branchless computing
+
+```cpp
+std::array<boost::container::flat_map<std::int64_t, Level>, 2> side_;
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto FeedHandler::Add(bool is_buy) {
+  auto &side = side_[is_buy];
+  // ...
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+FeedHandler::Add(bool):
+  movzx esi, sil
+  mov eax, DWORD PTR [rdi+rsi*4]
+  ret
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Cache warming
+
+```cpp
+auto should_buy() -> bool;
+auto send_order(bool);
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+void run() {
+  while (true) {
+    if (not should_buy()) {
+      buy(false); // warmup
+      continue;
+    }
+    buy(true); // actually buy
+  }
+}
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+auto buy(bool warmup) {
+  static thread_local std::array<int, 2> amount{};
+  const auto size = send_order(warmup);
+  amount[warmup] += size; // branchless
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+##### Can give huge 2-5x boost in performance when matters the most!
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+### Performance @ maystreet.com
+
+----
+
+#### [https://perfomance.maystreet.com](http://dev-nyc3-perf001) (dashboard)
+
+<img src="images/dashboard.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+- #### Powered by (dev-nyc3-perf001, dev-nyc3-perf002)
+<!-- .element: class="fragment" -->
+
+----
+
+#### [https://perfomance.maystreet.com](http://dev-nyc3-perf001) (scenario)
+
+<img src="images/total_view.png" style="width: 90%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+---
+
+```
+https://performance.maystreet.com/
+  scenario=scenario_processor_manager_1_session_no_book_15m_open&
+  feed=total_view&
+  run=1.0.17500.af1e565
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### [Demo](http://dev-nyc3-perf001/scenario=scenario_processor_manager_1_session_no_book_15m_open&feed=total_view&run=1.0.17500.af1e565)
+
+- #### histogram /profile / bp stats / linux perf stats / tree stats / bp stats / config / logs / gerrit
+<!-- .element: class="fragment" -->
+
+----
+
+#### [https://perfomance.maystreet.com](http://dev-nyc3-perf001) (compare)
+
+<img src="images/compare.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### [https://perfomance.maystreet.com](http://dev-nyc3-perf001) (compare)
+
+<img src="images/compare2.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### [Demo](http://dev-nyc3-perf001/scenario=scenario_processor_manager_1_session_no_book_15m_open&feed=total_view&run=1.0.17500.af1e565)
+
+----
+
+#### Notifications (via slack)
+
+<img src="images/notification.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+---
+
+#### #performance - https://maystreet.slack.com/archives/C06BDK8499C
+<!-- .element: class="fragment" -->
+
+----
+
+### Implementation details
+
+----
+
+#### https://gitlab.svc.maystreet.com/performance/performance
+
+---
+
+- #### Based on `mstnorm` (implemented in python and bash)
+<!-- .element: class="fragment" -->
+
+- #### Tracks `master` branch (can't build all commits)
+<!-- .element: class="fragment" -->
+
+- #### Supports running locally, custom scenarios, etc...
+<!-- .element: class="fragment" -->
+
+----
+
+#### Running scenarios locally
+
+- #### Perf machines
+
+  - #### dev-nyc3-perf001.corp.maystreet.com
+  <!-- .element: class="fragment" -->
+
+  - #### dev-nyc3-perf002.corp.maystreet.com
+  <!-- .element: class="fragment" -->
+
+- #### Local machine
+  <!-- .element: class="fragment" -->
+
+  ```
+  pyperf system tune # https://github.com/psf/pyperf
+  ```
+  <!-- .element: class="fragment" -->
+
+----
+
+#### Running scenarios locally
+
+```sh
+git clone 
+  ssh://git@gitlab.svc.maystreet.com:8022/performance/performance.git
+```
+<!-- .element: class="fragment" -->
+
+```sh
+FEED=total_view \
+BIN_DIR=/data/archive/mst_tools/20231221-1.0.17702.828f625/bin \
+RESULT_DIR=results \
+scenarios/scenario_processor_manager_1_session_no_book_15m_open.sh
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```sh
+$./server.py --debug --results results --host localhost --port 8000 
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Running locally
+
+```sh
+$browser localhost:8000
+```
+<!-- .element: class="fragment" -->
+
+<img src="images/total_view.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+----
+
+#### Adding scenarios (requires pcap/s and config)
+
+```sh
+git clone 
+  ssh://git@gitlab.svc.maystreet.com:8022/performance/performance.git
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```
+touch scenarios/example_scenario.sh
+```
+<!-- .element: class="fragment" -->
+
+```sh
+SCENARIO=scenario_example
+SCENARIO_DESC="Scenario example"
+CONFIG=configs/config.cfg
+PCAPS=/data/integration/performance/data/$FEED/*.pcap.gz
+run_scenario.sh
+```
+<!-- .element: class="fragment" -->
+
+---
+
+#### Run and create MR # when merged perf muchine will pick it up and keep running
+<!-- .element: class="fragment" -->
+
+----
+
+#### Case studies
+
+----
+
+#### [omd_securities_standard](http://dev-nyc3-perf001/scenario=scenario_processor_manager_1_session_no_book_15m_open&feed=omd_securities_standard&run=1.0.17713.e0cf1f5) - ToString/malloc
+
+<img src="images/omg.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### [total_view](http://dev-nyc3-perf001/scenario=scenario_processor_manager_1_session_no_book_15m_open&feed=total_view&run=1.0.17713.e0cf1f5) - new recovery framework
+
+<img src="images/compare2.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### More bottlenecks
+
+- #### sys::watchdog
+<!-- .element: class="fragment" -->
+
+- #### sys::itoa
+<!-- .element: class="fragment" -->
+
+- #### sys::bitset
+<!-- .element: class="fragment" -->
+
+- ...
+<!-- .element: class="fragment" -->
+
+==============================================================================
+
+### Performance
+
+---
+
+- #### Writing fast code is a balancing act - there is no silver bullet!
+<!-- .element: class="fragment" -->
+
+- #### There much more to it than has been mentioned (hw/sw parallelism, os/kernel tuning, huge pages, lto, pgo, etc.)
+<!-- .element: class="fragment" -->
+
+- #### Always measure!
+<!-- .element: class="fragment" -->
+
+---
+
+#### https://performance.maystreet.com, https://www.intel.com, https://www.agner.org/optimize, https://wikichip.org, https://uops.info, https://godbolt.org, https://lwn.net, https://github.com/WG21-SG14/SG14
+<!-- .element: class="fragment" -->
+          </script>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
+          { src: 'extensions/plugin/line-numbers/line-numbers.js' }
+        ]
+      });
+
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
+    </script>
+
+  </body>
+</html>
