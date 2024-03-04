@@ -1,0 +1,1050 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Compile time reflections</title>
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
+    <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
+    <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
+    <link rel="stylesheet" href="extensions/css/custom.css">
+
+    <style>
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
+    </style>
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+      function set_address(self, remote, local) {
+        if (window.location.search.match("local")) {
+          self.href = local;
+        } else {
+          self.href = remote;
+        }
+      }
+    </script>
+
+    <meta name="description" content="~~Template~~ Meta-Programming">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+          <script type="text/template">
+          </script>
+          </section>
+
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$">
+          <script type="text/template">
+<img src="images/embo.png" style="width: 20%; background:none; border:none; box-shadow:none;" />
+
+---
+
+## Compile time reflections
+### Case study
+
+---
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+----
+
+#### Agenda
+* #### Motivation
+<!-- .element: class="fragment" -->
+
+* #### Reflection
+<!-- .element: class="fragment" -->
+
+* #### Examples
+<!-- .element: class="fragment" -->
+
+* #### Case study
+<!-- .element: class="fragment" -->
+
+* #### Summary
+<!-- .element: class="fragment" -->
+
+---
+
+###### Powered by [Compiler Explorer](https://godbolt.org)
+<!-- .element: class="fragment" -->
+
+----
+
+##### Motivation
+
+- ##### Correctness/safety
+<!-- .element: class="fragment" -->
+
+  - ##### Safe APIs, checks against the spec
+<!-- .element: class="fragment" -->
+
+- ##### Performance
+<!-- .element: class="fragment" -->
+
+  - ##### Design by introspection (move conditions to compile-time)
+  <!-- .element: class="fragment" -->
+
+    ##### `if constexpr (requires { ... })`
+<!-- .element: class="fragment" -->
+
+  - ##### Injection (code generation)
+  <!-- .element: class="fragment" -->
+
+      ##### `switch { ... }`
+  <!-- .element: class="fragment" -->
+
+  - ##### SoA - structure of arrays
+<!-- .element: class="fragment" -->
+
+  - ##### `pack(T)`
+<!-- .element: class="fragment" -->
+
+----
+
+##### Motivation
+
+- ##### Maintability/Flexibility
+<!-- .element: class="fragment" -->
+
+  ##### `serialize(T)`
+<!-- .element: class="fragment" -->
+
+- ##### Debuggability (dump struct)
+<!-- .element: class="fragment" -->
+  ##### `log(T)`
+<!-- .element: class="fragment" -->
+
+----
+
+##### Reflection
+
+- ##### Dynamic (at run-time)
+<!-- .element: class="fragment" -->
+
+- ##### Static (at compile-time*)
+<!-- .element: class="fragment" -->
+
+  - ##### \*almost!
+<!-- .element: class="fragment" -->
+
+----
+
+##### Reflection
+
+- ##### What?
+  - ##### Introspection
+<!-- .element: class="fragment" -->
+      - ##### get enum name, get members of a struct
+<!-- .element: class="fragment" -->
+      - ##### find all functions in the namespace
+<!-- .element: class="fragment" -->
+      - ##### ...
+<!-- .element: class="fragment" -->
+
+  - ##### Injection/Code generation
+<!-- .element: class="fragment" -->
+      - ##### convert array of structs to struct of arrays
+<!-- .element: class="fragment" -->
+      - ##### generate switch case
+<!-- .element: class="fragment" -->
+      - ##### ...
+<!-- .element: class="fragment" -->
+
+----
+
+##### Reflection
+
+- ##### How?
+
+  - ##### code generation (libclang + cmake)
+<!-- .element: class="fragment" -->
+
+  - ##### compiler hacks (`__PRETTY_FUNCTION__`, friend injection)
+<!-- .element: class="fragment" -->
+
+  - ##### compiler builtins (`__builtin_dump_struct` - clang)
+<!-- .element: class="fragment" -->
+
+  - ##### compilers with reflection (https://www.circle-lang.org)
+<!-- .element: class="fragment" -->
+
+  - ##### language support
+<!-- .element: class="fragment" -->
+    - ##### C++2X - meta-classes (https://github.com/hsutter/cppfront)
+<!-- .element: class="fragment" -->
+    - ##### C++2X - mirror (https://wg21.link/P0385)
+<!-- .element: class="fragment" -->
+    - ##### C++26* - static reflection (https://wg21.link/P2996)
+<!-- .element: class="fragment" -->
+
+----
+
+#### Reflection for C++26 (https://wg21.link/P2996)
+
+- ##### value based
+<!-- .element: class="fragment" -->
+    ```
+      ^T                         // reflect
+      | std::vector<meta::info>  // AST info
+      | STL manipulations        // algorithms/ranges
+      | [ : go back to types : ] // splicer
+      ;
+    ```
+<!-- .element: class="fragment" -->
+- ##### template meta-programming support included (via STL)
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++26 - introspection - https://godbolt.org/z/564szqv6M
+
+```cpp
+struct foo { char a; int b; float c; };
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(reflect<foo> == // see godbolt for implementation
+  std::array{
+    info{.name = "a", .size = 1, .offset = 0, .alignment = 1},
+    info{.name = "b", .size = 4, .offset = 4, .alignment = 4},
+    info{.name = "c", .size = 4, .offset = 8, .alignment = 4},
+  }
+);
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++26 - introspection
+
+```cpp
+^:: // error (reflecting global namespace)
+```
+<!-- .element: class="fragment" -->
+
+---
+
+##### [2024/03] P2996 doesn't support reflecting namespaces yet
+<!-- .element: class="fragment" -->
+
+----
+
+#### C23 - introspection - #embed (https://wg21.link/P1967)
+
+```cpp
+struct foo {};
+struct bar {};
+auto fn() -> void;
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(not meta_contains<"struct x">);
+static_assert(not meta_contains<"STD::string_view">);
+static_assert(meta_contains<"std::string_view">);
+static_assert(meta_contains<"struct foo">);
+static_assert(meta_contains<"struct bar">);
+static_assert(meta_contains<"auto fn()">);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+template<fixed_string Name> // #embed is C23 and not C++23
+constexpr auto meta_contains = [] {
+  static constexpr char self[] = { #embed __FILE__ };
+  const auto code = std::string_view(std::data(self), std::size(self));
+  const auto find = code.find(Name);
+  return find != std::string_view::npos and code[find-1] != '\"';
+}();
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++26 - injection - https://godbolt.org/z/ExYfTv4nK
+
+```cpp
+struct unpacked { short s; int i; bool b; };
+
+static_assert(12 == sizeof(unpacked));
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+using packed = pack<unpacked>; // see godbolt for implementation
+
+static_assert(8 == sizeof(packed));
+static_assert(requires(packed p) { p.i; p.s; p.b; });
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++26 - injection - https://godbolt.org/z/d7GrW1j76
+
+```cpp
+// compile-time counter
+static_assert(next() == 0);
+static_assert(next() == 1);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+// compile-time type list
+static_assert(typeid(get_list_t<>) == typeid(type_list<>));
+
+append_t<int>();
+static_assert(typeid(get_list_t<>) == typeid(type_list<int>));
+
+append_t<float>();
+static_assert(typeid(get_list_t<>) == typeid(type_list<int, float>));
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Case study - `enum_name`
+
+```cpp
+enum class E { A, B };
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert("A" == enum_name(E::A));
+static_assert("B" == enum_name(E::B));
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++26 - enum_name - https://godbolt.org/z/Eqffvn4dz
+
+```cpp
+template<class E> requires std::is_enum_v<E>
+constexpr auto enum_name(const E value) -> std::string {
+  std::string result = "";
+  [:expand(std::meta::enumerators_of(^E)):] >> [&]<auto e> {
+    if (value == [:e:]) {
+      result = std::meta::name_of(e);
+    }
+  };
+  return result;
+}
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert("A" == enum_name(E::A));
+static_assert("B" == enum_name(E::B));
+static_assert("" == enum_name(E(42));
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++26 - enum_name - https://godbolt.org/z/s54hhP3Ys
+
+```cpp
+template auto enum_name(E) -> std::string; // to get the assembly
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+std::allocator<char>::~allocator():
+ ret
+ nop    DWORD PTR [rax]
+std::allocator<char>::~allocator():
+ ret
+ nop    DWORD PTR [rax]
+_ZNSaIU10__metainfoED2Ev [base object destructor]:
+ ret
+ nop    DWORD PTR [rax]
+(discriminator 2):
+ test   rsi,rsi
+ js     d8 <std::__new_allocator<char>::allocate(unsigned long, void const*)+0x10>
+ mov    rdi,rsi
+(discriminator 2):
+ mov    rax,rsi
+ shr    rax,0x3c
+ jne    220 <_ZNSt15__new_allocatorIU10__metainfoE8allocateEmPKv+0x1c>
+(discriminator 1):
+
+ // ...
+
+ mov    rax,QWORD PTR [rdi]
+(discriminator 1):
+ cmp    rdi,rsi
+ je     13a0 <_ZNSt12_Destroy_auxILb0EE9__destroyIPU10__metainfoEEvT_S3_+0x38>
+auto enum_name<E>(E)::{lambda()#1}::operator()<E::B>() const:
+ mov    rax,QWORD PTR [rdi]
+ cmp    DWORD PTR [rax],0x1
+ je     1be8 <auto enum_name<E>(E)::{lambda()#1}::operator()<E::B>() const+0x10>
+ ret
+ nop    DWORD PTR [rax+0x0]
+ sub    rsp,0x18
+ mov    rdi,QWORD PTR [rdi+0x8]
+ mov    rsi,rsp
+ mov    QWORD PTR [rsp],0x1
+ mov    QWORD PTR [rsp+0x8],0x0
+    R_X86_64_32S .rodata.str1.1
+ call   1c09 <auto enum_name<E>(E)::{lambda()#1}::operator()<E::B>() const+0x31>
+    R_X86_64_PLT32 std::enable_if<std::__and_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const&, std::basic_string_view<char, std::char_traits<char> > >, std::__not_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const*> >, std::__not_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const&, char const*> > >::value, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&>::type std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::operator=<std::basic_string_view<char, std::char_traits<char> > >(std::basic_string_view<char, std::char_traits<char> > const&)-0x4
+ add    rsp,0x18
+ ret
+ xchg   ax,ax
+auto enum_name<E>(E)::{lambda()#1}::operator()<E::A>() const:
+ mov    rax,QWORD PTR [rdi]
+ mov    eax,DWORD PTR [rax]
+ test   eax,eax
+ je     1c20 <auto enum_name<E>(E)::{lambda()#1}::operator()<E::A>() const+0x10>
+ ret
+ nop    WORD PTR [rax+rax*1+0x0]
+ sub    rsp,0x18
+ mov    rdi,QWORD PTR [rdi+0x8]
+ mov    rsi,rsp
+ mov    QWORD PTR [rsp],0x1
+ mov    QWORD PTR [rsp+0x8],0x0
+    R_X86_64_32S .rodata.str1.1+0x2
+ call   1c41 <auto enum_name<E>(E)::{lambda()#1}::operator()<E::A>() const+0x31>
+    R_X86_64_PLT32 std::enable_if<std::__and_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const&, std::basic_string_view<char, std::char_traits<char> > >, std::__not_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const*> >, std::__not_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const&, char const*> > >::value, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&>::type std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::operator=<std::basic_string_view<char, std::char_traits<char> > >(std::basic_string_view<char, std::char_traits<char> > const&)-0x4
+ add    rsp,0x18
+ ret
+ xchg   ax,ax
+(discriminator 3):
+ mov    rsi,QWORD PTR [rbx+0x10]
+ mov    rdi,rbx
+ call   1e7c <void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag)+0x1b4>
+    R_X86_64_PLT32 std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_destroy(unsigned long)-0x4
+ jmp    1df3 <void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag)+0x12b>
+ nop    DWORD PTR [rax]
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E):
+ push   rbx
+ mov    ecx,0x0
+    R_X86_64_32 .data+0xe0
+ mov    rbx,rdi
+ movq   xmm0,rcx
+ sub    rsp,0x120
+ mov    rax,QWORD PTR [rip+0x0]        # 1f78 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x1c>
+    R_X86_64_PC32 __curr_eh_stack_entry-0x4
+ lea    rdx,[rsp+0x1f]
+ mov    DWORD PTR [rsp+0xc],esi
+ mov    esi,0x0
+    R_X86_64_32 enum_name<E>(E)::string literal
+ mov    QWORD PTR [rsp+0x30],rax
+ lea    rax,[rsp+0x30]
+ mov    QWORD PTR [rip+0x0],rax        # 1f97 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x3b>
+    R_X86_64_PC32 __curr_eh_stack_entry-0x4
+ lea    rax,[rsp+0x20]
+ movq   xmm1,rax
+ movzx  eax,WORD PTR [rip+0x0]        # 1fa8 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x4c>
+    R_X86_64_PC32 __eh_curr_region-0x4
+ mov    QWORD PTR [rsp+0x20],rdx
+ punpcklqdq xmm0,xmm1
+ mov    BYTE PTR [rsp+0x38],0x1
+ mov    WORD PTR [rsp+0x58],ax
+ xor    eax,eax
+ mov    WORD PTR [rip+0x0],ax        # 1fc4 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x68>
+    R_X86_64_PC32 __eh_curr_region-0x4
+ movaps XMMWORD PTR [rsp+0x40],xmm0
+ call   1fce <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x72>
+    R_X86_64_PLT32 std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(char const*, std::allocator<char> const&)-0x4
+ mov    edx,0x1
+ lea    rsi,[rsp+0xc]
+ mov    edi,0x0
+    R_X86_64_32 std::meta::__impl::replicator<E::A, E::B>
+ mov    WORD PTR [rip+0x0],dx        # 1fe4 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x88>
+    R_X86_64_PC32 __eh_curr_region-0x4
+ mov    rdx,rbx
+ mov    QWORD PTR [rsp+0x28],rbx
+ call   1ff1 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x95>
+    R_X86_64_PLT32 void std::meta::__impl::replicator_type<E::A, E::B>::operator>><enum_name<E>(E)::{lambda()#1}>(enum_name<E>(E)::{lambda()#1}) const-0x4
+ movzx  eax,WORD PTR [rsp+0x58]
+ mov    WORD PTR [rip+0x0],ax        # 1ffd <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0xa1>
+    R_X86_64_PC32 __eh_curr_region-0x4
+ mov    rax,QWORD PTR [rsp+0x30]
+ mov    QWORD PTR [rip+0x0],rax        # 2009 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0xad>
+    R_X86_64_PC32 __curr_eh_stack_entry-0x4
+ add    rsp,0x120
+ pop    rbx
+ ret
+ xchg   ax,ax
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### C++26 - enum_name - https://godbolt.org/z/Eqffvn4dz
+
+- ##### std::string?
+<!-- .element: class="fragment" -->
+  ```cpp
+  -> std::string_view
+  ```
+<!-- .element: class="fragment" -->
+
+- ##### [always] if-else?
+<!-- .element: class="fragment" -->
+  ```cpp
+  // -> policy based on enum values
+  //    if-else/switch-case/jump-table/...
+  ```
+<!-- .element: class="fragment" -->
+
+- ##### binary size / bloat?
+<!-- .element: class="fragment" -->
+  ```cpp
+  .text 'AB' // desired required buffer
+  ```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Let's implement it in C++20
+
+```sh
+g++-13
+-std=c++20
+-Ofast
+-DNDEBUG
+-fno-exceptions
+-fno-rtti
+-march=skylake
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `v1::enum_name` - https://godbolt.org/z/Mzs6dMba8
+
+```cpp
+template<auto Min, auto Max, class E>
+  requires std::is_enum_v<E>
+[[nodiscard]] constexpr auto enum_name(const E e) -> std::string_view {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  constexpr auto enum_string = []<E> -> std::string_view {
+    return std::source_location::current().function_name();
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
+    static constexpr const auto jump_table = // static is important!
+      std::array{
+        enum_string.template operator()<static_cast<E>(Ns+Min)>()...
+      };
+    return jump_table[std::to_underlying(e)-Min]; // may crash!
+  }(std::make_index_sequence<Max-Min+1>{});
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `v1::enum_name` - https://godbolt.org/z/Mzs6dMba8
+
+```cpp
+enum_name(E):
+        movl    %edi, %edi
+        salq    $4, %rdi
+        movq    jump_table(%rdi), %rax
+        movq    jump_table+8(%rdi), %rdx
+        ret
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+ ```cpp
+.LC0: .string "... function_name() [with auto ...Vs = {A}; ... ] ...
+.LC2: .string "... function_name() [with auto ...Vs = {(E)2}; ... ] ...
+....: // to the Max
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+jump_table:
+        .quad   1
+        .quad   .LC0+63
+        .quad   1
+        .quad   .LC1+63
+        .quad   4
+...: // to the Max
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+---
+
+##### binary size bloat!
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+##### `v2::enum_name` - https://godbolt.org/z/v59f6czns
+
+```cpp
+template<auto Min, auto Max, fixed_string unknown = "", class E>
+  requires std::is_enum_v<E>
+[[nodiscard]] constexpr auto enum_name(const E e) -> std::string_view {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  if constexpr (constexpr auto enum_parsed = enum_parse<E>;
+      std::empty(enum_parsed)) {
+    return unknown;
+  } else {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    return jump_table<enum_parsed, unknown>(e);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `jump_table` - https://godbolt.org/z/v59f6czns
+
+```cpp
+template<auto enum_parsed, fixed_string unknown>
+[[nodiscard]] constexpr auto jump_table(const auto e) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  return [&]<auto... Is>(std::index_sequence<Is...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    static constexpr const buffer = enum_parsed.buffer; // "AB"
+    static constexpr const struct
+      alignas(std::hardware_destructive_interference_size)
+        : std::array<std::string_view, sizeof...(Is)> { } array {
+      [&] {
+        if constexpr (constexpr auto info =
+            enum_parsed.index(Is+min); info.size) {
+          return std::string_view{&buffer[info.begin], info.size};
+        } else {
+          return unknown;
+        }
+      }()...
+    } jump_table{};
+    return jump_table[value-Min]; // may crash!
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  }(std::make_index_sequence<Max-Min+1>{});
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `jump_table` - https://godbolt.org/z/v59f6czns
+
+```cpp
+enum_name(E):
+        movl    %edi, %edi
+        salq    $4, %rdi
+        movq    jump_table(%rdi), %rax
+        movq    jump_table+8(%rdi), %rdx
+        ret
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+jump_table:
+        .quad   1        // size
+        .quad   buffer   // A
+        .quad   1        // size
+        .quad   buffer+1 // B
+        .zero   32       // align to 64 (x86-64 cacheline)
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+buffer:
+        .ascii  "AB"     // enum names
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+##### `if-else` - https://godbolt.org/z/fbcT76ocT
+
+```cpp
+template <auto enum_parsed, fixed_string unknown>
+[[nodiscard]] constexpr auto if_else(const auto value) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  static constexpr const auto buffer = enum_parsed.buffer;
+  for (constexpr auto infos = enum_parsed.infos;
+    auto i = 0u; i < std::size(infos); ++i) {
+    if (infos[i].index == value) {
+      return std::string_view{&buffer[infos[i].begin], infos[i].size};
+    }
+  }
+  return unknown;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `if-else` - https://godbolt.org/z/fbcT76ocT
+
+```cpp
+enum_name(E):
+        test    edi, edi
+        je      .L4
+        xor     eax, eax
+        xor     edx, edx
+        cmp     edi, 1
+        je      .L7
+.L3:
+        xchg    rdx, rax
+        ret
+.L4:
+        mov     eax, buffer   // A
+.L2:
+        mov     edx, 1        // size
+        jmp     .L3
+.L7:
+        mov     eax, buffer+1 // B
+        jmp     .L2
+
+buffer:
+        .ascii  "AB"          // enum names
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `switch-case` - https://godbolt.org/z/vozn8csWr
+
+```cpp
+template<auto enum_parsed, fixed_string unknown>
+[[nodiscard]] constexpr auto switch_case(const auto value)  {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  constexpr auto infos = enum_parsed.infos;
+  static constexpr const auto buffer = enum_parsed.first;
+  const auto switch_case = [&]<auto I = 0>(auto switch_case) {
+    switch (value) {
+      default: {
+        if constexpr (I < enum_parsed.max) {
+          return switch_case.template operator()<I+1>(switch_case);
+        }
+      }
+      case infos[I].index:
+        return {&buffer[infos[I].begin], infos[I].size};
+    }
+    std::unreachable();
+  };
+  return switch_case(switch_case);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `switch-case` - https://godbolt.org/z/vozn8csWr
+
+```cpp
+enum_name(E):
+        test    edi, edi
+        mov     edx, buffer+1
+        mov     eax, buffer
+        cmovne  rax, rdx
+        mov     rdx, rax
+        mov     eax, 1
+        ret
+buffer:
+        .ascii  "AB"
+```
+
+----
+
+##### `v3::enum_name` - https://godbolt.org/z/v31WsTz8x
+
+```cpp
+template<class E,
+         fixed_string unknown = "",
+         auto policies = enum_policies>
+  requires std::is_enum_v<E>
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+[[nodiscard]] constexpr auto enum_name(const E e) noexcept {
+  if constexpr (constexpr auto enum_parsed = detail::enum_parse<E>;
+      std::empty(enum_parsed.infos)) {
+    return unknown;
+  } else {
+    return policies.template
+      operator()<enum_parsed, unknown>(std::to_underlying(e));
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `v3::enum_name` - https://godbolt.org/z/v31WsTz8x
+
+```cpp
+/**
+ * Illustrative purposes only as performance
+ * depends on the compiler, architecture, ... (Always measure!)
+ */
+constexpr auto enum_policies = 
+  []<auto enum_parsed, fixed_string unknown>(const auto value) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+    if constexpr (std::size(enum_parsed.infos) < 4u) {
+      return if_else<enum_parsed, unknown>(value);
+    } else if constexpr (enum_parsed.max-enum_parsed.min < 16u) {
+      if (value < min or value > max) [[unlikely]] { return unknown; }
+      return jump_table<enum_parsed, unknown>(value);
+    } else {
+      return switch_case<enum_parsed, unknown>(value);
+    } else {
+      return unknown;
+    }
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### Summary
+
+* #### static reflection is an important feature for C++
+<!-- .element: class="fragment" -->
+
+* #### https://wg21.link/P299 is the C++26's static reflection proposal
+<!-- .element: class="fragment" -->
+
+* #### compile-time reflection has run-time parts!
+<!-- .element: class="fragment" -->
+
+* #### tuning performance for execution speed and binary size is important
+<!-- .element: class="fragment" -->
+
+----
+
+### Let's embrace compile-time reflection!
+
+---
+
+* #### C++26 Static reflection (https://wg21.link/P2996)
+* #### C++20 reflect (https://github.com/boost-ext/reflect)
+
+---
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+          </script>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
+          { src: 'extensions/plugin/line-numbers/line-numbers.js' }
+        ]
+      });
+
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
+    </script>
+
+  </body>
+</html>
