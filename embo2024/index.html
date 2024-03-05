@@ -199,10 +199,10 @@
 - ##### value based
 <!-- .element: class="fragment" -->
     ```
-      ^T                         // reflect
-      | std::vector<meta::info>  // AST info
-      | STL manipulations        // algorithms/ranges
-      | [ : go back to types : ] // splicer
+      ^T                                // reflect
+      | std::vector<meta::info>         // AST info
+      | STL manipulations               // algorithms/ranges
+      | [ : go back to types/values : ] // splicer
       ;
     ```
 <!-- .element: class="fragment" -->
@@ -229,6 +229,9 @@ static_assert(reflect<foo> == // see godbolt for implementation
   }
 );
 ```
+<!-- .element: class="fragment" -->
+
+##### Also possible in C++20 (https://github.com/boost-ext/reflect)
 <!-- .element: class="fragment" -->
 
 ----
@@ -327,6 +330,9 @@ static_assert(typeid(get_list_t<>) == typeid(type_list<int, float>));
 ```
 <!-- .element: class="fragment" -->
 
+##### Also possible since C++17 via friend injection
+<!-- .element: class="fragment" -->
+
 ----
 
 #### Case study - `enum_name`
@@ -360,266 +366,154 @@ constexpr auto enum_name(const E value) -> std::string {
   return result;
 }
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
 static_assert("A" == enum_name(E::A));
 static_assert("B" == enum_name(E::B));
-static_assert("" == enum_name(E(42));
+static_assert(""  == enum_name(E(42));
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+- ##### As currently proposed in https://wg21.link/P2996
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
 #### C++26 - enum_name - https://godbolt.org/z/s54hhP3Ys
 
 ```cpp
-template auto enum_name(E) -> std::string; // to get the assembly
+template auto enum_name(E) -> std::string; // run-time assembly
 ```
 <!-- .element: class="fragment" -->
 
-```cpp
-std::allocator<char>::~allocator():
- ret
- nop    DWORD PTR [rax]
-std::allocator<char>::~allocator():
- ret
- nop    DWORD PTR [rax]
-_ZNSaIU10__metainfoED2Ev [base object destructor]:
- ret
- nop    DWORD PTR [rax]
-(discriminator 2):
- test   rsi,rsi
- js     d8 <std::__new_allocator<char>::allocate(unsigned long, void const*)+0x10>
- mov    rdi,rsi
-(discriminator 2):
- mov    rax,rsi
- shr    rax,0x3c
- jne    220 <_ZNSt15__new_allocatorIU10__metainfoE8allocateEmPKv+0x1c>
-(discriminator 1):
-
- // ...
-
- mov    rax,QWORD PTR [rdi]
-(discriminator 1):
- cmp    rdi,rsi
- je     13a0 <_ZNSt12_Destroy_auxILb0EE9__destroyIPU10__metainfoEEvT_S3_+0x38>
-auto enum_name<E>(E)::{lambda()#1}::operator()<E::B>() const:
- mov    rax,QWORD PTR [rdi]
- cmp    DWORD PTR [rax],0x1
- je     1be8 <auto enum_name<E>(E)::{lambda()#1}::operator()<E::B>() const+0x10>
- ret
- nop    DWORD PTR [rax+0x0]
- sub    rsp,0x18
- mov    rdi,QWORD PTR [rdi+0x8]
- mov    rsi,rsp
- mov    QWORD PTR [rsp],0x1
- mov    QWORD PTR [rsp+0x8],0x0
-    R_X86_64_32S .rodata.str1.1
- call   1c09 <auto enum_name<E>(E)::{lambda()#1}::operator()<E::B>() const+0x31>
-    R_X86_64_PLT32 std::enable_if<std::__and_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const&, std::basic_string_view<char, std::char_traits<char> > >, std::__not_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const*> >, std::__not_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const&, char const*> > >::value, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&>::type std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::operator=<std::basic_string_view<char, std::char_traits<char> > >(std::basic_string_view<char, std::char_traits<char> > const&)-0x4
- add    rsp,0x18
- ret
- xchg   ax,ax
-auto enum_name<E>(E)::{lambda()#1}::operator()<E::A>() const:
- mov    rax,QWORD PTR [rdi]
- mov    eax,DWORD PTR [rax]
- test   eax,eax
- je     1c20 <auto enum_name<E>(E)::{lambda()#1}::operator()<E::A>() const+0x10>
- ret
- nop    WORD PTR [rax+rax*1+0x0]
- sub    rsp,0x18
- mov    rdi,QWORD PTR [rdi+0x8]
- mov    rsi,rsp
- mov    QWORD PTR [rsp],0x1
- mov    QWORD PTR [rsp+0x8],0x0
-    R_X86_64_32S .rodata.str1.1+0x2
- call   1c41 <auto enum_name<E>(E)::{lambda()#1}::operator()<E::A>() const+0x31>
-    R_X86_64_PLT32 std::enable_if<std::__and_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const&, std::basic_string_view<char, std::char_traits<char> > >, std::__not_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const*> >, std::__not_<std::is_convertible<std::basic_string_view<char, std::char_traits<char> > const&, char const*> > >::value, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&>::type std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::operator=<std::basic_string_view<char, std::char_traits<char> > >(std::basic_string_view<char, std::char_traits<char> > const&)-0x4
- add    rsp,0x18
- ret
- xchg   ax,ax
-(discriminator 3):
- mov    rsi,QWORD PTR [rbx+0x10]
- mov    rdi,rbx
- call   1e7c <void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag)+0x1b4>
-    R_X86_64_PLT32 std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_destroy(unsigned long)-0x4
- jmp    1df3 <void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag)+0x12b>
- nop    DWORD PTR [rax]
-std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E):
- push   rbx
- mov    ecx,0x0
-    R_X86_64_32 .data+0xe0
- mov    rbx,rdi
- movq   xmm0,rcx
- sub    rsp,0x120
- mov    rax,QWORD PTR [rip+0x0]        # 1f78 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x1c>
-    R_X86_64_PC32 __curr_eh_stack_entry-0x4
- lea    rdx,[rsp+0x1f]
- mov    DWORD PTR [rsp+0xc],esi
- mov    esi,0x0
-    R_X86_64_32 enum_name<E>(E)::string literal
- mov    QWORD PTR [rsp+0x30],rax
- lea    rax,[rsp+0x30]
- mov    QWORD PTR [rip+0x0],rax        # 1f97 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x3b>
-    R_X86_64_PC32 __curr_eh_stack_entry-0x4
- lea    rax,[rsp+0x20]
- movq   xmm1,rax
- movzx  eax,WORD PTR [rip+0x0]        # 1fa8 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x4c>
-    R_X86_64_PC32 __eh_curr_region-0x4
- mov    QWORD PTR [rsp+0x20],rdx
- punpcklqdq xmm0,xmm1
- mov    BYTE PTR [rsp+0x38],0x1
- mov    WORD PTR [rsp+0x58],ax
- xor    eax,eax
- mov    WORD PTR [rip+0x0],ax        # 1fc4 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x68>
-    R_X86_64_PC32 __eh_curr_region-0x4
- movaps XMMWORD PTR [rsp+0x40],xmm0
- call   1fce <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x72>
-    R_X86_64_PLT32 std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(char const*, std::allocator<char> const&)-0x4
- mov    edx,0x1
- lea    rsi,[rsp+0xc]
- mov    edi,0x0
-    R_X86_64_32 std::meta::__impl::replicator<E::A, E::B>
- mov    WORD PTR [rip+0x0],dx        # 1fe4 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x88>
-    R_X86_64_PC32 __eh_curr_region-0x4
- mov    rdx,rbx
- mov    QWORD PTR [rsp+0x28],rbx
- call   1ff1 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0x95>
-    R_X86_64_PLT32 void std::meta::__impl::replicator_type<E::A, E::B>::operator>><enum_name<E>(E)::{lambda()#1}>(enum_name<E>(E)::{lambda()#1}) const-0x4
- movzx  eax,WORD PTR [rsp+0x58]
- mov    WORD PTR [rip+0x0],ax        # 1ffd <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0xa1>
-    R_X86_64_PC32 __eh_curr_region-0x4
- mov    rax,QWORD PTR [rsp+0x30]
- mov    QWORD PTR [rip+0x0],rax        # 2009 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > enum_name<E>(E)+0xad>
-    R_X86_64_PC32 __curr_eh_stack_entry-0x4
- add    rsp,0x120
- pop    rbx
- ret
- xchg   ax,ax
-```
+<img src="images/enum.png" style="width: 17%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
 ----
 
 #### C++26 - enum_name - https://godbolt.org/z/Eqffvn4dz
 
-- ##### std::string?
-<!-- .element: class="fragment" -->
-  ```cpp
-  -> std::string_view
-  ```
-<!-- .element: class="fragment" -->
+- ##### compile-time
+  <!-- .element: class="fragment" -->
 
-- ##### [always] if-else?
-<!-- .element: class="fragment" -->
-  ```cpp
-  // -> policy based on enum values
-  //    if-else/switch-case/jump-table/...
-  ```
-<!-- .element: class="fragment" -->
+  - ##### ✔️
+  <!-- .element: class="fragment" -->
 
-- ##### binary size / bloat?
-<!-- .element: class="fragment" -->
-  ```cpp
-  .text 'AB' // desired required buffer
-  ```
-<!-- .element: class="fragment" -->
+- ##### run-time
+  <!-- .element: class="fragment" -->
+
+  - ##### std::string?
+  <!-- .element: class="fragment" -->
+    ```cpp
+    -> std::string_view
+    ```
+  <!-- .element: class="fragment" -->
+
+  - ##### if-else?
+  <!-- .element: class="fragment" -->
+    ```cpp
+    // -> policy based on enum values
+    //      if-else/switch-case/jump-table/...
+    ```
+  <!-- .element: class="fragment" -->
+
+  - ##### binary size?
+  <!-- .element: class="fragment" -->
+    ```cpp
+    .text 'AB' // desired buffer for `enum class E {A,B}`
+    ```
+  <!-- .element: class="fragment" -->
 
 ----
 
-#### Let's implement it in C++20
+#### Let's improve it!
 
 ```sh
-g++-13
--std=c++20
--Ofast
+$CXX
+-O3
 -DNDEBUG
 -fno-exceptions
 -fno-rtti
--march=skylake
+-march=skylake // (x86-64)
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-##### `v1::enum_name` - https://godbolt.org/z/Mzs6dMba8
+##### `v2::enum_name` - https://godbolt.org/z/1xKWseYqY
 
 ```cpp
-template<auto Min, auto Max, class E>
-  requires std::is_enum_v<E>
-[[nodiscard]] constexpr auto enum_name(const E e) -> std::string_view {
+template<class T>
+struct enum_info {
+  using value_type = T;
+  std::size_t begin{}; // position into the buffer
+  std::size_t size{};  // length
+  value_type index{};  // to_underlying(value)
+};
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  constexpr auto enum_string = []<E> -> std::string_view {
-    return std::source_location::current().function_name();
+template<class TBuffer, class TInfos>
+struct enum_infos {
+  TBuffer buffer{}; // "AB"
+  TInfos  infos{};  // vector{enum_info<T>...};
+
+  constexpr auto index(std::integral auto) const -> enum_info<T>;
+  constexpr auto min() const -> typename TInfos::value_type;
+  constexpr auto max() const -> typename TInfos::value_type;
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+##### `v2::enum_name` - https://godbolt.org/z/1xKWseYqY
+
+```cpp
+template<class T> requires std::is_enum_v<E>
+inline constexpr auto enum_parse = [] {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  std::array<char, buffer_size<E>> buffer{};
+  std::array<enum_info<std::underlying_type_t<E>>,
+              enum_size<E>> infos{};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  [:expand(std::meta::enumerators_of(^E)):]
+    >> [i=0, pos=0]<auto e> mutable {
+      const auto name = std::meta::name_of(e);
+
+      infos[i++] = {.begin = pos,
+                    .size  = std::size(name),
+                    .index = std::to_underlying([:e:])};
+
+      std::copy_n(name, std::size(name), &buffer[pos]);
+      pos += std::size(name);
   };
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
-```cpp
-  return [&]<auto... Ns>(std::index_sequence<Ns...>) {
-    static constexpr const auto jump_table = // static is important!
-      std::array{
-        enum_string.template operator()<static_cast<E>(Ns+Min)>()...
-      };
-    return jump_table[std::to_underlying(e)-Min]; // may crash!
-  }(std::make_index_sequence<Max-Min+1>{});
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-##### `v1::enum_name` - https://godbolt.org/z/Mzs6dMba8
-
-```cpp
-enum_name(E):
-        movl    %edi, %edi
-        salq    $4, %rdi
-        movq    jump_table(%rdi), %rax
-        movq    jump_table+8(%rdi), %rdx
-        ret
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
- ```cpp
-.LC0: .string "... function_name() [with auto ...Vs = {A}; ... ] ...
-.LC2: .string "... function_name() [with auto ...Vs = {(E)2}; ... ] ...
-....: // to the Max
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-jump_table:
-        .quad   1
-        .quad   .LC0+63
-        .quad   1
-        .quad   .LC1+63
-        .quad   4
-...: // to the Max
+  return enum_infos{buffer, infos};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
----
-
-##### binary size bloat!
-<!-- .element: class="fragment" data-fragment-index="1" -->
+```cpp
+}();
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
 ##### `v2::enum_name` - https://godbolt.org/z/v59f6czns
 
 ```cpp
-template<auto Min, auto Max, fixed_string unknown = "", class E>
+template<fixed_string unknown = "", class E>
   requires std::is_enum_v<E>
 [[nodiscard]] constexpr auto enum_name(const E e) -> std::string_view {
 ```
@@ -627,7 +521,7 @@ template<auto Min, auto Max, fixed_string unknown = "", class E>
 
 ```cpp
   if constexpr (constexpr auto enum_parsed = enum_parse<E>;
-      std::empty(enum_parsed)) {
+      std::empty(enum_parsed.infos)) {
     return unknown;
   } else {
 ```
@@ -670,19 +564,19 @@ template<auto enum_parsed, fixed_string unknown>
         : std::array<std::string_view, sizeof...(Is)> { } array {
       [&] {
         if constexpr (constexpr auto info =
-            enum_parsed.index(Is+min); info.size) {
+            enum_parsed.index(Is+enum_parsed.min()); info.size) {
           return std::string_view{&buffer[info.begin], info.size};
         } else {
           return unknown;
         }
       }()...
     } jump_table{};
-    return jump_table[value-Min]; // may crash!
+    return jump_table[value-enum_parsed.min()]; // may crash!
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  }(std::make_index_sequence<Max-Min+1>{});
+  }(std::make_index_sequence<enum_parsed.max()-enum_parsed.min()+1>{});
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -733,12 +627,14 @@ template <auto enum_parsed, fixed_string unknown>
 
 ```cpp
   static constexpr const auto buffer = enum_parsed.buffer;
+
   for (constexpr auto infos = enum_parsed.infos;
     auto i = 0u; i < std::size(infos); ++i) {
     if (infos[i].index == value) {
       return std::string_view{&buffer[infos[i].begin], infos[i].size};
     }
   }
+
   return unknown;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -789,19 +685,20 @@ template<auto enum_parsed, fixed_string unknown>
 
 ```cpp
   constexpr auto infos = enum_parsed.infos;
-  static constexpr const auto buffer = enum_parsed.first;
+  static constexpr const auto buffer = enum_parsed.buffer;
+
   const auto switch_case = [&]<auto I = 0>(auto switch_case) {
     switch (value) {
       default: {
-        if constexpr (I < enum_parsed.max) {
+        if constexpr (I < enum_parsed.max()) {
           return switch_case.template operator()<I+1>(switch_case);
         }
       }
       case infos[I].index:
         return {&buffer[infos[I].begin], infos[I].size};
     }
-    std::unreachable();
   };
+
   return switch_case(switch_case);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -818,11 +715,11 @@ template<auto enum_parsed, fixed_string unknown>
 ```cpp
 enum_name(E):
         test    edi, edi
-        mov     edx, buffer+1
-        mov     eax, buffer
+        mov     edx, buffer+1 // B
+        mov     eax, buffer   // A
         cmovne  rax, rdx
         mov     rdx, rax
-        mov     eax, 1
+        mov     eax, 1       // size
         ret
 buffer:
         .ascii  "AB"
@@ -862,25 +759,26 @@ template<class E,
 ##### `v3::enum_name` - https://godbolt.org/z/v31WsTz8x
 
 ```cpp
-/**
- * Illustrative purposes only as performance
- * depends on the compiler, architecture, ... (Always measure!)
- */
-constexpr auto enum_policies = 
+constexpr auto enum_policies =
   []<auto enum_parsed, fixed_string unknown>(const auto value) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
+    /**
+     * Illustrative purposes only as performance
+     * depends on the compiler, architecture, ... (Always measure!)
+     */
     if constexpr (std::size(enum_parsed.infos) < 4u) {
       return if_else<enum_parsed, unknown>(value);
-    } else if constexpr (enum_parsed.max-enum_parsed.min < 16u) {
-      if (value < min or value > max) [[unlikely]] { return unknown; }
+    } else if constexpr (enum_parsed.max()-enum_parsed.min() < 16u) {
+      if (value < enum_parsed.min() or
+          value > enum_parsed.max()) [[unlikely]] {
+        return unknown;
+      }
       return jump_table<enum_parsed, unknown>(value);
     } else {
       return switch_case<enum_parsed, unknown>(value);
-    } else {
-      return unknown;
     }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -894,16 +792,23 @@ constexpr auto enum_policies =
 
 #### Summary
 
-* #### static reflection is an important feature for C++
+* #### Static reflection is an important feature for C++
 <!-- .element: class="fragment" -->
 
-* #### https://wg21.link/P299 is the C++26's static reflection proposal
+* #### https://wg21.link/P2996 is the C++26's static reflection proposal
 <!-- .element: class="fragment" -->
 
-* #### compile-time reflection has run-time parts!
+* #### Compile-time reflection has run-time parts!
 <!-- .element: class="fragment" -->
 
-* #### tuning performance for execution speed and binary size is important
+* #### Run-time parts require tweaking for performance and/or size
+<!-- .element: class="fragment" -->
+
+* #### There is no silver bullet if it comes to the performance
+<!-- .element: class="fragment" -->
+  - #### Consider using policies and always measure!
+<!-- .element: class="fragment" -->
+  - #### name_enum? [minimal perfect hash function] (https://github.com/boost-ext/mph)
 <!-- .element: class="fragment" -->
 
 ----
