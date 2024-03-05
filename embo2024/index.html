@@ -385,7 +385,7 @@ static_assert(""  == enum_name(E(42));
 #### C++26 - enum_name - https://godbolt.org/z/s54hhP3Ys
 
 ```cpp
-template auto enum_name(E) -> std::string; // run-time assembly
+template auto enum_name(E) -> std::string; // x86-64 assembly
 ```
 <!-- .element: class="fragment" -->
 
