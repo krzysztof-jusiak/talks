@@ -558,8 +558,8 @@ template<auto enum_parsed, fixed_string unknown>
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-    static constexpr const buffer = enum_parsed.buffer; // "AB"
-    static constexpr const struct
+    static constexpr buffer = enum_parsed.buffer; // "AB"
+    static constexpr struct
       alignas(std::hardware_destructive_interference_size)
         : std::array<std::string_view, sizeof...(Is)> { } array {
       [&] {
@@ -626,7 +626,7 @@ template <auto enum_parsed, fixed_string unknown>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  static constexpr const auto buffer = enum_parsed.buffer;
+  static constexpr auto buffer = enum_parsed.buffer;
 
   for (constexpr auto infos = enum_parsed.infos;
     auto i = 0u; i < std::size(infos); ++i) {
@@ -685,7 +685,7 @@ template<auto enum_parsed, fixed_string unknown>
 
 ```cpp
   constexpr auto infos = enum_parsed.infos;
-  static constexpr const auto buffer = enum_parsed.buffer;
+  static constexpr auto buffer = enum_parsed.buffer;
 
   const auto switch_case = [&]<auto I = 0>(auto switch_case) {
     switch (value) {
