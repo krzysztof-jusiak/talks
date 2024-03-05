@@ -416,7 +416,7 @@ template auto enum_name(E) -> std::string; // run-time assembly
   <!-- .element: class="fragment" -->
     ```cpp
     // -> policy based on enum values
-    //      if-else/switch-case/jump-table/...
+    //      if-else/jump-table/switch-case/...
     ```
   <!-- .element: class="fragment" -->
 
@@ -544,7 +544,7 @@ template<fixed_string unknown = "", class E>
 
 ----
 
-##### `jump_table` - https://godbolt.org/z/v59f6czns
+##### `jump-table` - https://godbolt.org/z/v59f6czns
 
 ```cpp
 template<auto enum_parsed, fixed_string unknown>
@@ -587,7 +587,7 @@ template<auto enum_parsed, fixed_string unknown>
 
 ----
 
-##### `jump_table` - https://godbolt.org/z/v59f6czns
+##### `jump-table` - https://godbolt.org/z/v59f6czns
 
 ```cpp
 enum_name(E):
