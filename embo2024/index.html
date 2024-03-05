@@ -451,7 +451,7 @@ struct enum_info {
   using value_type = T;
   std::size_t begin{}; // position into the buffer
   std::size_t size{};  // length
-  value_type index{};  // to_underlying(value)
+  value_type index{};  // std::to_underlying(value)
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -738,8 +738,8 @@ template<class E,
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-[[nodiscard]] constexpr auto enum_name(const E e) noexcept {
-  if constexpr (constexpr auto enum_parsed = detail::enum_parse<E>;
+[[nodiscard]] constexpr auto enum_name(const E e) {
+  if constexpr (constexpr auto enum_parsed = enum_parse<E>;
       std::empty(enum_parsed.infos)) {
     return unknown;
   } else {
