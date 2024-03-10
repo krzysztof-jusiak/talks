@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>Compile time reflections</title>
+    <title>Embedding reflections</title>
 
     <link rel="stylesheet" href="reveal.js/css/reveal.css">
     <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
@@ -53,7 +53,7 @@
 
 ---
 
-## Compile time reflections
+## Embedding reflections
 
 <img src="images/qr.png" style="width: 10%; background:none; border:none; box-shadow:none;" />
 
@@ -70,8 +70,8 @@
 * #### Reflection
 <!-- .element: class="fragment" -->
 
-* #### Examples
-<!-- .element: class="fragment" -->
+  * #### Examples
+  <!-- .element: class="fragment" -->
 
 * #### Case study
 <!-- .element: class="fragment" -->
@@ -195,20 +195,35 @@
 
 ----
 
-#### Reflection for C++26 (https://wg21.link/P2996)
+##### Reflection for C++26 (https://wg21.link/P2996)
 
 - ##### value based
 <!-- .element: class="fragment" -->
     ```
-      ^T                                // reflect
-      | std::vector<meta::info>         // AST info
-      | STL manipulations               // algorithms/ranges
-      | [ : go back to types/values : ] // splicer
+      ^T                // lift (reflexpr)
+      | std::meta::info // AST info
+      | [: ... :]       // splicer (unreflexpr)
       ;
     ```
 <!-- .element: class="fragment" -->
-- ##### template meta-programming support included (via STL)
+
+- ##### consteval based (harder to test as no lowering to run-time)
 <!-- .element: class="fragment" -->
+
+- ##### template meta-programming included
+<!-- .element: class="fragment" -->
+  ```cpp
+  static_assert(
+    [: std::meta::substitute(^type_list,  // consteval
+        std::vector{^int, ^float}         // std::vector{meta::info}
+      | std::views::reverse               // stl::ranges
+      | std::views::drop(1)
+    ) :] == type_list<float>);
+  ```
+  <!-- .element: class="fragment" -->
+
+  - ##### Possible in C++20 (https://github.com/boost-ext/mp)
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -232,7 +247,7 @@ static_assert(reflect<foo> == // see godbolt for implementation
 ```
 <!-- .element: class="fragment" -->
 
-##### Also possible in C++20 (https://github.com/boost-ext/reflect)
+##### Possible in C++20 (https://github.com/boost-ext/reflect)
 <!-- .element: class="fragment" -->
 
 ----
@@ -306,6 +321,9 @@ static_assert(requires(packed p) { p.i; p.s; p.b; });
 ```
 <!-- .element: class="fragment" -->
 
+##### Possible in C++11+ but will return a std::tuple instead of new struct
+<!-- .element: class="fragment" -->
+
 ----
 
 #### C++26 - injection - https://godbolt.org/z/d7GrW1j76
@@ -331,23 +349,65 @@ static_assert(typeid(get_list_t<>) == typeid(type_list<int, float>));
 ```
 <!-- .element: class="fragment" -->
 
-##### Also possible since C++17 via friend injection
+##### Possible since C++17+ via friend injection (stateful meta-programming)
 <!-- .element: class="fragment" -->
 
 ----
 
-#### Case study - `enum_name`
+#### CppMeta - injection - https://www.codereckons.com/articles/65cbc0511318c3d21078737b
 
 ```cpp
-enum class E { A, B };
+consteval void gen_cases(auto& builder, auto cases) {
+  for (auto e : constants(cases)) {
+    append_case(builder, make_decl_ref_expr(e)); // case N:
+    append_return(builder, name_of(e));          //   return "...";
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+template <class E>
+constexpr auto to_string(E value) {
+  switch(value) {
+    %gen_cases(^E); // code generation...
+    default : 
+      return "";
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### Possible in C++98+ but very limited (via nested switch / performance depends on the compiler ability to flatten it)
+<!-- .element: class="fragment" -->
+
+----
+
+##### Case study - `enum_name`
+
+```cpp
+// simple enum
+enum E { A, B };
 ```
 <!-- .element: class="fragment" -->
 
----
+```cpp
+// flag enum
+enum class E_flag { A=0b001,
+                    B=0b010,
+                    C=0b100, };
+```
+<!-- .element: class="fragment" -->
 
 ```cpp
-static_assert("A" == enum_name(E::A));
-static_assert("B" == enum_name(E::B));
+// combined cases enum
+enum class E_combined { UNKNOWN=-1,
+                        A=0,
+                        B=10,
+                        C=20,
+                        D=30,
+                        E=40,
+                        BIG=100, };
 ```
 <!-- .element: class="fragment" -->
 
@@ -356,9 +416,10 @@ static_assert("B" == enum_name(E::B));
 #### C++26 - enum_name - https://godbolt.org/z/Eqffvn4dz
 
 ```cpp
-template<class E> requires std::is_enum_v<E>
+template<class E>
+  requires std::is_enum_v<E>
 constexpr auto enum_name(const E value) -> std::string {
-  std::string result = "";
+  std::string result = ""; // unknown
   [:expand(std::meta::enumerators_of(^E)):] >> [&]<auto e> {
     if (value == [:e:]) {
       result = std::meta::name_of(e);
@@ -378,7 +439,37 @@ static_assert(""  == enum_name(E(42));
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-- ##### As currently proposed in https://wg21.link/P2996
+- ##### As currently implemented in https://wg21.link/P2996
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++26 - enum_name - https://godbolt.org/z/Eqffvn4dz
+
+```cpp
+template <class E>
+  requires std::is_enum_v<E>
+constexpr auto enum_name(E value) -> std::string {
+  template for (constexpr auto e : std::meta::enumerators_of(^E)) {
+    if (value == [:e:]) {
+      return std::string(std::meta::name_of(e)); // can early exit
+    }
+  }
+  return ""; // unknown
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+static_assert("A" == enum_name(E::A));
+static_assert("B" == enum_name(E::B));
+static_assert(""  == enum_name(E(42));
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+- ##### Expansion statements - https://wg21.link/P1306
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -390,150 +481,72 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 ```
 <!-- .element: class="fragment" -->
 
-<img src="images/enum.png" style="width: 17%; background:none; border:none; box-shadow:none;" />
+<img src="images/enum.png" style="width: 15%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+###### EDG (experimental reflection)
 <!-- .element: class="fragment" -->
 
 ----
 
-#### C++26 - enum_name - https://godbolt.org/z/Eqffvn4dz
+#### C++26 - enum_name - trade-offs?
 
 - ##### compile-time
-  <!-- .element: class="fragment" -->
+<!-- .element: class="fragment" -->
 
-  - ##### ✔️
-  <!-- .element: class="fragment" -->
+  - ##### compilation times
+<!-- .element: class="fragment" -->
 
 - ##### run-time
-  <!-- .element: class="fragment" -->
+<!-- .element: class="fragment" -->
 
-  - ##### std::string?
-  <!-- .element: class="fragment" -->
-    ```cpp
-    -> std::string_view
-    ```
-  <!-- .element: class="fragment" -->
+  - ##### performance
+<!-- .element: class="fragment" -->
 
-  - ##### if-else?
-  <!-- .element: class="fragment" -->
-    ```cpp
-    // -> policy based on enum values
-    //      if-else/jump-table/switch-case/...
-    ```
-  <!-- .element: class="fragment" -->
+    - ##### if-else/jump-table/switch-case/hashing
+<!-- .element: class="fragment" -->
 
-  - ##### binary size?
-  <!-- .element: class="fragment" -->
-    ```cpp
-    .text 'AB' // desired buffer for `enum class E {A,B}`
-    ```
-  <!-- .element: class="fragment" -->
+  - ##### binary size
+<!-- .element: class="fragment" -->
+
+    - ##### return type / shared buffers
+<!-- .element: class="fragment" -->
+
+  - ##### usability
+<!-- .element: class="fragment" -->
+
+    - ##### unknown value / flag enums (A|B)
+<!-- .element: class="fragment" -->
 
 ----
 
-#### Let's improve it!
+#### v2::enum_name
 
-```sh
-$CXX
--O3 // -Os
--DNDEBUG
--fno-exceptions
--fno-rtti
--march=skylake // (x86-64)
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+---
+
+##### Trying to address enum-name's trade-offs
+<!-- .element: class="fragment" -->
 
 ----
 
-##### `v2::enum_name` - https://godbolt.org/z/1xKWseYqY
+#### v2::enum_name
 
 ```cpp
-template<class T>
-struct enum_info {
-  using value_type = T;
-  std::size_t begin{}; // position into the buffer
-  std::size_t size{};  // length
-  value_type index{};  // std::to_underlying(value)
-};
+template<
+  class R = std::string_view,    // safe default
+  R unknown = {},                // needs fixed_string
+  auto policy = enum_name_policy // we will get back to that...
+> 
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-template<class TBuffer, class TInfos>
-struct enum_infos {
-  TBuffer buffer{}; // "AB"
-  TInfos  infos{};  // vector{enum_info<T>...};
-
-  constexpr auto index(std::integral auto) const -> enum_info<T>;
-  constexpr auto min() const -> typename TInfos::value_type;
-  constexpr auto max() const -> typename TInfos::value_type;
-};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-##### `v2::enum_name` - https://godbolt.org/z/1xKWseYqY
-
-```cpp
-template<class T> requires std::is_enum_v<E>
-inline constexpr auto enum_parse = [] {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  std::array<char, buffer_size<E>> buffer{};
-  std::array<enum_info<std::underlying_type_t<E>>,
-              enum_size<E>> infos{};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  [:expand(std::meta::enumerators_of(^E)):]
-    >> [i=0, pos=0]<auto e> mutable {
-      const auto name = std::meta::name_of(e);
-
-      infos[i++] = {.begin = pos,
-                    .size  = std::size(name),
-                    .index = std::to_underlying([:e:])};
-
-      std::copy_n(name, std::size(name), &buffer[pos]);
-      pos += std::size(name);
-  };
-
-  return enum_infos{buffer, infos};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}();
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-##### `v2::enum_name` - https://godbolt.org/z/v59f6czns
-
-```cpp
-template<fixed_string unknown = "", class E>
-  requires std::is_enum_v<E>
-[[nodiscard]] constexpr auto enum_name(const E e) -> std::string_view {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  if constexpr (constexpr auto enum_parsed = enum_parse<E>;
-      std::empty(enum_parsed.infos)) {
+[[nodiscard]] constexpr auto enum_name(Enum auto e) noexcept -> R {
+  if constexpr (constexpr auto cases = std::meta::enumerators_of(^E);
+    std::empty(cases)) {
     return unknown;
   } else {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-    return jump_table<enum_parsed, unknown>(e);
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
+    return policy.template operator()<R, cases, unknown>(e);
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -545,11 +558,74 @@ template<fixed_string unknown = "", class E>
 
 ----
 
+##### `if-else` - https://godbolt.org/z/fbcT76ocT
+
+```cpp
+template <class R, auto cases, auto unknown>
+[[nodiscard]] constexpr auto if_else(Enum auto e) noexcept -> R {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  static constexpr auto buffer = to<std::array>(cases); // "AB"
+
+  template for (constexpr auto case : cases) { // P1306
+    if (value == [:case:]) {
+      return make<R>(&buffer[offset<cases>(case)], size<cases>(case));
+    }
+  }
+
+  return unknown;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### `if-else` - https://godbolt.org/z/fbcT76ocT
+
+```cpp
+enum E { A, B };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+enum_name(E):
+        test    edi, edi
+        je      .L4
+        xor     eax, eax
+        xor     edx, edx
+        cmp     edi, 1
+        je      .L7
+.L3:
+        xchg    rdx, rax
+        ret
+.L4:
+        mov     eax, buffer   // A
+.L2:
+        mov     edx, 1        // size
+        jmp     .L3
+.L7:
+        mov     eax, buffer+1 // B
+        jmp     .L2
+buffer:
+        .ascii  "AB"          // enum names
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
 ##### `jump-table` - https://godbolt.org/z/v59f6czns
 
 ```cpp
-template<auto enum_parsed, fixed_string unknown>
-[[nodiscard]] constexpr auto jump_table(const auto e) {
+template<class R, auto cases, auto unknown>
+[[nodiscard]] constexpr auto jump_table(Enum auto e) noexcept -> R {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -559,25 +635,25 @@ template<auto enum_parsed, fixed_string unknown>
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-    static constexpr buffer = enum_parsed.buffer; // "AB"
+    static constexpr buffer = to<std::array>(cases); // "AB"
     static constexpr struct
       alignas(std::hardware_destructive_interference_size)
         : std::array<std::string_view, sizeof...(Is)> { } array {
       [&] {
-        if constexpr (constexpr auto info =
-            enum_parsed.index(Is+enum_parsed.min()); info.size) {
-          return std::string_view{&buffer[info.begin], info.size};
+        if constexpr (constexpr auto case = cases[I]) {
+          return make<R>(&buffer[offset<cases>(case)], size<cases>(case));
         } else {
           return unknown;
         }
       }()...
     } jump_table{};
-    return jump_table[value-enum_parsed.min()]; // may crash!
+
+    return jump_table[value-enum_parsed.min()];
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  }(std::make_index_sequence<enum_parsed.max()-enum_parsed.min()+1>{});
+  }(std::make_index_sequence<std::size(cases)>{});
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -618,60 +694,24 @@ buffer:
 
 ----
 
-##### `if-else` - https://godbolt.org/z/fbcT76ocT
+##### `switch-case`
 
-```cpp
-template <auto enum_parsed, fixed_string unknown>
-[[nodiscard]] constexpr auto if_else(const auto value) {
-```
+
+##### Compiler heuristics for switch lowering strategies 
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-```cpp
-  static constexpr auto buffer = enum_parsed.buffer;
+- ##### bitset (gcc)
+<!-- .element: class="fragment" -->
+- ##### if-else (gcc/clang)
+<!-- .element: class="fragment" -->
+- ##### jump-table (gcc/clang)
+<!-- .element: class="fragment" -->
+- ##### binary decision tree (gcc/clang)
+<!-- .element: class="fragment" -->
 
-  for (constexpr auto infos = enum_parsed.infos;
-    auto i = 0u; i < std::size(infos); ++i) {
-    if (infos[i].index == value) {
-      return std::string_view{&buffer[infos[i].begin], infos[i].size};
-    }
-  }
+---
 
-  return unknown;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-##### `if-else` - https://godbolt.org/z/fbcT76ocT
-
-```cpp
-enum_name(E):
-        test    edi, edi
-        je      .L4
-        xor     eax, eax
-        xor     edx, edx
-        cmp     edi, 1
-        je      .L7
-.L3:
-        xchg    rdx, rax
-        ret
-.L4:
-        mov     eax, buffer   // A
-.L2:
-        mov     edx, 1        // size
-        jmp     .L3
-.L7:
-        mov     eax, buffer+1 // B
-        jmp     .L2
-
-buffer:
-        .ascii  "AB"          // enum names
-```
+##### https://github.com/gcc-mirror/gcc/blob/master/gcc/tree-switch-conversion.cc
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -728,64 +768,142 @@ buffer:
 
 ----
 
-##### `v3::enum_name` - https://godbolt.org/z/v31WsTz8x
+##### Minimal-Perfect-Hashing
+
+<img src="images/mph.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+
+- ##### Given a list of N keys (known at compile-time) find a perfect hash function (maps keys into range from 0 to N-1)
+<!-- .element: class="fragment" -->
+
+  - ##### Hardware accelerated (bit manipulation instructions sets)
+  <!-- .element: class="fragment" -->
+
+  - ##### Brute-force* hash finding (multiply/shift/xor)
+  <!-- .element: class="fragment" -->
+
+----
+
+##### [x86-64/BMI2] PEXT Instruction
+
+##### https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext
+<!-- .element: class="fragment" -->
 
 ```cpp
-template<class E,
-         fixed_string unknown = "",
-         auto policies = enum_policies>
-  requires std::is_enum_v<E>
+word:   0010101011010111
+mask:   0011100100100010
+masked: __101__0__0___1_
+PEXT:   __________101001
+```
+<!-- .element: class="fragment" -->
+
+---
+
+#### https://uops.info/table.html?search=pext
+<!-- .element: class="fragment" -->
+
+<img src="images/pext.png" style="width: 75%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+##### Minimal-Perfect-Hashing - https://github.com/boost-ext/mph
+
+```cpp
+template <auto cases, fixed_string unknown>
+[[nodiscard]] auto mph(const auto value) noexcept -> std::string_view {
+  constexpr auto indexes = [&]<auto... Is>(std::index_sequence<Is...>) {
+    return std::array{std::pair{cases[Is].index, cases[Is].begin}...};
+  }(std::make_index_sequence<std::size(cases)>{});
+
+  constexpr auto policies = []<const auto...ts>(auto&&... args) {
+    return mph::pext<8u, mph::unconditional>{}.template operator()<ts...>(std::forward<decltype(args)>(args)...);
+  };
+
+  const auto begin = mph::hash<indexes, policies>(value);
+  static constexpr const auto buffer = enum_parsed.first;
+  return std::string_view{&buffer[begin+1], std::size_t(buffer[begin])};
+}
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Minimal-Perfect-Hashing - https://godbolt.org/z/6P3crWvEW
+
+```
+enum class e_combined {
+  zero = 0,
+  big = 879,
+  _3 = 3,
+  _4 = 4,
+  _5 = 5,
+  _6 = 6,
+  _7 = 7,
+};
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Minimal-Perfect-Hashing - https://godbolt.org/z/G5oe9Ws3v
+
+```cpp
+enum_name(e_combined):
+  mov eax, 519       // mask computed at compile-time
+  pext edi, edi, rdx // bmi2 - hardware accelerated
+  movzx edx, BYTE PTR index[rdi]
+  movsx rdx, BYTE PTR buffer[rdx]
+  ret
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+index: // index table for offsets in the buffer
+  .byte 0  .byte 0  .byte 0  .byte 5
+  .byte 8  .byte 11 .byte 14 .byte 17
+  .byte 0  .byte 0  .byte 0  .byte 0
+  .byte 0  .byte 0  .byte 0  .byte 20
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+buffer:
+  .string "\4zero\2_32_4\2_5\2_6\2_7\3big" // [size][name]...
+```
+<!-- .element: class="fragment" -->
+
+##### Same assembly for different enums  but index and buffer will grow ([llvm-mca](https://godbolt.org/z/G5oe9Ws3v) / [uops](https://uica.uops.info))
+<!-- .element: class="fragment" -->
+
+----
+
+#### v2::enum_name - policy
+
+```cpp
+constexpr auto enum_name_policy =
+  []<class R, auto caces, auto unknown>(Enum auto e) noexcept -> R {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-[[nodiscard]] constexpr auto enum_name(const E e) {
-  if constexpr (constexpr auto enum_parsed = enum_parse<E>;
-      std::empty(enum_parsed.infos)) {
-    return unknown;
+  // Example heuristic but it's likely to 
+  // be different for specific use cases
+  // Measure for your use case!
+
+  if constexpr (std::size(cases) <= 2) {
+    return if_else<R, cases, unknown>(e);
+  } else if constexpr (cases.max() - cases.min() < 16u) {
+    return jump_table<R, cases, unknown>(e);
+  } else if constexpr (requires { mph<R, cases, unknown>(e); }) {
+    return mph<R, cases, unknown>(e);
   } else {
-    return policies.template
-      operator()<enum_parsed, unknown>(std::to_underlying(e));
+    return switch_case<R, cases, unknown>(e);
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-##### `v3::enum_name` - https://godbolt.org/z/v31WsTz8x
-
-```cpp
-constexpr auto enum_policies =
-  []<auto enum_parsed, fixed_string unknown>(const auto value) {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-    /**
-     * Illustrative purposes only as performance
-     * depends on the compiler, architecture, ... (Always measure!)
-     */
-    if constexpr (std::size(enum_parsed.infos) < 4u) {
-      return if_else<enum_parsed, unknown>(value);
-    } else if constexpr (enum_parsed.max()-enum_parsed.min() < 16u) {
-      if (value < enum_parsed.min() or
-          value > enum_parsed.max()) [[unlikely]] {
-        return unknown;
-      }
-      return jump_table<enum_parsed, unknown>(value);
-    } else {
-      return switch_case<enum_parsed, unknown>(value);
-    }
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  };
+};
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -793,24 +911,19 @@ constexpr auto enum_policies =
 
 #### Summary
 
-* #### Static reflection is an important feature for C++
+* #### Static reflection enables a lot of optimizations/new use cases
 <!-- .element: class="fragment" -->
 
 * #### https://wg21.link/P2996 is the C++26's static reflection proposal
 <!-- .element: class="fragment" -->
 
-* #### Compile-time reflection has run-time parts!
+* #### Compile-time reflection has run-time parts
 <!-- .element: class="fragment" -->
 
-* #### Run-time parts require tweaking for performance and/or size
+* #### There is no silver bullet if it comes to the performance (just trade-offs)
 <!-- .element: class="fragment" -->
-
-* #### There is no silver bullet if it comes to the performance
-<!-- .element: class="fragment" -->
-  - #### Consider using policies and always measure!
-<!-- .element: class="fragment" -->
-  - #### name_enum? [minimal perfect hash function] (https://github.com/boost-ext/mph)
-<!-- .element: class="fragment" -->
+  - #### Policies are one way of dealing with the trade-offs for specific cases
+  <!-- .element: class="fragment" -->
 
 ----
 
@@ -819,7 +932,7 @@ constexpr auto enum_policies =
 ---
 
 * #### C++26 Static reflection (https://wg21.link/P2996)
-* #### C++20 reflect (https://github.com/boost-ext/reflect)
+* #### C++20 (https://github.com/boost-ext/{mp,reflect,mph})
 
 ---
 
