@@ -472,30 +472,27 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 
 ----
 
-#### C++26 - enum_name - trade-offs?
+#### C++26 - enum_name - trade-offs
 
-- ##### compile-time / compilation-times
+- ##### compilation-times?
 <!-- .element: class="fragment" -->
 
-- ##### run-time
+- ##### performance?
 <!-- .element: class="fragment" -->
 
-  - ##### performance
+  - ##### if-else/jump-table/switch-case/hashing,...
 <!-- .element: class="fragment" -->
 
-    - ##### if-else/jump-table/switch-case/hashing,...
+- ##### binary size?
 <!-- .element: class="fragment" -->
 
-  - ##### binary size
+  - ##### return type / buffer sharing
 <!-- .element: class="fragment" -->
 
-    - ##### return type / buffer sharing
+- ##### usability/error handling?
 <!-- .element: class="fragment" -->
 
-  - ##### usability/error handling
-<!-- .element: class="fragment" -->
-
-    - ##### flag enums (A|B) / unknown value
+  - ##### flag enums (A|B) / unknown value
 <!-- .element: class="fragment" -->
 
 ----
@@ -504,7 +501,7 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 
 ---
 
-- ##### Trying to address enum-name's trade-offs
+- ##### Like enum_name just with different set of trade-offs
 <!-- .element: class="fragment" -->
 
 - ##### Possible to implement in C++20 (https://github.com/boost-ext/reflect)
@@ -517,7 +514,7 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 ```cpp
 template<
   string_view unknown = "",      // aka fixed_string
-  auto policy = enum_name_policy // we will get back to that...
+  auto policy = enum_name_policy // we will get back to that... (*)
 >
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -539,6 +536,10 @@ template<
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
+
+#### enum_name policies...
+
+-----
 
 ##### `if-else` - https://godbolt.org/z/411qeznMM
 
@@ -669,14 +670,14 @@ enum_name(E):
 
 ```cpp
 jump_table:
-        .byte   0   // offset: 0 - "A"
-        .byte   1   // offset: 1 - "B"
+        .byte   0                           // offset: 0 - "A"
+        .byte   1                           // offset: 1 - "B"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 buffer:
-        .ascii  "\1A\1B" // enum names
+        .ascii  "\1A\1B"                    // [size][name]...
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -691,7 +692,7 @@ buffer:
 
 ----
 
-##### `switch-case` - [gcc] switch lowering strategies (for clusters)
+##### `switch-case` - [gcc] switch lowering strategies (per clusters)
 
 ##### bitset (gcc)
 <!-- .element: class="fragment" -->
@@ -780,12 +781,13 @@ enum_name(E):
         mov     eax, 1        // size
         ret
 ```
+<!-- .element: class="fragment" -->
 
 ```cpp
 buffer:
         .ascii  "AB"          // enum names
-
 ```
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -796,12 +798,15 @@ template auto enum_name(e_combined) // x86-64 assembly
 ```
 <!-- .element: class="fragment" -->
 
-<img src="images/switch.png" style="width: 23%; background:none; border:none; box-shadow:none;" />
+<img src="images/switch.png" style="width: 21%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+##### decision tree comparisons (gcc/clang)
 <!-- .element: class="fragment" -->
 
 ----
 
-###### Minimal-Perfect-Hashing (MPH)
+##### Minimal-Perfect-Hashing (MPH)
 
 <img src="images/mph.png" style="width: 40%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
@@ -809,16 +814,16 @@ template auto enum_name(e_combined) // x86-64 assembly
 - ##### Minimal perfect hashing maps keys into range from 0 to N-1
 <!-- .element: class="fragment" -->
 
-  - ##### Brute-force* hash finding (multiply/shift/xor)
+  - ##### Precompute hash ([gperf, cmph, ...](https://github.com/tpn/pdfs/tree/master/Perfect%20Hashing))
   <!-- .element: class="fragment" -->
 
-  - ##### Hardware accelerated (ex. [X86-64/BMI2/PEXT](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext))
+  - ##### Precompute mask ([x86-64/bmi2/pext](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext))
   <!-- .element: class="fragment" -->
     ```cpp
     word:   0010101011010111
     mask:   0011100100100010
     masked: __101__0__0___1_
-    PEXT:   __________101001 (latency: 3, uops: 1)
+    pext:   __________101001 (latency: 3, uops: 1)
     ```
     <!-- .element: class="fragment" -->
 
@@ -841,7 +846,7 @@ constexpr auto mph(ScopedEnum auto e) noexcept {
 <!-- .element: class="fragment" -->
 
 ```cpp
-  // find unique mask which can represent all keys
+  // find mask which can uniquely represent all keys
   constexpr auto mask = find_mask<keys>();
 ```
 <!-- .element: class="fragment" -->
@@ -877,21 +882,19 @@ constexpr auto mph(ScopedEnum auto e) noexcept {
 
 ```cpp
 enum_name(e_combined):
-  movl $519, %eax             // mask computed at compile-time (find_mask)
-  pext %eax, %edi, %edi       // wikipedia/X86_Bit_manipulation_instruction_set
-  movzbl index(%rdi), %edx    // offset
-  movsbq buffer(%rdx), %rdx   // size
-  addq buffer+1, %rax         // buffer
+  movl $519, %eax           // mask computed at compile-time (find_mask)
+  pext %eax, %edi, %edi     // bit manipulation instruction set (BMI2)
+  movzbl index(%rdi), %edx  // offset
+  movsbq buffer(%rdx), %rdx // size
+  addq buffer+1, %rax       // buffer
   ret
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-index: // index table for offsets in the buffer
-  .byte 0  .byte 0  .byte 0  .byte 5
-  .byte 8  .byte 11 .byte 14 .byte 17
-  .byte 0  .byte 0  .byte 0  .byte 0
-  .byte 0  .byte 0  .byte 0  .byte 20
+index:
+  .byte 0 .byte 0 .byte 0 .byte 5 .byte 8 .byte 11 .byte 14 .byte 17
+  .byte 0 .byte 0 .byte 0 .byte 0 .byte 0 .byte 0  .byte 0  .byte 20
 ```
 <!-- .element: class="fragment" -->
 
@@ -906,7 +909,7 @@ buffer:
 
 ----
 
-#### v2::enum_name - policy
+#### (*) v2::enum_name - policy
 
 ```cpp
 constexpr auto enum_name_policy =
@@ -955,19 +958,11 @@ constexpr auto enum_name_policy =
 
 #### Summary
 
-* #### Static reflection enables a lot of optimizations/new use cases
-<!-- .element: class="fragment" -->
-
-* #### https://wg21.link/P2996 is the C++26's static reflection proposal
-<!-- .element: class="fragment" -->
-
-* #### Compile-time reflection has run-time parts
+* #### Static reflection enables a lot of optimizations and use cases but it also adds complexity
 <!-- .element: class="fragment" -->
 
 * #### There is no silver bullet if it comes to the performance (just trade-offs)
 <!-- .element: class="fragment" -->
-  - #### Policies are one way of dealing with these trade-offs for specific cases
-  <!-- .element: class="fragment" -->
 
 ----
 
