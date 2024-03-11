@@ -244,9 +244,9 @@ static_assert(reflect<foo> == // see godbolt for implementation
 #### C23 - introspection - #embed (https://wg21.link/P1967)
 
 ```cpp
-struct foo {};
-struct bar {};
-auto fn() -> void;
+struct foo { };
+struct bar { };
+void fn();
 ```
 <!-- .element: class="fragment" -->
 
@@ -254,11 +254,9 @@ auto fn() -> void;
 
 ```cpp
 static_assert(not meta_contains<"struct x">);
-static_assert(not meta_contains<"STD::string_view">);
-static_assert(meta_contains<"std::string_view">);
 static_assert(meta_contains<"struct foo">);
 static_assert(meta_contains<"struct bar">);
-static_assert(meta_contains<"auto fn()">);
+static_assert(meta_contains<"void fn()">);
 ```
 <!-- .element: class="fragment" -->
 
@@ -393,7 +391,7 @@ enum class e_combined {
 ```
 <!-- .element: class="fragment" -->
 
-##### [note] Code based on enum_name but ideas are generally applicable
+##### Examples based on enum_name but ideas are generally applicable
 <!-- .element: class="fragment" -->
 
 ----
@@ -437,7 +435,7 @@ template<class E>
 constexpr auto enum_name(E value) -> std::string {
   template for (constexpr auto e : std::meta::enumerators_of(^E)) {
     if (value == [:e:]) {
-      return std::string(std::meta::name_of(e)); // can early exit
+      return std::meta::name_of(e); // can early exit
     }
   }
   return ""; // unknown
@@ -494,10 +492,10 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
     - ##### return type / buffer sharing
 <!-- .element: class="fragment" -->
 
-  - ##### usability
+  - ##### usability/error handling
 <!-- .element: class="fragment" -->
 
-    - ##### unknown value / flag enums (A|B)
+    - ##### flag enums (A|B) / unknown value
 <!-- .element: class="fragment" -->
 
 ----
@@ -540,12 +538,9 @@ template<
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-###### Possible in C++20 (https://github.com/boost-ext/reflect)
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
 ----
 
-##### `if-else` - https://godbolt.org/z/fbcT76ocT
+##### `if-else` - https://godbolt.org/z/411qeznMM
 
 ```cpp
 template<auto cases, auto unknown>
@@ -554,12 +549,9 @@ template<auto cases, auto unknown>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  static constexpr auto buffer = to<std::array>(cases); // "AB"
-
   template for (constexpr auto c : cases) { // P1306
     if (value == [:c:]) {
-      return make<decltype(unknown)>(&buffer[offset<cases>(c)],
-                                     size(c));
+      return make<decltype(unknown)>(name_of(c), size(c));
     }
   }
 
@@ -585,31 +577,30 @@ enum E { A, B };
 
 ```cpp
 enum_name(E):
+        mov     eax, 1
         test    edi, edi
-        je      .L4
-        xor     eax, eax
-        xor     edx, edx
+        je      .LBB0_1
         cmp     edi, 1
-        je      .L7
-.L3:
-        xchg    rdx, rax
+        jne     .LBB0_4
+        lea     rdx, [rip + .L.str.1]   // B
         ret
-.L4:
-        mov     eax, buffer   // A
-.L2:
-        mov     edx, 1        // size
-        jmp     .L3
-.L7:
-        mov     eax, buffer+1 // B
-        jmp     .L2
-buffer:
-        .ascii  "AB"          // enum names
+.LBB0_1:                                // A
+        lea     rdx, [rip + .L.str]
+        ret
+.LBB0_4:
+        lea     rdx, [rip + .L.str.2]  // unknown
+        xor     eax, eax
+        ret
+
+.L.str:   .asciz  "A"
+.L.str.1: .asciz  "B"
+.L.str.2: .zero   1
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-##### `jump-table` - https://godbolt.org/z/q76ErE99P
+##### `jump-table` - https://godbolt.org/z/PacKveW9e
 
 ```cpp
 template<auto cases, auto unknown>
@@ -618,35 +609,34 @@ template<auto cases, auto unknown>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  return [&]<auto... Is>(std::index_sequence<Is...>) {
+  const auto value = std::to_underlying(e);
+  if (value < min(cases) or value > max(cases)) [[unlikely]] {
+    return unknown;
+  }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-    static constexpr buffer = to<std::array>(cases); // "AB"
+  return [&]<auto... Is>(std::index_sequence<Is...>) {
     // consider alignas(std::hardware_destructive_interference_size)
-    static constexpr auto jump_table = std::array{ [&] {
-      if constexpr (constexpr auto case = cases[I]) {
-        return make<decltype(unknown)>(&buffer[offset<cases>(case)],
-                                       size<cases>(case));
-      } else { return unknown; } }()...
+    static constexpr auto jump_table = std::array{
+      std::pair{offset<cases>(cases[find<Is,cases>()]),
+                              size<cases>(cases[find<Is,cases>()])}...
     };
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-    const auto value = std::to_underlying(e);
-    if (value < min(cases) or value > max(cases)) [[unlikely]] {
-      return unknown;
-    }
-    return jump_table[value-min(cases)];
+    static constexpr buffer = to<std::array, with_size>(cases); // "1A1B"
+    const auto [offset, size] = jump_table[value-min(cases)];
+    return make<decltype(unknown)>{&buffer[offset], size};
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  }(std::make_index_sequence<std::size(cases)>{});
+  }(std::make_index_sequence<max(cases)-min(cases)+1/*inclusive*/>{});
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 }
@@ -655,15 +645,15 @@ template<auto cases, auto unknown>
 
 ----
 
-##### `jump-table` - https://godbolt.org/z/q76ErE99P
+##### `jump-table` - https://godbolt.org/z/PacKveW9e
 ```cpp
 enum_name(E):
         cmpl    $1, %edi
-        ja      .L3
+        ja      .L3                         // invalid range
         movl    %edi, %edi
-        salq    $4, %rdi
-        movq    jump_table(%rdi), %rax
-        movq    jump_table+8(%rdi), %rdx
+        movzwl  jump_table(%rdi,%rdi), %edx // offset
+        movsbq  buffer(%rdx), %rdx          // size
+        addq    buffer+1, %rax              // buffer
         ret
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -677,17 +667,15 @@ enum_name(E):
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-jump_table:              // storage can be improved (later slides...)
-        .quad   1        // size (std::string_view::size:std::size_t)
-        .quad   buffer   // A
-        .quad   1        // size
-        .quad   buffer+1 // B
+jump_table:
+        .byte   0   // offset: 0 - "A"
+        .byte   1   // offset: 1 - "B"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 buffer:
-        .ascii  "AB"     // enum names
+        .ascii  "\1A\1B" // enum names
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -873,7 +861,7 @@ constexpr auto mph(ScopedEnum auto e) noexcept {
 
 ```cpp
   const auto value = index[ext];
-  return make<decltype(unknown)>(&buffer[index+1], buffer[index]);
+  return make<decltype(unknown)>(&buffer[value+1], buffer[value]);
 ```
 <!-- .element: class="fragment" -->
 
@@ -884,14 +872,15 @@ constexpr auto mph(ScopedEnum auto e) noexcept {
 
 ----
 
-##### Minimal-Perfect-Hashing - https://godbolt.org/z/6P3crWvEW
+##### Minimal-Perfect-Hashing - https://godbolt.org/z/fa8hv3TTj
 
 ```cpp
 enum_name(e_combined):
-  mov eax, 519       // mask computed at compile-time (find_mask)
-  pext edi, edi, rdx // wikipedia/X86_Bit_manipulation_instruction_set
-  movzx edx, BYTE PTR index[rdi]
-  movsx rdx, BYTE PTR buffer[rdx]
+  movl $519, %eax             // mask computed at compile-time (find_mask)
+  pext %eax, %edi, %edi       // wikipedia/X86_Bit_manipulation_instruction_set
+  movzbl index(%rdi), %edx    // offset
+  movsbq buffer(%rdx), %rdx   // size
+  addq buffer+1, %rax         // buffer
   ret
 ```
 <!-- .element: class="fragment" -->
