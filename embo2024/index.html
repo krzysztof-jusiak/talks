@@ -627,7 +627,8 @@ template<auto cases, auto unknown>
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-    static constexpr buffer = to<std::array, with_size>(cases); // "1A1B"
+    static constexpr auto buffer =
+      to<std::array, with_size>(cases); // "1A1B"
     const auto [offset, size] = jump_table[value-min(cases)];
     return make<decltype(unknown)>{&buffer[offset], size};
 ```
