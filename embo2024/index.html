@@ -577,7 +577,7 @@ enum E { A, B };
 
 ```cpp
 enum_name(E):
-        mov     eax, 1
+        mov     eax, 1                  // size
         test    edi, edi
         je      .LBB0_1
         cmp     edi, 1
@@ -594,7 +594,7 @@ enum_name(E):
 
 .L.str:   .asciz  "A"
 .L.str.1: .asciz  "B"
-.L.str.2: .zero   1
+.L.str.2: .zero   1                   // ""
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
