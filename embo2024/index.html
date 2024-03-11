@@ -821,7 +821,7 @@ template auto enum_name(e_combined) // x86-64 assembly
     word:   0010101011010111
     mask:   0011100100100010
     masked: __101__0__0___1_
-    pext:   __________101001 (latency: 3, uops: 1)
+    pext:   __________101001 (latency: 3 cycles)
     ```
     <!-- .element: class="fragment" -->
 
@@ -877,8 +877,7 @@ enum_name(e_combined):
   movl $519, %eax           // mask computed at compile-time (find_mask)
   pext %eax, %edi, %edi     // bit manipulation instruction set (BMI2)
   movzbl index(%rdi), %edx  // offset
-  movsbq buffer(%rdx), %rdx // size
-  addq buffer+1, %rax       // buffer
+  addq buffer, %rax         // buffer
   ret
 ```
 <!-- .element: class="fragment" -->
@@ -896,7 +895,36 @@ buffer:
 ```
 <!-- .element: class="fragment" -->
 
-##### Same assembly for different enums  but index and buffer may grow ([llvm-mca](https://godbolt.org/z/G5oe9Ws3v) / [uops](https://uica.uops.info))
+----
+
+##### Minimal-Perfect-Hashing - https://godbolt.org/z/fa8hv3TTj
+
+```cpp
+enum_name(E):
+  movl $1, %eax
+  pext %eax, %edi, %edi
+  movl %edi, %edi
+  movzbl index(%rdi), %eax
+  addq buffer, %rax
+  ret
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+index:
+  .byte 1
+  .byte 3
+  .zero 2
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+buffer:
+  .string "\001A\001B"
+```
+<!-- .element: class="fragment" -->
+
+##### Same assembly for different enums  but index and buffer will change ([llvm-mca](https://godbolt.org/z/G5oe9Ws3v) / [uops](https://uica.uops.info))
 <!-- .element: class="fragment" -->
 
 ----
