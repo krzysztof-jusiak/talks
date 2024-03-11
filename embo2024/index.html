@@ -549,7 +549,7 @@ template<auto cases, auto unknown>
 ```cpp
   template for (constexpr auto c : cases) { // P1306
     if (value == [:c:]) {
-      return make<unknown>(name_of(c), size(c));
+      return make<unknown>(name_of(c), size(c)); // early exit
     }
   }
 
@@ -967,10 +967,10 @@ constexpr auto enum_name_policy =
 
 ---
 
-* #### C++26 Static reflection (https://wg21.link/P2996)
+#### C++26 Static reflection (https://wg21.link/P2996)
 <!-- .element: class="fragment" -->
 
-* #### C++20 (https://github.com/boost-ext/{mp,reflect,mph})
+#### C++20 (https://github.com/boost-ext/{mp,reflect,mph})
 <!-- .element: class="fragment" -->
 
 ---
