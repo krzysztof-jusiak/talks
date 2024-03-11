@@ -575,7 +575,7 @@ enum E { A, B };
 
 ```cpp
 enum_name(E):
-        mov     eax, 1                  // size
+        mov     eax, 1                  // size=1
         test    edi, edi
         je      .LBB0_1
         cmp     edi, 1
@@ -587,12 +587,12 @@ enum_name(E):
         ret
 .LBB0_4:
         lea     rdx, [rip + .L.str.2]  // unknown
-        xor     eax, eax
+        xor     eax, eax               // size=0
         ret
 
-.L.str:   .asciz  "A"
-.L.str.1: .asciz  "B"
-.L.str.2: .zero   1                   // ""
+.L.str:   .string  "A"
+.L.str.1: .string  "B"
+.L.str.2: .string  ""
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -667,13 +667,13 @@ enum_name(E):
 ```cpp
 jump_table:
         .byte   0                           // offset: 0 - "A"
-        .byte   1                           // offset: 1 - "B"
+        .byte   2                           // offset: 2 - "B"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 buffer:
-        .ascii  "\1A\1B"                    // [size][name]...
+        .string  "\1A\1B"                  // [size][name]...
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -735,8 +735,6 @@ template<auto cases, auto unknown>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  static constexpr auto buffer = to<std::array>(cases); // "AB"
-
   auto switch_case = [&]<auto I = 0>(auto switch_case, auto value) {
     switch (value) {
       default:
@@ -745,8 +743,7 @@ template<auto cases, auto unknown>
           unknown;
 
       case cases[I]:
-        return make<unknown>(&buffer[offset<cases>(cases[I])],
-                             size(cases[I]));
+        return make<unknown>(name_of(cases[I]), size(cases[I]));
       }
     }
   };
@@ -768,20 +765,25 @@ template<auto cases, auto unknown>
 ##### `switch-case` - https://godbolt.org/z/vozn8csWr
 
 ```cpp
-enum_name(E):
+enum_name(E):                           // same as if-else
+        mov     eax, 1                  // size=1
         test    edi, edi
-        mov     edx, buffer+1 // B
-        mov     eax, buffer   // A
-        cmovne  rax, rdx      // conditional move
-        mov     rdx, rax
-        mov     eax, 1        // size
+        je      .LBB0_1
+        cmp     edi, 1
+        jne     .LBB0_4
+        lea     rdx, [rip + .L.str.1]   // B
         ret
-```
-<!-- .element: class="fragment" -->
+.LBB0_1:                                // A
+        lea     rdx, [rip + .L.str]
+        ret
+.LBB0_4:
+        lea     rdx, [rip + .L.str.2]  // unknown
+        xor     eax, eax               // size=0
+        ret
 
-```cpp
-buffer:
-        .ascii  "AB"          // enum names
+.L.str:   .string  "A"
+.L.str.1: .string  "B"
+.L.str.2: .string  ""
 ```
 <!-- .element: class="fragment" -->
 
