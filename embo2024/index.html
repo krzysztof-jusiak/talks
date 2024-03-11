@@ -608,7 +608,7 @@ template<auto cases, auto unknown>
 
 ```cpp
   const auto value = std::to_underlying(e);
-  if (value < min(cases) or value > max(cases)) [[unlikely]] {
+  if (value < low(cases) or value > high(cases)) [[unlikely]] {
     return unknown;
   }
 ```
@@ -633,7 +633,7 @@ template<auto cases, auto unknown>
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  }(std::make_index_sequence<max(cases)-min(cases)+1/*inclusive*/>{});
+  }(std::make_index_sequence<high(cases)-low(cases)+1/*inclusive*/>{});
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -689,41 +689,41 @@ buffer:
 
 ----
 
-##### `switch-case` - [gcc] switch lowering strategies (per clusters)
+##### `switch-case` - switch lowering strategies (per clusters)
 
-##### bitset (gcc)
-<!-- .element: class="fragment" -->
+##### 1. bitset (gcc) / (x86-64/bt) - https://godbolt.org/z/WexfPYjdc
+<!-- .element: class="fragment" style="float:left" -->
+<br />
+
 
 ```cpp
-bool bit_test_cluster::is_beneficial (unsigned count, unsigned uniq) {
-    // count: number of cases, uniq: number of distinct edges
-    return ((uniq == 1 && count >= 3) ||
-            (uniq == 2 && count >= 5) ||
-            (uniq == 3 && count >= 6));
+bool bit_test_cluster::is_beneficial(unsigned count, unsigned uniq) {
+  // count: number of cases, uniq: number of distinct values
+  return (uniq==1 && count>=3) || (uniq==2 && count>=5) ||
+         (uniq==3 && count>=6);
 }
 ```
 <!-- .element: class="fragment" -->
 
-##### jump-table (gcc/clang)
-<!-- .element: class="fragment" -->
+##### 2. jump-table (gcc/clang)
+<!-- .element: class="fragment" style="float:left" -->
+<br />
 
 ```cpp
-unsigned int case_values_threshold (void) {
-  return (targetm.have_casesi () ? 4 : 5); // casesi: hardware support
+unsigned max_ratio = optimize_insn_for_size_p()  // Os vs O{1,2,3,fast}
+  ? param_jump_table_max_growth_ratio_for_size   // 2
+  : param_jump_table_max_growth_ratio_for_speed; // 8
+bool jump_table_cluster::can_be_handled (unsigned cmp_count) {
+  return get_range(get_low(), get_high()) <= max_ratio * cmp_count;
 }
-bool jump_table_cluster::is_beneficial (unsigned start, unsigned end) {
-    if (start == end) return false;
-    return end - start + 1 >= case_values_threshold ();
+bool jump_table_cluster::is_beneficial(unsigned start, unsigned end) {
+  return end - start + 1 >= (targetm.have_casesi () ? 4 : 5);
 }
 ```
 <!-- .element: class="fragment" -->
 
-##### decision tree comparisons (gcc/clang)
-<!-- .element: class="fragment" -->
-```cpp
-otherwise (it takes __builtin_expect_with_probability into account)
-```
-<!-- .element: class="fragment" -->
+##### 3. [otherwise] decision tree comparisons (gcc/clang) / (__builtin_expect_with_probability)
+<!-- .element: class="fragment" style="float:left" -->
 
 ----
 
@@ -922,13 +922,14 @@ constexpr auto enum_name_policy =
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  if constexpr (std::size(cases) <= 2) {
+  if constexpr (std::size(cases) <= 4) {
     return if_else<cases, unknown>(e);
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  } else if constexpr (cases.max()-cases.min() <= 8) {
+  } else if constexpr (cases.high()-cases.low() <= 32 and
+                       cases.max_ratio() <= 4) {
     return jump_table<cases, unknown>(e);
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
@@ -967,10 +968,10 @@ constexpr auto enum_name_policy =
 
 ---
 
-#### C++26 Static reflection (https://wg21.link/P2996)
+- #### C++26 Static reflection (https://wg21.link/P2996)
 <!-- .element: class="fragment" -->
 
-#### C++20 (https://github.com/boost-ext/{mp,reflect,mph})
+- #### C++20 (https://github.com/boost-ext/{mp,reflect,mph})
 <!-- .element: class="fragment" -->
 
 ---
