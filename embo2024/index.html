@@ -76,6 +76,9 @@
 * #### Case study
 <!-- .element: class="fragment" -->
 
+  * #### Name of enum
+  <!-- .element: class="fragment" -->
+
 * #### Summary
 <!-- .element: class="fragment" -->
 
@@ -106,41 +109,13 @@
   - ##### Injection (code generation)
   <!-- .element: class="fragment" -->
 
-      ##### `switch { ... }`
+      ##### `switch { ... }`, `pack(T)`, ...
   <!-- .element: class="fragment" -->
 
-  - ##### SoA - structure of arrays
+- ##### Maintability/Flexibility/Debuggability
 <!-- .element: class="fragment" -->
 
-  - ##### `pack(T)`
-<!-- .element: class="fragment" -->
-
-----
-
-##### Motivation
-
-- ##### Maintability/Flexibility
-<!-- .element: class="fragment" -->
-
-  ##### `serialize(T)`
-<!-- .element: class="fragment" -->
-
-- ##### Debuggability (dump struct)
-<!-- .element: class="fragment" -->
-  ##### `log(T)`
-<!-- .element: class="fragment" -->
-
-----
-
-##### Reflection
-
-- ##### Dynamic (at run-time)
-<!-- .element: class="fragment" -->
-
-- ##### Static (at compile-time*)
-<!-- .element: class="fragment" -->
-
-  - ##### \*almost!
+  ##### `serialize(T)`, `log(T)`, ...
 <!-- .element: class="fragment" -->
 
 ----
@@ -148,7 +123,7 @@
 ##### Reflection
 
 - ##### What?
-  - ##### Introspection
+  - ##### Introspection (dynamic:run-time, static:compile-time)
 <!-- .element: class="fragment" -->
       - ##### get enum name, get members of a struct
 <!-- .element: class="fragment" -->
@@ -197,7 +172,7 @@
 
 ##### Reflection for C++26 (https://wg21.link/P2996)
 
-- ##### value based
+- ##### Value based
 <!-- .element: class="fragment" -->
     ```
       ^T                // lift (reflexpr)
@@ -207,10 +182,10 @@
     ```
 <!-- .element: class="fragment" -->
 
-- ##### consteval based (harder to test as no lowering to run-time)
+- ##### `consteval` based (harder to test as no lowering to run-time)
 <!-- .element: class="fragment" -->
 
-- ##### template meta-programming included
+- ##### Template Meta-Programming included
 <!-- .element: class="fragment" -->
   ```cpp
   static_assert(
@@ -300,6 +275,9 @@ constexpr auto meta_contains = [] {
 ```
 <!-- .element: class="fragment" -->
 
+##### Possible but not advised!
+<!-- .element: class="fragment" -->
+
 ----
 
 #### C++26 - injection - https://godbolt.org/z/ExYfTv4nK
@@ -367,11 +345,11 @@ consteval void gen_cases(auto& builder, auto cases) {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-template <class E>
+template<class E>
 constexpr auto to_string(E value) {
   switch(value) {
     %gen_cases(^E); // code generation...
-    default : 
+    default :
       return "";
   }
 }
@@ -393,22 +371,29 @@ enum E { A, B };
 
 ```cpp
 // flag enum
-enum class E_flag { A=0b001,
-                    B=0b010,
-                    C=0b100, };
+enum class E_flag {
+  A = 0b001,
+  B = 0b010,
+  C = 0b100,
+};
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
 // combined cases enum
-enum class E_combined { UNKNOWN=-1,
-                        A=0,
-                        B=10,
-                        C=20,
-                        D=30,
-                        E=40,
-                        BIG=100, };
+enum class e_combined {
+  zero = 0,
+  big  = 879,
+  _3   = 3,
+  _4   = 4,
+  _5   = 5,
+  _6   = 6,
+  _7   = 7,
+};
 ```
+<!-- .element: class="fragment" -->
+
+##### [note] Code based on enum_name but ideas are generally applicable
 <!-- .element: class="fragment" -->
 
 ----
@@ -418,7 +403,7 @@ enum class E_combined { UNKNOWN=-1,
 ```cpp
 template<class E>
   requires std::is_enum_v<E>
-constexpr auto enum_name(const E value) -> std::string {
+constexpr auto enum_name(E value) -> std::string {
   std::string result = ""; // unknown
   [:expand(std::meta::enumerators_of(^E)):] >> [&]<auto e> {
     if (value == [:e:]) {
@@ -447,7 +432,7 @@ static_assert(""  == enum_name(E(42));
 #### C++26 - enum_name - https://godbolt.org/z/Eqffvn4dz
 
 ```cpp
-template <class E>
+template<class E>
   requires std::is_enum_v<E>
 constexpr auto enum_name(E value) -> std::string {
   template for (constexpr auto e : std::meta::enumerators_of(^E)) {
@@ -481,7 +466,7 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 ```
 <!-- .element: class="fragment" -->
 
-<img src="images/enum.png" style="width: 15%; background:none; border:none; box-shadow:none;" />
+<img src="images/enum.png" style="width: 16%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
 ###### EDG (experimental reflection)
@@ -491,10 +476,7 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 
 #### C++26 - enum_name - trade-offs?
 
-- ##### compile-time
-<!-- .element: class="fragment" -->
-
-  - ##### compilation times
+- ##### compile-time / compilation-times
 <!-- .element: class="fragment" -->
 
 - ##### run-time
@@ -503,13 +485,13 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
   - ##### performance
 <!-- .element: class="fragment" -->
 
-    - ##### if-else/jump-table/switch-case/hashing
+    - ##### if-else/jump-table/switch-case/hashing,...
 <!-- .element: class="fragment" -->
 
   - ##### binary size
 <!-- .element: class="fragment" -->
 
-    - ##### return type / shared buffers
+    - ##### return type / buffer sharing
 <!-- .element: class="fragment" -->
 
   - ##### usability
@@ -524,7 +506,10 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 
 ---
 
-##### Trying to address enum-name's trade-offs
+- ##### Trying to address enum-name's trade-offs
+<!-- .element: class="fragment" -->
+
+- ##### Possible to implement in C++20 (https://github.com/boost-ext/reflect)
 <!-- .element: class="fragment" -->
 
 ----
@@ -533,20 +518,19 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 
 ```cpp
 template<
-  class R = std::string_view,    // safe default
-  R unknown = {},                // needs fixed_string
+  string_view unknown = "",      // aka fixed_string
   auto policy = enum_name_policy // we will get back to that...
-> 
+>
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-[[nodiscard]] constexpr auto enum_name(Enum auto e) noexcept -> R {
+[[nodiscard]] constexpr auto enum_name(Enum auto e) noexcept {
   if constexpr (constexpr auto cases = std::meta::enumerators_of(^E);
     std::empty(cases)) {
     return unknown;
   } else {
-    return policy.template operator()<R, cases, unknown>(e);
+    return policy.template operator()<cases, unknown>(e);
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -556,22 +540,26 @@ template<
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+###### Possible in C++20 (https://github.com/boost-ext/reflect)
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
 ----
 
 ##### `if-else` - https://godbolt.org/z/fbcT76ocT
 
 ```cpp
-template <class R, auto cases, auto unknown>
-[[nodiscard]] constexpr auto if_else(Enum auto e) noexcept -> R {
+template<auto cases, auto unknown>
+[[nodiscard]] constexpr auto if_else(Enum auto value) noexcept {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
   static constexpr auto buffer = to<std::array>(cases); // "AB"
 
-  template for (constexpr auto case : cases) { // P1306
-    if (value == [:case:]) {
-      return make<R>(&buffer[offset<cases>(case)], size<cases>(case));
+  template for (constexpr auto c : cases) { // P1306
+    if (value == [:c:]) {
+      return make<decltype(unknown)>(&buffer[offset<cases>(c)],
+                                     size(c));
     }
   }
 
@@ -621,11 +609,11 @@ buffer:
 
 ----
 
-##### `jump-table` - https://godbolt.org/z/v59f6czns
+##### `jump-table` - https://godbolt.org/z/q76ErE99P
 
 ```cpp
-template<class R, auto cases, auto unknown>
-[[nodiscard]] constexpr auto jump_table(Enum auto e) noexcept -> R {
+template<auto cases, auto unknown>
+[[nodiscard]] constexpr auto jump_table(Enum auto e) noexcept {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -636,21 +624,24 @@ template<class R, auto cases, auto unknown>
 
 ```cpp
     static constexpr buffer = to<std::array>(cases); // "AB"
-    static constexpr struct
-      alignas(std::hardware_destructive_interference_size)
-        : std::array<std::string_view, sizeof...(Is)> { } array {
-      [&] {
-        if constexpr (constexpr auto case = cases[I]) {
-          return make<R>(&buffer[offset<cases>(case)], size<cases>(case));
-        } else {
-          return unknown;
-        }
-      }()...
-    } jump_table{};
-
-    return jump_table[value-enum_parsed.min()];
+    // consider alignas(std::hardware_destructive_interference_size)
+    static constexpr auto jump_table = std::array{ [&] {
+      if constexpr (constexpr auto case = cases[I]) {
+        return make<decltype(unknown)>(&buffer[offset<cases>(case)],
+                                       size<cases>(case));
+      } else { return unknown; } }()...
+    };
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    const auto value = std::to_underlying(e);
+    if (value < min(cases) or value > max(cases)) [[unlikely]] {
+      return unknown;
+    }
+    return jump_table[value-min(cases)];
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
   }(std::make_index_sequence<std::size(cases)>{});
@@ -664,10 +655,11 @@ template<class R, auto cases, auto unknown>
 
 ----
 
-##### `jump-table` - https://godbolt.org/z/v59f6czns
-
+##### `jump-table` - https://godbolt.org/z/q76ErE99P
 ```cpp
 enum_name(E):
+        cmpl    $1, %edi
+        ja      .L3
         movl    %edi, %edi
         salq    $4, %rdi
         movq    jump_table(%rdi), %rax
@@ -677,37 +669,31 @@ enum_name(E):
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-jump_table:
-        .quad   1        // size
+.L3:
+        xorl    %eax, %eax
+        xorl    %edx, %edx
+        ret
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+jump_table:              // storage can be improved (later slides...)
+        .quad   1        // size (std::string_view::size:std::size_t)
         .quad   buffer   // A
         .quad   1        // size
         .quad   buffer+1 // B
-        .zero   32       // align to 64 (x86-64 cacheline)
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 buffer:
         .ascii  "AB"     // enum names
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
-##### `switch-case`
-
-
-##### Compiler heuristics for switch lowering strategies 
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-- ##### bitset (gcc)
-<!-- .element: class="fragment" -->
-- ##### if-else (gcc/clang)
-<!-- .element: class="fragment" -->
-- ##### jump-table (gcc/clang)
-<!-- .element: class="fragment" -->
-- ##### binary decision tree (gcc/clang)
-<!-- .element: class="fragment" -->
+##### `switch-case` - compiler heuristics for switch lowering strategies
 
 ---
 
@@ -716,33 +702,75 @@ buffer:
 
 ----
 
+##### `switch-case` - switch lowering strategies (for clusters)
+
+##### bitset (gcc)
+<!-- .element: class="fragment" -->
+
+```cpp
+bool bit_test_cluster::is_beneficial (unsigned count, unsigned uniq) {
+    // count: number of cases, uniq: number of distinct edges
+    return ((uniq == 1 && count >= 3) ||
+            (uniq == 2 && count >= 5) ||
+            (uniq == 3 && count >= 6));
+}
+```
+<!-- .element: class="fragment" -->
+
+##### jump-table (gcc/clang)
+<!-- .element: class="fragment" -->
+
+```cpp
+unsigned int case_values_threshold (void) {
+  return (targetm.have_casesi () ? 4 : 5); // casesi: hardware support
+}
+bool jump_table_cluster::is_beneficial (unsigned start, unsigned end) {
+    if (start == end) return false;
+    return end - start + 1 >= case_values_threshold ();
+}
+```
+<!-- .element: class="fragment" -->
+
+##### decision tree comparisons (gcc/clang)
+<!-- .element: class="fragment" -->
+```cpp
+otherwise (it takes __builtin_expect_with_probability into account)
+```
+<!-- .element: class="fragment" -->
+
+----
+
 ##### `switch-case` - https://godbolt.org/z/vozn8csWr
 
 ```cpp
-template<auto enum_parsed, fixed_string unknown>
-[[nodiscard]] constexpr auto switch_case(const auto value)  {
+template<auto cases, auto unknown>
+[[nodiscard]] constexpr auto switch_case(Enum auto e)  {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  constexpr auto infos = enum_parsed.infos;
-  static constexpr auto buffer = enum_parsed.buffer;
+  static constexpr auto buffer = to<std::array>(cases); // "AB"
 
-  const auto switch_case = [&]<auto I = 0>(auto switch_case) {
+  auto switch_case = [&]<auto I = 0>(auto switch_case, auto value) {
     switch (value) {
-      default: {
-        if constexpr (I < enum_parsed.max()) {
-          return switch_case.template operator()<I+1>(switch_case);
-        }
+      case cases[I]:
+        return make<decltype(unknown)>(&buffer[offset<cases>(cases[I])],
+                                       size(cases[I]));
+      default:
+        if constexpr (I < std::size(cases)) {
+          return switch_case.template
+            operator()<I+1>(switch_case, value);
+        } else { return unknown; }
       }
-      case infos[I].index:
-        return {&buffer[infos[I].begin], infos[I].size};
     }
   };
-
-  return switch_case(switch_case);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return switch_case(switch_case, std::to_underlying(e));
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 }
@@ -758,99 +786,110 @@ enum_name(E):
         test    edi, edi
         mov     edx, buffer+1 // B
         mov     eax, buffer   // A
-        cmovne  rax, rdx
+        cmovne  rax, rdx      // conditional move
         mov     rdx, rax
-        mov     eax, 1       // size
+        mov     eax, 1        // size
         ret
+```
+
+```cpp
 buffer:
-        .ascii  "AB"
+        .ascii  "AB"          // enum names
+
 ```
 
 ----
 
-##### Minimal-Perfect-Hashing
+##### `switch-case` - https://godbolt.org/z/cYj4381GW
 
-<img src="images/mph.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
-
-- ##### Given a list of N keys (known at compile-time) find a perfect hash function (maps keys into range from 0 to N-1)
+```cpp
+template auto enum_name(e_combined) // x86-64 assembly
+```
 <!-- .element: class="fragment" -->
 
-  - ##### Hardware accelerated (bit manipulation instructions sets)
-  <!-- .element: class="fragment" -->
+<img src="images/switch.png" style="width: 23%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+###### Minimal-Perfect-Hashing (MPH)
+
+<img src="images/mph.png" style="width: 40%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+- ##### Minimal perfect hashing maps keys into range from 0 to N-1
+<!-- .element: class="fragment" -->
 
   - ##### Brute-force* hash finding (multiply/shift/xor)
   <!-- .element: class="fragment" -->
 
-----
-
-##### [x86-64/BMI2] PEXT Instruction
-
-##### https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext
-<!-- .element: class="fragment" -->
-
-```cpp
-word:   0010101011010111
-mask:   0011100100100010
-masked: __101__0__0___1_
-PEXT:   __________101001
-```
-<!-- .element: class="fragment" -->
-
----
-
-#### https://uops.info/table.html?search=pext
-<!-- .element: class="fragment" -->
-
-<img src="images/pext.png" style="width: 75%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
+  - ##### Hardware accelerated (ex. [X86-64/BMI2/PEXT](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext))
+  <!-- .element: class="fragment" -->
+    ```cpp
+    word:   0010101011010111
+    mask:   0011100100100010
+    masked: __101__0__0___1_
+    PEXT:   __________101001 (latency: 3, uops: 1)
+    ```
+    <!-- .element: class="fragment" -->
 
 ----
 
 ##### Minimal-Perfect-Hashing - https://github.com/boost-ext/mph
 
 ```cpp
-template <auto cases, fixed_string unknown>
-[[nodiscard]] auto mph(const auto value) noexcept -> std::string_view {
-  constexpr auto indexes = [&]<auto... Is>(std::index_sequence<Is...>) {
-    return std::array{std::pair{cases[Is].index, cases[Is].begin}...};
+template<auto cases, auto unknown> [[nodiscard]] [[gnu::target("bmi2")]]
+constexpr auto mph(ScopedEnum auto e) noexcept {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  constexpr auto keys = [&]<auto... Is>(std::index_sequence<Is...>) {
+    return std::array{std::pair{index(cases[Is]),
+                                offset<cases>(cases[Is])}...};
   }(std::make_index_sequence<std::size(cases)>{});
+```
+<!-- .element: class="fragment" -->
 
-  constexpr auto policies = []<const auto...ts>(auto&&... args) {
-    return mph::pext<8u, mph::unconditional>{}.template operator()<ts...>(std::forward<decltype(args)>(args)...);
-  };
+```cpp
+  // find unique mask which can represent all keys
+  constexpr auto mask = find_mask<keys>();
+```
+<!-- .element: class="fragment" -->
 
-  const auto begin = mph::hash<indexes, policies>(value);
-  static constexpr const auto buffer = enum_parsed.first;
-  return std::string_view{&buffer[begin+1], std::size_t(buffer[begin])};
+```cpp
+  const auto ext = pext(std::to_underlying(e), mask);
+```
+<!-- .element: class="fragment" -->
+
+
+```cpp
+  static constexpr auto index =       // index table
+    make_index<keys, mask>();         // size=2^popcount(mask)
+  static constexpr auto buffer =
+    to<std::array, with_size>(cases); // "1A1B"
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+  const auto value = index[ext];
+  return make<decltype(unknown)>(&buffer[index+1], buffer[index]);
+```
+<!-- .element: class="fragment" -->
+
+```cpp
 }
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-#### Minimal-Perfect-Hashing - https://godbolt.org/z/6P3crWvEW
-
-```
-enum class e_combined {
-  zero = 0,
-  big = 879,
-  _3 = 3,
-  _4 = 4,
-  _5 = 5,
-  _6 = 6,
-  _7 = 7,
-};
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Minimal-Perfect-Hashing - https://godbolt.org/z/G5oe9Ws3v
+##### Minimal-Perfect-Hashing - https://godbolt.org/z/6P3crWvEW
 
 ```cpp
 enum_name(e_combined):
-  mov eax, 519       // mask computed at compile-time
-  pext edi, edi, rdx // bmi2 - hardware accelerated
+  mov eax, 519       // mask computed at compile-time (find_mask)
+  pext edi, edi, rdx // wikipedia/X86_Bit_manipulation_instruction_set
   movzx edx, BYTE PTR index[rdi]
   movsx rdx, BYTE PTR buffer[rdx]
   ret
@@ -872,7 +911,7 @@ buffer:
 ```
 <!-- .element: class="fragment" -->
 
-##### Same assembly for different enums  but index and buffer will grow ([llvm-mca](https://godbolt.org/z/G5oe9Ws3v) / [uops](https://uica.uops.info))
+##### Same assembly for different enums  but index and buffer may grow ([llvm-mca](https://godbolt.org/z/G5oe9Ws3v) / [uops](https://uica.uops.info))
 <!-- .element: class="fragment" -->
 
 ----
@@ -881,26 +920,41 @@ buffer:
 
 ```cpp
 constexpr auto enum_name_policy =
-  []<class R, auto caces, auto unknown>(Enum auto e) noexcept -> R {
+  []<auto cases, auto unknown>(Enum auto e) noexcept {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  // Example heuristic but it's likely to 
+  // Example heuristic but it's likely to
   // be different for specific use cases
   // Measure for your use case!
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
+```cpp
   if constexpr (std::size(cases) <= 2) {
-    return if_else<R, cases, unknown>(e);
-  } else if constexpr (cases.max() - cases.min() < 16u) {
-    return jump_table<R, cases, unknown>(e);
-  } else if constexpr (requires { mph<R, cases, unknown>(e); }) {
-    return mph<R, cases, unknown>(e);
+    return if_else<cases, unknown>(e);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  } else if constexpr (cases.max()-cases.min() <= 8) {
+    return jump_table<cases, unknown>(e);
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+  } else if constexpr (requires { mph<cases, unknown>(e); }) {
+    return mph<cases, unknown>(e);
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
   } else {
-    return switch_case<R, cases, unknown>(e);
+    return switch_case<cases, unknown>(e);
   }
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="6" -->
 
 ```cpp
 };
@@ -922,7 +976,7 @@ constexpr auto enum_name_policy =
 
 * #### There is no silver bullet if it comes to the performance (just trade-offs)
 <!-- .element: class="fragment" -->
-  - #### Policies are one way of dealing with the trade-offs for specific cases
+  - #### Policies are one way of dealing with these trade-offs for specific cases
   <!-- .element: class="fragment" -->
 
 ----
@@ -932,7 +986,10 @@ constexpr auto enum_name_policy =
 ---
 
 * #### C++26 Static reflection (https://wg21.link/P2996)
+<!-- .element: class="fragment" -->
+
 * #### C++20 (https://github.com/boost-ext/{mp,reflect,mph})
+<!-- .element: class="fragment" -->
 
 ---
 
