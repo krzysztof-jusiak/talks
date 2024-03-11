@@ -497,14 +497,11 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 
 ----
 
-#### v2::enum_name
+### v2::enum_name
 
 ---
 
-- ##### Like enum_name just with different set of trade-offs
-<!-- .element: class="fragment" -->
-
-- ##### Possible to implement in C++20 (https://github.com/boost-ext/reflect)
+##### Like `enum_name` just with different set of trade-offs
 <!-- .element: class="fragment" -->
 
 ----
@@ -513,8 +510,8 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 
 ```cpp
 template<
-  string_view unknown = "",      // aka fixed_string
-  auto policy = enum_name_policy // we will get back to that... (*)
+  auto unknown = fixed_string{""}, // https://godbolt.org/z/rro8eMv77
+  auto policy  = enum_name_policy  // (*) we will get back to that...
 >
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -552,7 +549,7 @@ template<auto cases, auto unknown>
 ```cpp
   template for (constexpr auto c : cases) { // P1306
     if (value == [:c:]) {
-      return make<decltype(unknown)>(name_of(c), size(c));
+      return make<unknown>(name_of(c), size(c));
     }
   }
 
@@ -631,7 +628,7 @@ template<auto cases, auto unknown>
     static constexpr auto buffer =
       to<std::array, with_size>(cases); // "1A1B"
     const auto [offset, size] = jump_table[value-min(cases)];
-    return make<decltype(unknown)>{&buffer[offset], size};
+    return make<unknown>{&buffer[offset], size};
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -743,14 +740,14 @@ template<auto cases, auto unknown>
 
   auto switch_case = [&]<auto I = 0>(auto switch_case, auto value) {
     switch (value) {
-      case cases[I]:
-        return make<decltype(unknown)>(&buffer[offset<cases>(cases[I])],
-                                       size(cases[I]));
       default:
-        if constexpr (I < std::size(cases)) {
-          return switch_case.template
-            operator()<I+1>(switch_case, value);
-        } else { return unknown; }
+        return I < std::size(cases) ? 
+          switch_case.template operator()<I+1>(switch_case, value) :
+          unknown;
+
+      case cases[I]:
+        return make<unknown>(&buffer[offset<cases>(cases[I])],
+                             size(cases[I]));
       }
     }
   };
@@ -867,7 +864,7 @@ constexpr auto mph(ScopedEnum auto e) noexcept {
 
 ```cpp
   const auto value = index[ext];
-  return make<decltype(unknown)>(&buffer[value+1], buffer[value]);
+  return make<unknown>(&buffer[value+1], buffer[value]);
 ```
 <!-- .element: class="fragment" -->
 
