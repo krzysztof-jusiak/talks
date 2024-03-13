@@ -362,13 +362,25 @@ constexpr auto to_string(E value) {
 ##### Case study - `enum_name`
 
 ```cpp
-// simple enum
+// simple enums
 enum E { A, B };
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-// flag enum
+// scoped enums
+enum class E_combined1 {
+  zero=0, big=879, _3=3, _4=4, _5=5, _6=6, _7=7,
+};
+
+enum class E_combined2 {
+  _0=0, _1=10, _2=20, _3=30, _4=40, _5=50, _6=60, _7=70, _8=80, _9=90,
+};
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+// flag enums (not addressed in this talk)
 enum class E_flag {
   A = 0b001,
   B = 0b010,
@@ -377,19 +389,6 @@ enum class E_flag {
 ```
 <!-- .element: class="fragment" -->
 
-```cpp
-// combined cases enum
-enum class e_combined {
-  zero = 0,
-  big  = 879,
-  _3   = 3,
-  _4   = 4,
-  _5   = 5,
-  _6   = 6,
-  _7   = 7,
-};
-```
-<!-- .element: class="fragment" -->
 
 ##### Examples based on enum_name but ideas are generally applicable
 <!-- .element: class="fragment" -->
@@ -510,8 +509,8 @@ template auto enum_name(E) -> std::string; // x86-64 assembly
 
 ```cpp
 template<
-  auto unknown = fixed_string{""}, // https://godbolt.org/z/rro8eMv77
-  auto policy  = enum_name_policy  // (*) we will get back to that...
+ auto unknown= fixed_string_view{""}, // https://godbolt.org/z/rro8eMv77
+ auto policy = enum_name_policy       // (*) we will get back to that...
 >
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -765,25 +764,36 @@ template<auto cases, auto unknown>
 ##### `switch-case` - https://godbolt.org/z/vozn8csWr
 
 ```cpp
-enum_name(E):                           // same as if-else
-        mov     eax, 1                  // size=1
+enum_name(E_combined1):
+        cmp     edi, 7
+        jg      .L2
         test    edi, edi
-        je      .LBB0_1
-        cmp     edi, 1
-        jne     .LBB0_4
-        lea     rdx, [rip + .L.str.1]   // B
+        ...
+        jmp     [QWORD PTR .L6[0+rdi*8]]
+.L6:
+        .quad   .L12
+        .quad   .L11
+        .quad   .L11
+        .quad   .L10
+        .quad   .L9
+        .quad   .L8
+        .quad   .L7
+        .quad   .L5
+.L11:
+        mov     eax, OFFSET FLAT:.LC7
         ret
-.LBB0_1:                                // A
-        lea     rdx, [rip + .L.str]
+        ...
+.L2:
+        cmp     edi, 879 // special case
+        mov     edx, OFFSET FLAT:.LC1
+        mov     eax, OFFSET FLAT:.LC7
+        cmove   rax, rdx
         ret
-.LBB0_4:
-        lea     rdx, [rip + .L.str.2]  // unknown
-        xor     eax, eax               // size=0
-        ret
+```
+<!-- .element: class="fragment" -->
 
-.L.str:   .string  "A"
-.L.str.1: .string  "B"
-.L.str.2: .string  ""
+```cpp
+.LC0: .string "zero" .LC1: .string "big" .LC2: .string "_3" ...
 ```
 <!-- .element: class="fragment" -->
 
@@ -792,11 +802,11 @@ enum_name(E):                           // same as if-else
 ##### `switch-case` - https://godbolt.org/z/cYj4381GW
 
 ```cpp
-template auto enum_name(e_combined) // x86-64 assembly
+template auto enum_name(E_combined2) // x86-64 assembly
 ```
 <!-- .element: class="fragment" -->
 
-<img src="images/switch.png" style="width: 21%; background:none; border:none; box-shadow:none;" />
+<img src="images/switch.png" style="width: 16%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
 ##### decision tree comparisons (gcc/clang)
@@ -873,7 +883,7 @@ constexpr auto mph(ScopedEnum auto e) noexcept {
 ##### Minimal-Perfect-Hashing - https://godbolt.org/z/fa8hv3TTj
 
 ```cpp
-enum_name(e_combined):
+enum_name(E_combined1):
   movl $519, %eax           // mask computed at compile-time (find_mask)
   pext %eax, %edi, %edi     // bit manipulation instruction set (BMI2)
   movzbl index(%rdi), %edx  // offset
@@ -900,13 +910,7 @@ buffer:
 ##### Minimal-Perfect-Hashing - https://godbolt.org/z/fa8hv3TTj
 
 ```cpp
-enum_name(E):
-  movl $1, %eax
-  pext %eax, %edi, %edi
-  movl %edi, %edi
-  movzbl index(%rdi), %eax
-  addq buffer, %rax
-  ret
+enum_name(E): ... // same as before
 ```
 <!-- .element: class="fragment" -->
 
@@ -915,16 +919,30 @@ index:
   .byte 1
   .byte 3
   .zero 2
+
+buffer:
+  .string "\1A\1B"
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+enum_name(E_combined2): // same as before
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-buffer:
-  .string "\001A\001B"
-```
-<!-- .element: class="fragment" -->
+index:
+  .byte 0  .byte 3  .byte 6
+  .byte 9  .byte 0  .byte 12
+  .byte 15 .byte 18 .byte 21
+  .byte 0  .byte 24 .byte 27
+  .byte 0  .byte 0  .byte 0
 
-##### Same assembly for different enums  but index and buffer will change ([llvm-mca](https://godbolt.org/z/G5oe9Ws3v) / [uops](https://uica.uops.info))
+buffer:
+  .string "\2_0\2_1\2_2\2_3\2_4\2_5\2_6\2_7\2_8\2_9"
+```
 <!-- .element: class="fragment" -->
 
 ----
