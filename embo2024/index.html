@@ -566,13 +566,6 @@ template<auto cases, auto unknown>
 ##### `if-else` - https://godbolt.org/z/fbcT76ocT
 
 ```cpp
-enum E { A, B };
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
 enum_name(E):
         mov     eax, 1                  // size=1
         test    edi, edi
@@ -764,27 +757,26 @@ template<auto cases, auto unknown>
 ##### `switch-case` - https://godbolt.org/z/vozn8csWr
 
 ```cpp
+enum_name(E): // same as if-else
+```
+<!-- .element: class="fragment" -->
+
+```cpp
 enum_name(E_combined1):
         cmp     edi, 7
         jg      .L2
         test    edi, edi
         ...
         jmp     [QWORD PTR .L6[0+rdi*8]]
-.L6:
-        .quad   .L12
-        .quad   .L11
-        .quad   .L11
-        .quad   .L10
-        .quad   .L9
-        .quad   .L8
-        .quad   .L7
-        .quad   .L5
+.L6: // jump-table
+        .quad .L12 .quad .L11 .quad .L11 .quad .L10
+        .quad .L9  .quad .L8  .quad .L7  .quad .L5
 .L11:
         mov     eax, OFFSET FLAT:.LC7
         ret
         ...
-.L2:
-        cmp     edi, 879 // special case
+.L2: // special case
+        cmp     edi, 879
         mov     edx, OFFSET FLAT:.LC1
         mov     eax, OFFSET FLAT:.LC7
         cmove   rax, rdx
@@ -816,24 +808,24 @@ template auto enum_name(E_combined2) // x86-64 assembly
 
 ##### Minimal-Perfect-Hashing (MPH)
 
+- ##### Maps - known ahead - keys into range from 0 to N-1
 <img src="images/mph.png" style="width: 40%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
-- ##### Minimal perfect hashing maps keys into range from 0 to N-1
 <!-- .element: class="fragment" -->
 
-  - ##### Precompute hash ([gperf, cmph, ...](https://github.com/tpn/pdfs/tree/master/Perfect%20Hashing))
+  - ##### hash ([gperf*, cmph, ...](https://github.com/tpn/pdfs/tree/master/Perfect%20Hashing))
   <!-- .element: class="fragment" -->
 
-  - ##### Precompute mask ([x86-64/bmi2/pext](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext))
-  <!-- .element: class="fragment" -->
-    ```cpp
-    word:   0010101011010111
-    mask:   0011100100100010
-    masked: __101__0__0___1_
-    pext:   __________101001 (latency: 3 cycles)
-    ```
+    - ##### mask ([x86-64/bmi2/pext](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext))
     <!-- .element: class="fragment" -->
+      ```cpp
+      word:   0010101011010111
+      mask:   0011100100100010
+      masked: __101__0__0___1_
+      pext:   __________101001 (latency: 3 cycles / skylake)
+      ```
+      <!-- .element: class="fragment" -->
 
 ----
 
