@@ -817,7 +817,7 @@ template auto enum_name(E_combined2) // x86-64 assembly
   - ##### hash ([gperf*, cmph, ...](https://github.com/tpn/pdfs/tree/master/Perfect%20Hashing))
   <!-- .element: class="fragment" -->
 
-    - ##### mask ([x86-64/bmi2/pext](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext))
+    - ##### mask ([x86-64/bmi2/pext](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext)) - Parallel Bits Extract
     <!-- .element: class="fragment" -->
       ```cpp
       word:   0010101011010111
@@ -879,7 +879,7 @@ enum_name(E_combined1):
   movl $519, %eax           // mask computed at compile-time (find_mask)
   pext %eax, %edi, %edi     // bit manipulation instruction set (BMI2)
   movzbl index(%rdi), %edx  // offset
-  addq buffer, %rax         // buffer
+  addq buffer+1, %rax       // buffer
   ret
 ```
 <!-- .element: class="fragment" -->
