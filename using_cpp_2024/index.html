@@ -385,12 +385,12 @@ int main() {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-##### Expansion statements* - https://wg21.link/P1306
+##### Expansion statements* (https://wg21.link/P1306)
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-#### C++20 / design by introspection (https://godbolt.org/z/d318z5TqE)
+#### C++20 / design by introspection (https://t.co/KMIL5NOiei)
 
 ```cpp
 auto cpp20 = [](auto t) {
@@ -407,7 +407,7 @@ auto cpp20 = [](auto t) {
 
 ```cpp
 struct foo { int value; };
-struct bar { int unknown; };
+struct bar { };
 
 static_assert(42 == cpp20(foo{.value = 42}));
 static_assert(0  == cpp20(bar{}));
@@ -416,14 +416,15 @@ static_assert(0  == cpp20(bar{}));
 
 ----
 
-#### P2996 / design by introspection (https://godbolt.org/z/d318z5TqE)
+#### P2996 / design by introspection (https://t.co/KMIL5NOiei)
 
 ```cpp
 auto p2996 = []<class T>(T t) {
-  if constexpr (std::meta::name_of(
-    std::meta::nonstatic_data_members_of(^T)[0]) == "value"
+  if constexpr (std::ranges::any_of(
+    std::meta::nonstatic_data_members_of(^T), 
+    [](auto member) { return std::meta::name_of(member) == "value"; })) {
   ) {
-    return t.value; // if the first non-static member name == "value"
+    return t.value; // if any of non-static members name == "value"
   } else {
     return 0;
   }
@@ -435,7 +436,7 @@ auto p2996 = []<class T>(T t) {
 
 ```cpp
 struct foo { int value; };
-struct bar { int unknown; };
+struct bar { };
 
 static_assert(42 == p2996(foo{.value = 42}));
 static_assert(0  == p2996(bar{}));
