@@ -421,7 +421,7 @@ static_assert(0  == cpp20(bar{}));
 ```cpp
 auto p2996 = []<class T>(T t) {
   if constexpr (std::ranges::any_of(
-    std::meta::nonstatic_data_members_of(^T), 
+    std::meta::nonstatic_data_members_of(^T),
     [](auto member) { return std::meta::name_of(member) == "value"; })) {
   ) {
     return t.value; // if any of non-static members name == "value"
@@ -656,7 +656,7 @@ static_assert(""  == enum_to_string(E(42));
 #### P2996 / run-time (https://godbolt.org/z/Eqffvn4dz)
 
 ```cpp
-template auto enum_to_string(E) -> std::string; // x86-64 assembly
+template auto enum_to_string(E) -> std::string; // x86-64 -O3
 ```
 <!-- .element: class="fragment" -->
 
@@ -674,33 +674,34 @@ template auto enum_to_string(E) -> std::string; // x86-64 assembly
 
 ----
 
-#### P2996 / run-time / switch-case* (https://godbolt.org/z/r1zdWE3sb)
+#### P2996 / run-time / switch-case* (https://godbolt.org/z/8reMEx3Yq)
 
 ```cpp
 template<class E> requires std::is_enum_v<E>
-constexpr auto enum_to_string(E e) -> std::string_view {
+constexpr auto enum_to_string(E value) -> std::string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  auto switch_case = [e]<auto enumerators, auto I>(this auto&& fn) {
-    switch ([:e:]) {
-      // nested switch (P2996 doesn't support code generation)
-      default: {
-        if constexpr (I < std::size(enumerators)) {
-          return fn.template operator()<enumerators, I+1>();
+  auto switch_case = [&]<auto I = 0>(this auto&& fn) {
+    constexpr auto enumerators = std::meta::enumerators_of(^E);
+    constexpr auto size = std::size(enumerators);
+    switch (value) { // nested switch
+      default:       // (P2996 doesn't support code generation)
+        if constexpr (I < std::size(enumerators) - 1) {
+          return fn.template operator()<I+1>();
         } else {
-          return "";
+          return std::string_view{""};
         }
-      }
-      case enumerators[I] : return std::meta::name_of(e);
+      case [:enumerators[I]:]:
+        return std::meta::name_of(enumerators[I]);
     }
   };
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  return switch_case<std::meta::enumerators_of(^E)>();
+  return switch_case();
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -710,23 +711,30 @@ constexpr auto enum_to_string(E e) -> std::string_view {
 
 ----
 
-#### P2996 / run-time / switch-case (https://godbolt.org/z/r1zdWE3sb)
+#### P2996 / run-time / switch-case (https://godbolt.org/z/8reMEx3Yq)
 
 ```cpp
-enum_to_string(E): // decision-tree for simple enum E
-  movl $.LC1, %eax
-  testl %edi, %edi
-  je .L1
-  cmpl $1, %edi
-  movl $.LC2, %eax
-  movl $.LC0, %edx
-  cmovne %rdx, %rax
-.L1:
+template auto enum_to_string(E) -> std::string_view; // x86-64 -O3
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+enum_to_string(E): // decision-tree for enum E
+  cmp     edi, 1
+  lea     rax, [rip + .L.str.2]
+  lea     rcx, [rip + .L.str.1]
+  cmove   rcx, rax
+  test    edi, edi
+  lea     rax, [rip + .L.str]
+  cmovne  rax, rcx
+  xor     edx, edx
+  cmp     edi, 2
+  setb    dl
   ret
 
-.LC0: .string ""
-.LC1: .string "A"
-.LC2: .string "B"
+.L.str:   .asciz  "A"
+.L.str.2: .asciz  "B"
+.L.str.1: .zero   1
 ```
 <!-- .element: class="fragment" -->
 
