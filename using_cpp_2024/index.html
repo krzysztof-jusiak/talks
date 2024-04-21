@@ -49,7 +49,7 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-#### using std::cpp 2024
+##### using std::cpp 2024
 
 ---
 
@@ -86,14 +86,31 @@
 * #### Summary
 <!-- .element: class="fragment" -->
 
----
+----
 
-###### Powered by [Compiler Explorer](https://godbolt.org)
+#### Disclaimer - Code heavy
+
+- ##### Concepts and underlying techniques are more important than syntax
 <!-- .element: class="fragment" -->
+
+  - ##### Syntax likely to change
+  <!-- .element: class="fragment" -->
+
+  - ##### No gurantees that reflection will be part of C++26
+  <!-- .element: class="fragment" -->
+
+- ##### Powered by Compiler Explorer (https://godbolt.org)
+<!-- .element: class="fragment" -->
+
+  - ##### Clang (https://github.com/bloomberg/clang-p2996)
+  <!-- .element: class="fragment" -->
+
+  - ##### EDG (https://www.edg.com)
+  <!-- .element: class="fragment" -->
 
 ----
 
-##### Motivation
+#### Motivation
 
 - ##### Correctness/safety
 <!-- .element: class="fragment" -->
@@ -722,19 +739,53 @@ enum_to_string(E): // decision-tree for simple enum E
 * #### Static reflection adds a lot of complexity
 <!-- .element: class="fragment" -->
 
-* #### Static reflection will likely need nicer user-facing APIs
+* #### Static reflection will likely need improved user-facing APIs
 <!-- .element: class="fragment" -->
 
-* #### Static reflection has run-time parts which require optimizations
+* #### Static reflection has run-time parts which can still be optimized
 <!-- .element: class="fragment" -->
 
 ----
 
-### Let's embrace compile-time reflection (https://wg21.link/P2996)
+### Let's embrace compile-time reflection! (https://wg21.link/P2996)
 
 ---
 
 ###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+----
+
+#### C23 / introspection - #embed (https://wg21.link/P1967)
+
+```cpp
+struct foo { };
+struct bar { };
+void fn();
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(not meta_contains<"struct x">);
+static_assert(meta_contains<"struct foo">);
+static_assert(meta_contains<"struct bar">);
+static_assert(meta_contains<"void fn()">);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+template<fixed_string Name> // #embed is C23 and not C++23
+constexpr auto meta_contains = [] {
+  static constexpr char self[] = { #embed __FILE__ };
+  const auto code = std::string_view(std::data(self), std::size(self));
+  const auto find = code.find(Name);
+  return find != std::string_view::npos and code[find-1] != '\"';
+}();
+```
+<!-- .element: class="fragment" -->
           </script>
         </section>
 
