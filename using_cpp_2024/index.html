@@ -199,7 +199,7 @@ using at =
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  typename [: // splicer - produces a type
+  typename [: // splicer (reify)
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -608,14 +608,13 @@ using get_list_t = typename [: get_list(^type_list) :];
 
 #### P2996 / run-time (https://godbolt.org/z/Eqffvn4dz)
 
-
 ```cpp
 template<class E> requires std::is_enum_v<E>
-constexpr auto enum_name(E value) -> std::string {
+constexpr auto enum_to_string(E value) -> std::string {
   std::string name{};
   template for (constexpr auto e : std::meta::enumerators_of(^E)) {
     if (value == [:e:]) {
-      name = std::meta::name_of(e);
+      name = std::meta::name_of(e); // can't early exit
     }
   }
   return name;
@@ -626,9 +625,11 @@ constexpr auto enum_name(E value) -> std::string {
 ---
 
 ```cpp
-static_assert("A" == enum_name(E::A));
-static_assert("B" == enum_name(E::B));
-static_assert(""  == enum_name(E(42));
+enum E { A, B };
+
+static_assert("A" == enum_to_string(E::A));
+static_assert("B" == enum_to_string(E::B));
+static_assert(""  == enum_to_string(E(42));
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -637,20 +638,79 @@ static_assert(""  == enum_name(E(42));
 #### P2996 / run-time (https://godbolt.org/z/Eqffvn4dz)
 
 ```cpp
-template auto enum_name(E) -> std::string; // x86-64 assembly
+template auto enum_to_string(E) -> std::string; // x86-64 assembly
 ```
 <!-- .element: class="fragment" -->
 
 <img src="images/enum.png" style="width: 16%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
+- ##### Alternatives
+<!-- .element: class="fragment" -->
+
+  - #### jump-table/switch-case
+  <!-- .element: class="fragment" -->
+
+  - #### hash/minimal perfect hashing
+  <!-- .element: class="fragment" -->
+
 ----
 
-#### P2996 / run-time
+#### P2996 / run-time / switch-case* (https://godbolt.org/z/r1zdWE3sb)
 
-  - switch-case ()
-  - jump-table ()
-  - minimal perfect hashing ()
+```cpp
+template<class E> requires std::is_enum_v<E>
+constexpr auto enum_to_string(E e) -> std::string_view {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  auto switch_case = [e]<auto enumerators, auto I>(this auto&& fn) {
+    switch ([:e:]) {
+      // nested switch (P2996 doesn't support code generation)
+      default: {
+        if constexpr (I < std::size(enumerators)) { 
+          return fn.template operator()<enumerators, I+1>();
+        } else {
+          return "";
+        }
+      }
+      case enumerators[I] : return std::meta::name_of(e);
+    }
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  return switch_case<std::meta::enumerators_of(^E)>();
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### *Based on compiler heuristics - can generate if-else/jump-table/decision tree
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### P2996 / run-time / switch-case (https://godbolt.org/z/r1zdWE3sb)
+
+```cpp
+enum_to_string(E): // decision-tree for simple enum E
+  movl $.LC1, %eax
+  testl %edi, %edi
+  je .L1
+  cmpl $1, %edi
+  movl $.LC2, %eax
+  movl $.LC0, %edx
+  cmovne %rdx, %rax
+.L1:
+  ret
+
+.LC0: .string ""
+.LC1: .string "A"
+.LC2: .string "B"
+```
+<!-- .element: class="fragment" -->
 
 ----
 
