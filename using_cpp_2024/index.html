@@ -1,0 +1,807 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Compile-time reflections</title>
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
+    <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
+    <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
+    <link rel="stylesheet" href="extensions/css/custom.css">
+
+    <style>
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
+    </style>
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+      function set_address(self, remote, local) {
+        if (window.location.search.match("local")) {
+          self.href = local;
+        } else {
+          self.href = remote;
+        }
+      }
+    </script>
+
+    <meta name="description" content="Compile-time reflections">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+          <script type="text/template">
+          </script>
+          </section>
+
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$">
+          <script type="text/template">
+#### using std::cpp 2024
+
+---
+
+## Compile-time reflections
+
+<!--<img src="images/qr.png" style="width: 10%; background:none; border:none; box-shadow:none;" />-->
+
+---
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+----
+
+#### Agenda
+
+* #### Motivation
+<!-- .element: class="fragment" -->
+
+* #### Reflection
+<!-- .element: class="fragment" -->
+
+  * #### Static
+  <!-- .element: class="fragment" -->
+
+    * #### Meta-programming/Introspection/Injection
+    <!-- .element: class="fragment" -->
+
+  * #### Dynamic
+  <!-- .element: class="fragment" -->
+
+    * #### Performance
+    <!-- .element: class="fragment" -->
+
+* #### Summary
+<!-- .element: class="fragment" -->
+
+---
+
+###### Powered by [Compiler Explorer](https://godbolt.org)
+<!-- .element: class="fragment" -->
+
+----
+
+##### Motivation
+
+- ##### Correctness/safety
+<!-- .element: class="fragment" -->
+
+- ##### Performance
+<!-- .element: class="fragment" -->
+
+- ##### Maintability/Flexibility/Debuggability
+<!-- .element: class="fragment" -->
+
+- ##### ...
+<!-- .element: class="fragment" -->
+
+----
+
+##### Reflection
+
+- ##### What?
+  - ##### Introspection (dynamic:run-time, static:compile-time)
+<!-- .element: class="fragment" -->
+      - ##### get enum name, get members of a struct
+<!-- .element: class="fragment" -->
+      - ##### find all functions in the namespace
+<!-- .element: class="fragment" -->
+      - ##### ...
+<!-- .element: class="fragment" -->
+
+  - ##### Injection/Code generation
+<!-- .element: class="fragment" -->
+      - ##### convert array of structs to struct of arrays (SoA)
+<!-- .element: class="fragment" -->
+      - ##### generate switch case
+<!-- .element: class="fragment" -->
+      - ##### ...
+<!-- .element: class="fragment" -->
+
+----
+
+##### Reflection
+
+- ##### How?
+
+  - ##### code generation (libclang + cmake)
+<!-- .element: class="fragment" -->
+
+  - ##### compiler hacks (`__PRETTY_FUNCTION__`, friend injection)
+<!-- .element: class="fragment" -->
+
+  - ##### compiler builtins (`__builtin_dump_struct` - clang)
+<!-- .element: class="fragment" -->
+
+  - ##### compilers with reflection (https://www.circle-lang.org)
+<!-- .element: class="fragment" -->
+
+  - ##### language support
+<!-- .element: class="fragment" -->
+    - ##### C++2X - meta-classes (https://github.com/hsutter/cppfront)
+<!-- .element: class="fragment" -->
+    - ##### C++2X - mirror (https://wg21.link/P0385)
+<!-- .element: class="fragment" -->
+    - ##### C++26* - static reflection (https://wg21.link/P2996)
+<!-- .element: class="fragment" -->
+
+----
+
+### Reflection for C++26 (https://wg21.link/P2996)
+
+----
+
+##### Reflection for C++26 (https://wg21.link/P2996)
+
+- ##### static (compile-time)
+<!-- .element: class="fragment" -->
+
+  - ##### meta-programming
+  <!-- .element: class="fragment" -->
+
+    - ##### value based
+    <!-- .element: class="fragment" -->
+        ```
+          ^T                // lift (reflexpr)
+          | std::meta::info // AST info
+          | [: ... :]       // reify [:splicer:] (unreflexpr)
+          ;
+        ```
+    <!-- .element: class="fragment" -->
+
+    - ##### `consteval` based
+    <!-- .element: class="fragment" -->
+
+----
+
+### P2996 / meta-programming
+
+----
+
+##### P2996 / meta-programming (https://godbolt.org/z/43Yf8G8xz)
+
+```cpp
+template<auto N, class... Ts>
+using at =
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  typename [: // splicer - produces a type
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    std::array{^Ts...}[N] // lift into std::array{std::meta::info}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  :];
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+##### P1858 / C++26 - Generalized pack declaration and usage (https://wg21.link/P2996)
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+template<auto N, class... Ts>
+using at = Ts...[N];
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+---
+
+```cpp
+static_assert(typeid(int)   == typeid(at<0, int, float, short>));
+static_assert(typeid(float) == typeid(at<1, int, float, short>));
+static_assert(typeid(short) == typeid(at<2, int, float, short>));
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+##### P2996 / meta-programming (https://wg21.link/P2996)
+
+```cpp
+template<class...> struct type_list { };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+
+```cpp
+template<class... Ts>
+auto p2996 = [] {
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+  std::array input{^Ts...};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  std::vector<std::meta::info> result{};
+  for (int i = input.size()-2/*skip 1*/; i >= 0; --i) {
+    result.push_back(input[i]);
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  return std::meta::substitute(^type_list, result); // not instantiated
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+template<class... Ts>
+using p2996_t = typename [: p2996<Ts...>() :]; // splicer (reify)
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+---
+
+```cpp
+static_assert(typeid(p2996_t<int, float, short>) ==
+              typeid(type_list<float, int>));
+```
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
+----
+
+##### P2296 + ranges / meta-programming (https://godbolt.org/z/Y7edbe63c)
+
+```cpp
+template<class... Ts>
+using p2996_t = typename [: // splicer (reify)
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+    std::meta::substitute(^type_list, // not instantiated
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+        std::array{^Ts...} // std::array{meta::info}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+      | std::views::reverse // stl.ranges
+      | std::views::drop(1)
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    )
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+:];
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+---
+
+```cpp
+static_assert(typeid(p2996_t<int, float, short>) ==
+              typeid(type_list<float, int>));
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+----
+
+#### Compilation-times? (https://boost-ext.github.io/mp)
+
+<img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### It's very early stage and compiliation times will likely improve
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+### P2996 / introspection
+
+----
+
+#### P2996 / introspection (https://godbolt.org/z/nonjcKxx1)
+
+```cpp
+template<class T> auto log(const T& t) {
+  template for (constexpr auto m : // Expansion statements*
+    std::meta::nonstatic_data_members_of(^T)) {
+    std::print("{}={}\n", std::meta::name_of(m), t.[:m:]);
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+int main() {
+  struct foo { int a; int b; };
+  log(foo{.a = 4, .b = 2});
+  // a:4
+  // b:2
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+##### Expansion statements* - https://wg21.link/P1306
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++20 / design by introspection (https://godbolt.org/z/d318z5TqE)
+
+```cpp
+auto cpp20 = [](auto t) {
+  if constexpr (requires { t.value; }) {
+    return t.value;
+  } else {
+    return 0;
+  }
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+struct foo { int value; };
+struct bar { int unknown; };
+
+static_assert(42 == cpp20(foo{.value = 42}));
+static_assert(0  == cpp20(bar{}));
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### P2996 / design by introspection (https://godbolt.org/z/d318z5TqE)
+
+```cpp
+auto p2996 = []<class T>(T t) {
+  if constexpr (std::meta::name_of(
+    std::meta::nonstatic_data_members_of(^T)[0]) == "value"
+  ) {
+    return t.value; // if the first non-static member name == "value"
+  } else {
+    return 0;
+  }
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+struct foo { int value; };
+struct bar { int unknown; };
+
+static_assert(42 == p2996(foo{.value = 42}));
+static_assert(0  == p2996(bar{}));
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+### P2996 / injection
+
+----
+
+#### P2996 / injection (https://godbolt.org/z/o39Kh6z7b)
+
+```cpp
+struct unpacked {
+  int  b;  // 4b => 4b
+  char a;  // 1b => 8b
+  int  c;  // 4b => 12b
+           // ---------
+           //       12b
+};
+static_assert(12 == sizeof(unpacked));
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+struct packed {
+  char a;  // 1b => 4b
+  char b;  // 1b => 4b
+  int  c;  // 4b => 8b
+           // --------
+           //       8b
+};
+static_assert(8 == sizeof(packed));
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### P2996 / injection (https://godbolt.org/z/o39Kh6z7b)
+
+```
+template<class> struct packed; // to be injected with members
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+template<class T> consteval auto pack_impl() {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  auto members = std::meta::nonstatic_data_members_of(^T);
+  std::sort(members, [](auto lhs, auto rhs) {
+    return std::meta::size_of(lhs) < std::meta::size_of(rhs);
+  });
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  // add members to packed
+  return std::meta::define_class(^packed<T>, members);
+}
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+template<class T> using pack = typename [: pack_impl<T>() :];
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+static_assert(8 == sizeof(pack<unpacked>));
+static_assert(requires(pack<unpacked> p) { p.i; p.s; p.b; });
+static_assert(typeid(pack<unpacked>) == typeid(packed<unpacked>));
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+### P2996 / injection (stateful meta-programming)
+
+- #### compile-time counter
+<!-- .element: class="fragment" -->
+- #### borrow-checker
+<!-- .element: class="fragment" -->
+- #### destructive move
+<!-- .element: class="fragment" -->
+- #### type-safe any
+<!-- .element: class="fragment" -->
+- #### ...
+<!-- .element: class="fragment" -->
+
+----
+
+#### P2996 / injection / global type_list (https://godbolt.org/z/d7GrW1j76)
+
+```cpp
+int main() {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  static_assert(typeid(get_list_t<>) == typeid(type_list<>));
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+  append_t<int>();
+  static_assert(typeid(get_list_t<>) == typeid(type_list<int>));
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+---
+
+```cpp
+  if (false) {
+    append_t<float>(); // still evaluated
+  }
+
+  static_assert(typeid(get_list_t<>) == typeid(type_list<int, float>));
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### P2996 / injection / global type_list (https://godbolt.org/z/d7GrW1j76)
+
+```cpp
+template<auto> struct type_list_impl; // needs versioning
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+consteval auto append(auto new_member) {
+  for (auto i = 0;; ++i) { // inifite loop
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+    auto m = std::meta::substitute(^type_list_impl,
+             std::meta::reflect_value(i));
+
+    if (std::meta::is_incomplete_type(m)) { // not instantiated yet
+      // create new members...
+      return define_class(^type_list_impl, new_members);
+    }
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+---
+
+```cpp
+template<class T> using append_t = typename [: append(^T) :];
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+template<auto = []{}> // force evaluation
+using get_list_t = typename [: get_list(^type_list) :];
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### P2996 / run-time
+
+----
+
+#### P2996 / run-time (https://godbolt.org/z/Eqffvn4dz)
+
+
+```cpp
+template<class E> requires std::is_enum_v<E>
+constexpr auto enum_name(E value) -> std::string {
+  std::string name{};
+  template for (constexpr auto e : std::meta::enumerators_of(^E)) {
+    if (value == [:e:]) {
+      name = std::meta::name_of(e);
+    }
+  }
+  return name;
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+static_assert("A" == enum_name(E::A));
+static_assert("B" == enum_name(E::B));
+static_assert(""  == enum_name(E(42));
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### P2996 / run-time (https://godbolt.org/z/Eqffvn4dz)
+
+```cpp
+template auto enum_name(E) -> std::string; // x86-64 assembly
+```
+<!-- .element: class="fragment" -->
+
+<img src="images/enum.png" style="width: 16%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+#### P2996 / run-time
+
+  - switch-case ()
+  - jump-table ()
+  - minimal perfect hashing ()
+
+----
+
+#### Summary
+
+* #### Static reflection is extremely powerful as it enables previously impossible use cases
+<!-- .element: class="fragment" -->
+
+* #### Static reflection adds a lot of complexity
+<!-- .element: class="fragment" -->
+
+* #### Static reflection will likely need nicer user-facing APIs
+<!-- .element: class="fragment" -->
+
+* #### Static reflection has run-time parts which require optimizations
+<!-- .element: class="fragment" -->
+
+----
+
+### Let's embrace compile-time reflection (https://wg21.link/P2996)
+
+---
+
+###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+          </script>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
+          { src: 'extensions/plugin/line-numbers/line-numbers.js' }
+        ]
+      });
+
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
+    </script>
+
+  </body>
+</html>

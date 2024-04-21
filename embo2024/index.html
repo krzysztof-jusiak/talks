@@ -642,8 +642,7 @@ enum_name(E):
         ja      .L3                         // invalid range
         movl    %edi, %edi
         movzwl  jump_table(%rdi,%rdi), %edx // offset
-        movsbq  buffer(%rdx), %rdx          // size
-        addq    buffer+1, %rax              // buffer
+        addq    buffer, %rax                // buffer
         ret
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -658,8 +657,8 @@ enum_name(E):
 
 ```cpp
 jump_table:
-        .byte   0                           // offset: 0 - "A"
-        .byte   2                           // offset: 2 - "B"
+        .byte   1                           // offset: 1 - "A"
+        .byte   3                           // offset: 3 - "B"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -879,7 +878,7 @@ enum_name(E_combined1):
   movl $519, %eax           // mask computed at compile-time (find_mask)
   pext %eax, %edi, %edi     // bit manipulation instruction set (BMI2)
   movzbl index(%rdi), %edx  // offset
-  addq buffer+1, %rax       // buffer
+  addq buffer, %rax         // buffer
   ret
 ```
 <!-- .element: class="fragment" -->
