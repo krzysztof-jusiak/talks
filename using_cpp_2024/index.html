@@ -156,10 +156,10 @@
   - ##### code generation (libclang + cmake)
 <!-- .element: class="fragment" -->
 
-  - ##### compiler hacks (`__PRETTY_FUNCTION__`, friend injection)
+  - ##### compiler hacks (\_\_PRETTY_FUNCTION__, friend injection)
 <!-- .element: class="fragment" -->
 
-  - ##### compiler builtins (`__builtin_dump_struct` - clang)
+  - ##### compiler builtins (\__builtin_dump_struct - clang)
 <!-- .element: class="fragment" -->
 
   - ##### compilers with reflection (https://www.circle-lang.org)
@@ -190,16 +190,27 @@
 
     - ##### value based
     <!-- .element: class="fragment" -->
-        ```
-          ^T                // lift (reflexpr)
-          | std::meta::info // AST info
-          | [: ... :]       // reify [:splicer:] (unreflexpr)
-          ;
-        ```
+
+      ```cpp
+      ^T                  // lift (reflexpr)
+      ```
+      <!-- .element: class="fragment" -->
+
+      ```cpp
+      | std::meta::info   // AST info
+      ```
+      <!-- .element: class="fragment" -->
+
+      ```cpp
+      | [: /*splicer*/ :] // reify (unreflexpr)
+      ```
+      <!-- .element: class="fragment" -->
+
+    - ##### consteval based
     <!-- .element: class="fragment" -->
 
-    - ##### `consteval` based
-    <!-- .element: class="fragment" -->
+      - ##### no template instantiations
+      <!-- .element: class="fragment" -->
 
 ----
 
@@ -271,7 +282,7 @@ auto p2996 = [] {
 
 ```cpp
   std::vector<std::meta::info> result{};
-  for (int i = input.size()-2/*skip 1*/; i >= 0; --i) {
+  for (int i = input.size()-2/*skip 1*/; i >= 0; --i) { // fuse
     result.push_back(input[i]);
   }
 ```
@@ -390,7 +401,7 @@ int main() {
 
 ----
 
-#### C++20 / design by introspection (https://t.co/KMIL5NOiei)
+#### C++20 / design by introspection (https://godbolt.org/z/Y8xPGxaaa)
 
 ```cpp
 auto cpp20 = [](auto t) {
@@ -416,7 +427,7 @@ static_assert(0  == cpp20(bar{}));
 
 ----
 
-#### P2996 / design by introspection (https://t.co/KMIL5NOiei)
+#### P2996 / design by introspection (https://godbolt.org/z/Y8xPGxaaa)
 
 ```cpp
 auto p2996 = []<class T>(T t) {
@@ -493,14 +504,15 @@ template<class T> consteval auto pack_impl() {
 
 ```cpp
   auto members = std::meta::nonstatic_data_members_of(^T);
-  std::sort(members, [](auto lhs, auto rhs) {
+
+  std::ranges::sort(members, [](auto lhs, auto rhs) {
     return std::meta::size_of(lhs) < std::meta::size_of(rhs);
   });
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  // add members to packed
+  // add members to packed<T>
   return std::meta::define_class(^packed<T>, members);
 }
 ```
@@ -583,7 +595,7 @@ template<auto> struct type_list_impl; // needs versioning
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-consteval auto append(auto new_member) {
+consteval auto append(auto member) {
   for (auto i = 0;; ++i) { // inifite loop
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -591,9 +603,9 @@ consteval auto append(auto new_member) {
 ```cpp
     auto m = std::meta::substitute(^type_list_impl,
              std::meta::reflect_value(i));
-
     if (std::meta::is_incomplete_type(m)) { // not instantiated yet
-      // create new members...
+      const auto version = i;               // to avoid duplicates
+      std::vector new_members = /* ... */;  // members... + member
       return define_class(^type_list_impl, new_members);
     }
 ```
@@ -613,7 +625,7 @@ template<class T> using append_t = typename [: append(^T) :];
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-template<auto = []{}> // force evaluation
+template<auto = []{}> // force evaluation to avoid memoization
 using get_list_t = typename [: get_list(^type_list) :];
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -683,7 +695,7 @@ constexpr auto enum_to_string(E value) -> std::string_view {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  auto switch_case = [&]<auto I = 0>(this auto&& fn) {
+  return [&]<auto I = 0>(this auto&& fn) { // C++23 deducing this
     constexpr auto enumerators = std::meta::enumerators_of(^E);
     constexpr auto size = std::size(enumerators);
     switch (value) { // nested switch
@@ -691,22 +703,22 @@ constexpr auto enum_to_string(E value) -> std::string_view {
         if constexpr (I < std::size(enumerators) - 1) {
           return fn.template operator()<I+1>();
         } else {
-          return std::string_view{""};
+          return "";
         }
-      case [:enumerators[I]:]:
+
+      case [: enumerators[I] :]:
         return std::meta::name_of(enumerators[I]);
     }
-  };
+  }();
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  return switch_case();
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-##### *Based on compiler heuristics - can generate if-else/jump-table/decision tree
+##### *Based on compiler heuristics - can generate bitset/if-else/jump-table/decision tree
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
