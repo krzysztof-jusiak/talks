@@ -261,7 +261,7 @@ static_assert(typeid(short) == typeid(at<2, int, float, short>));
 
 ----
 
-##### P2996 / meta-programming (https://wg21.link/P2996)
+##### P2996 / meta-programming (https://godbolt.org/z/43Yf8G8xz)
 
 ```cpp
 template<class...> struct type_list { };
@@ -699,7 +699,7 @@ constexpr auto enum_to_string(E value) -> std::string_view {
     constexpr auto enumerators = std::meta::enumerators_of(^E);
     constexpr auto size = std::size(enumerators);
     switch (value) { // nested switch
-      default:       // (P2996 doesn't support code generation)
+      default:       // P2996 doesn't support code generation
         if constexpr (I < std::size(enumerators) - 1) {
           return fn.template operator()<I+1>();
         } else {
@@ -776,7 +776,7 @@ enum_to_string(E): // decision-tree for enum E
 
 ----
 
-#### C23 / introspection - #embed (https://wg21.link/P1967)
+#### C23 / introspection - #embed (https://godbolt.org/z/e5Kq61jjP)
 
 ```cpp
 struct foo { };
@@ -798,8 +798,9 @@ static_assert(meta_contains<"void fn()">);
 ---
 
 ```cpp
-template<fixed_string Name> // #embed is C23 and not C++23
+template<fixed_string Name>
 constexpr auto meta_contains = [] {
+  // #embed is C23 (https://wg21.link/P1967) and not C++23
   static constexpr char self[] = { #embed __FILE__ };
   const auto code = std::string_view(std::data(self), std::size(self));
   const auto find = code.find(Name);
