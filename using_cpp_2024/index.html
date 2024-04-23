@@ -88,7 +88,7 @@
 
 ----
 
-#### Disclaimer - Code heavy
+#### Disclaimer - syntax heavy!
 
 - ##### Concepts and underlying techniques are more important than syntax
 <!-- .element: class="fragment" -->
@@ -96,7 +96,7 @@
   - ##### Syntax likely to change
   <!-- .element: class="fragment" -->
 
-  - ##### No gurantees that reflection will be part of C++26
+  - ##### No guarantees that reflection will be part of C++26
   <!-- .element: class="fragment" -->
 
 - ##### Powered by Compiler Explorer (https://godbolt.org)
@@ -183,34 +183,39 @@
 ##### Reflection for C++26 (https://wg21.link/P2996)
 
 - ##### static (compile-time)
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-  - ##### meta-programming
-  <!-- .element: class="fragment" -->
+  - ##### value/consteval based
+  <!-- .element: class="fragment" data-fragment-index="1" -->
 
-    - ##### value based
-    <!-- .element: class="fragment" -->
+    ```cpp
+    [: // reify  (unreflexpr)
+    ```
+    <!-- .element: class="fragment" data-fragment-index="3" -->
 
-      ```cpp
-      ^T                  // lift (reflexpr)
-      ```
-      <!-- .element: class="fragment" -->
+    ```cpp
+      ^T // lift (reflexpr)
+    ```
+    <!-- .element: class="fragment" data-fragment-index="2" -->
 
-      ```cpp
-      | std::meta::info   // AST info
-      ```
-      <!-- .element: class="fragment" -->
+    ```cpp
+    :]
+    ```
+    <!-- .element: class="fragment" data-fragment-index="3" -->
 
-      ```cpp
-      | [: /*splicer*/ :] // reify (unreflexpr)
-      ```
-      <!-- .element: class="fragment" -->
+    ---
 
-    - ##### consteval based
-    <!-- .element: class="fragment" -->
+    ```cpp
+    static_assert(typeid(^T) ==
+                  typeid(std::meta::info)); // AST info
+    ```
+    <!-- .element: class="fragment" data-fragment-index="4" -->
 
-      - ##### no template instantiations
-      <!-- .element: class="fragment" -->
+    ```cpp
+    static_assert(typeid(typename [: ^int :]) ==
+                  typeid(int));
+    ```
+    <!-- .element: class="fragment" data-fragment-index="5" -->
 
 ----
 
@@ -257,7 +262,7 @@ static_assert(typeid(int)   == typeid(at<0, int, float, short>));
 static_assert(typeid(float) == typeid(at<1, int, float, short>));
 static_assert(typeid(short) == typeid(at<2, int, float, short>));
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -271,14 +276,14 @@ template<class...> struct type_list { };
 
 ```cpp
 template<class... Ts>
-auto p2996 = [] {
+auto reverse_drop = [] {
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="5" -->
 
 ```cpp
   std::array input{^Ts...};
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
   std::vector<std::meta::info> result{};
@@ -286,31 +291,31 @@ auto p2996 = [] {
     result.push_back(input[i]);
   }
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
   return std::meta::substitute(^type_list, result); // not instantiated
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="5" -->
 
 ```cpp
 template<class... Ts>
-using p2996_t = typename [: p2996<Ts...>() :]; // splicer (reify)
+using reverse_drop_t = typename [: reverse_drop<Ts...>() :];
 ```
-<!-- .element: class="fragment" data-fragment-index="5" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
-static_assert(typeid(p2996_t<int, float, short>) ==
+static_assert(typeid(reverse_drop_t<int, float, short>) ==
               typeid(type_list<float, int>));
 ```
-<!-- .element: class="fragment" data-fragment-index="6" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -318,12 +323,12 @@ static_assert(typeid(p2996_t<int, float, short>) ==
 
 ```cpp
 template<class... Ts>
-using p2996_t = typename [: // splicer (reify)
+using reverse_drop_t = typename [:
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-    std::meta::substitute(^type_list, // not instantiated
+    std::meta::substitute(^type_list,
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -346,15 +351,15 @@ using p2996_t = typename [: // splicer (reify)
 ```cpp
 :];
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
-static_assert(typeid(p2996_t<int, float, short>) ==
+static_assert(typeid(reverse_drop_t<int, float, short>) ==
               typeid(type_list<float, int>));
 ```
-<!-- .element: class="fragment" data-fragment-index="5" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -395,6 +400,14 @@ int main() {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+// constexpr trace (https://wg21.link/P0596)
+std::__report_constexpr_value(std::meta::name_of(m));
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ##### Expansion statements* (https://wg21.link/P1306)
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -498,7 +511,7 @@ template<class> struct packed; // to be injected with members
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-template<class T> consteval auto pack_impl() {
+template<class T> consteval auto pack() {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -519,16 +532,20 @@ template<class T> consteval auto pack_impl() {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-template<class T> using pack = typename [: pack_impl<T>() :];
+template<class T> using pack_t = typename [: pack<T>() :];
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
-static_assert(8 == sizeof(pack<unpacked>));
-static_assert(requires(pack<unpacked> p) { p.i; p.s; p.b; });
-static_assert(typeid(pack<unpacked>) == typeid(packed<unpacked>));
+static_assert(8 == sizeof(pack_t<unpacked>));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+static_assert(requires(pack_t<unpacked> p) { p.i; p.s; p.b; });
+static_assert(typeid(pack_t<unpacked>) == typeid(packed<unpacked>));
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -641,6 +658,10 @@ using get_list_t = typename [: get_list(^type_list) :];
 ```cpp
 template<class E> requires std::is_enum_v<E>
 constexpr auto enum_to_string(E value) -> std::string {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
   std::string name{};
   template for (constexpr auto e : std::meta::enumerators_of(^E)) {
     if (value == [:e:]) {
@@ -648,6 +669,10 @@ constexpr auto enum_to_string(E value) -> std::string {
     }
   }
   return name;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -661,7 +686,7 @@ static_assert("A" == enum_to_string(E::A));
 static_assert("B" == enum_to_string(E::B));
 static_assert(""  == enum_to_string(E(42));
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
