@@ -226,7 +226,7 @@
 ##### P2996 / meta-programming (https://godbolt.org/z/43Yf8G8xz)
 
 ```cpp
-template<auto N, class... Ts>
+template<size_t N, class... Ts>
 using at =
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -261,7 +261,7 @@ static_assert(typeid(short) == typeid(at<2, int, float, short>));
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
-template<auto N, class... Ts>
+template<size_t N, class... Ts>
 using at = Ts...[N];
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
@@ -748,7 +748,7 @@ constexpr auto enum_to_string(E value) -> std::string_view {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  return [&]<auto I = 0>(this auto&& fn) { // C++23 deducing this
+  return [&]<size_t I = 0>(this auto&& fn) { // C++23 deducing this
     constexpr auto enumerators = std::meta::enumerators_of(^E);
     constexpr auto size = std::size(enumerators);
   ```
