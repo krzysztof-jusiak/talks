@@ -246,6 +246,17 @@ using at =
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
+---
+
+```cpp
+static_assert(typeid(int)   == typeid(at<0, int, float, short>));
+static_assert(typeid(float) == typeid(at<1, int, float, short>));
+static_assert(typeid(short) == typeid(at<2, int, float, short>));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
 ##### P1858 / C++26 - Generalized pack declaration and usage (https://wg21.link/P2996)
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -255,14 +266,6 @@ using at = Ts...[N];
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
----
-
-```cpp
-static_assert(typeid(int)   == typeid(at<0, int, float, short>));
-static_assert(typeid(float) == typeid(at<1, int, float, short>));
-static_assert(typeid(short) == typeid(at<2, int, float, short>));
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
