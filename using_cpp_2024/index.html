@@ -90,14 +90,8 @@
 
 #### Disclaimer - syntax heavy!
 
-- ##### Concepts and underlying techniques are more important than syntax
+- ##### Based on proposals
 <!-- .element: class="fragment" -->
-
-  - ##### Syntax likely to change
-  <!-- .element: class="fragment" -->
-
-  - ##### No guarantees that reflection will be part of C++26
-  <!-- .element: class="fragment" -->
 
 - ##### Powered by Compiler Explorer (https://godbolt.org)
 <!-- .element: class="fragment" -->
@@ -110,7 +104,7 @@
 
 ----
 
-#### Motivation
+#### Reflection / Motivation
 
 - ##### Correctness/safety
 <!-- .element: class="fragment" -->
@@ -206,20 +200,26 @@
     ---
 
     ```cpp
-    static_assert(typeid(^T) == // #header-meta-synopsis
-                  typeid(std::meta::info)); // AST info
+    static_assert(
+      typeid(^T) ==           // type-erased AST info
+      typeid(std::meta::info) // #header-meta-synopsis
+    );
     ```
     <!-- .element: class="fragment" data-fragment-index="4" -->
 
     ```cpp
-    static_assert(typeid(typename [: ^int :]) ==
-                  typeid(int));
+    static_assert(
+      typeid(typename [: ^int :]) == typeid(int)
+    );
     ```
     <!-- .element: class="fragment" data-fragment-index="5" -->
 
 ----
 
 ### P2996 / meta-programming
+
+#### Possible in C++17 (https://github.com/boost-ext/mp)
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -361,22 +361,8 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-----
-
-```cpp
-template<class R>
-consteval auto invoke(std::meta::info m) {
-  return value_of<R>(reflect_invoke(^fn, {substitute(^meta, {reflect_value(m)})}));
-}
-```
-
-```cpp
-std::views::filter([](std::meta::info m) {
-  return invoke<bool>([]<std::meta::info m>(meta_identity<m>) {
-    return requires(typename [:m:] t) { t.value; };
-  }, m);
-})
-```
+##### `filter/transform/...` require more effort but it's possible
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
@@ -385,12 +371,14 @@ std::views::filter([](std::meta::info m) {
 <a href="https://boost-ext.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-##### Much slower than boost.mp11.
+##### ***Currently a few times slower than boost.mp11
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
 ### P2996 / introspection
+
+#### [With limitations] possible in C++17
 
 ----
 
@@ -583,7 +571,7 @@ static_assert(typeid(pack_t<unpacked>) == typeid(packed<unpacked>));
 
 ----
 
-#### ... Static Reflection proposal itself (the meta-programming part)
+#### ... meta-programming model from P2996 itself 🤔
 
 <img src="images/mp1.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -640,7 +628,7 @@ template<auto> struct type_list_impl; // needs versioning
 
 ```cpp
 consteval auto append(auto member) {
-  for (auto i = 0;; ++i) { // inifite loop
+  for (auto i = 0;; ++i) { // infinite loop
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -677,6 +665,10 @@ using get_list_t = typename [: get_list(^type_list) :];
 ----
 
 #### P2996 / run-time
+
+
+#### Based on `examples` from the proposal
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -727,13 +719,19 @@ template auto enum_to_string(E) -> std::string; // x86-64 -O3
 <img src="images/enum.png" style="width: 16%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
-- ##### Alternatives
+- #### Alternatives
 <!-- .element: class="fragment" -->
 
-  - #### jump-table/switch-case
+  - #### jump-table
   <!-- .element: class="fragment" -->
 
-  - #### hash/minimal perfect hashing
+  - #### switch-case (based on compiler heurstics)
+  <!-- .element: class="fragment" -->
+
+  - #### hashing/minimal perfect hashing
+  <!-- .element: class="fragment" -->
+
+  - #### ...
   <!-- .element: class="fragment" -->
 
 ----
@@ -750,6 +748,10 @@ constexpr auto enum_to_string(E value) -> std::string_view {
   return [&]<auto I = 0>(this auto&& fn) { // C++23 deducing this
     constexpr auto enumerators = std::meta::enumerators_of(^E);
     constexpr auto size = std::size(enumerators);
+  ```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+  ```cpp
     switch (value) { // nested switch
       default:       // P2996 doesn't support code generation
         if constexpr (I < std::size(enumerators) - 1) {
@@ -761,6 +763,10 @@ constexpr auto enum_to_string(E value) -> std::string_view {
       case [: enumerators[I] :]:
         return std::meta::name_of(enumerators[I]);
     }
+  ```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
   }();
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -768,9 +774,6 @@ constexpr auto enum_to_string(E value) -> std::string_view {
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-##### *Based on compiler heuristics - can generate bitset/if-else/jump-table/decision tree
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -807,18 +810,24 @@ enum_to_string(E): // decision-tree for enum E
 #### P2996 / run-time / minimal-perfect-hashing (https://godbolt.org/z/fa8hv3TTj)
 
 ```cpp
-template auto enum_to_string(E) -> std::string_view; // x86-64 -O3
+template auto enum_to_string(E) -> const char*; // x86-64 -O3
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
 enum_to_string(E):
-  movl $519, %eax           // mask computed at compile-time
+  movl $519, %eax           // pre-computed mask at compile-time
   pext %eax, %edi, %edi     // bit manipulation instruction set (BMI2)
-  movzbl index(%rdi), %edx  // offset
+  movzbl buffer(%rdi), %edx // buffer
   ret
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```
+buffer:
+  .string  "A\0B\0"         // names
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -830,28 +839,26 @@ enum_to_string(E):
   * #### 👍
   <!-- .element: class="fragment" -->
 
-    * #### it's a powerful proposal and possible C++26 inclusion
+    * #### Powerful proposal and possible C++26 inclusion!
 <!-- .element: class="fragment" -->
 
   * #### 🤔
   <!-- .element: class="fragment" -->
 
-    * #### User-facing APIs (complexity)
+    * #### API (std::meta::info? complexity?)
     <!-- .element: class="fragment" -->
 
-    * #### Compilation-times
+    * #### Compilation-times (consteval + ranges?)
     <!-- .element: class="fragment" -->
 
-    * #### Run-time performance
+    * #### Run-time performance (future considerations)
     <!-- .element: class="fragment" -->
 
 ----
 
 ### Let's embrace compile-time reflection!
 
-- #### https://wg21.link/P2996
-
-- #### https://github.com/boost-ext
+<img src="images/qr.png" style="width: 15%; background:none; border:none; box-shadow:none;" />
 
 ---
 
