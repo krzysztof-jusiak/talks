@@ -363,12 +363,29 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 
 ----
 
+```cpp
+template<class R>
+consteval auto invoke(std::meta::info m) {
+  return value_of<R>(reflect_invoke(^fn, {substitute(^meta, {reflect_value(m)})}));
+}
+```
+
+```cpp
+std::views::filter([](std::meta::info m) {
+  return invoke<bool>([]<std::meta::info m>(meta_identity<m>) {
+    return requires(typename [:m:] t) { t.value; };
+  }, m);
+})
+```
+
+----
+
 #### Compilation-times? (https://boost-ext.github.io/mp)
 
 <a href="https://boost-ext.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-##### It's very early stage and compiliation times will likely improve
+##### Much slower than boost.mp11.
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
@@ -563,6 +580,16 @@ static_assert(typeid(pack_t<unpacked>) == typeid(packed<unpacked>));
 <!-- .element: class="fragment" -->
 - #### ...
 <!-- .element: class="fragment" -->
+
+----
+
+#### ... Static Reflection proposal itself (the meta-programming part)
+
+<img src="images/mp1.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+#### https://godbolt.org/z/a7jrf9Y75
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -777,23 +804,54 @@ enum_to_string(E): // decision-tree for enum E
 
 ----
 
-#### Summary
+#### P2996 / run-time / minimal-perfect-hashing (https://godbolt.org/z/fa8hv3TTj)
 
-* #### Static reflection is extremely powerful as it enables previously impossible use cases
+```cpp
+template auto enum_to_string(E) -> std::string_view; // x86-64 -O3
+```
 <!-- .element: class="fragment" -->
 
-* #### Static reflection adds a lot of complexity
-<!-- .element: class="fragment" -->
-
-* #### Static reflection will likely need improved user-facing APIs
-<!-- .element: class="fragment" -->
-
-* #### Static reflection has run-time parts which can still be optimized
+```cpp
+enum_to_string(E):
+  movl $519, %eax           // mask computed at compile-time
+  pext %eax, %edi, %edi     // bit manipulation instruction set (BMI2)
+  movzbl index(%rdi), %edx  // offset
+  ret
+```
 <!-- .element: class="fragment" -->
 
 ----
 
-### Let's embrace compile-time reflection! (https://wg21.link/P2996)
+#### Summary
+
+* #### Static reflection
+<!-- .element: class="fragment" -->
+
+  * #### 👍
+  <!-- .element: class="fragment" -->
+
+    * #### it's a powerful proposal and possible C++26 inclusion
+<!-- .element: class="fragment" -->
+
+  * #### 🤔
+  <!-- .element: class="fragment" -->
+
+    * #### User-facing APIs (complexity)
+    <!-- .element: class="fragment" -->
+
+    * #### Compilation-times
+    <!-- .element: class="fragment" -->
+
+    * #### Run-time performance
+    <!-- .element: class="fragment" -->
+
+----
+
+### Let's embrace compile-time reflection!
+
+- #### https://wg21.link/P2996
+
+- #### https://github.com/boost-ext
 
 ---
 
