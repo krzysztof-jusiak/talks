@@ -831,7 +831,7 @@ enum_to_string(E): // decision-tree for enum E
 #### P2996 / run-time / minimal-perfect-hashing (https://godbolt.org/z/fa8hv3TTj)
 
 ```cpp
-template auto enum_to_string(E) -> const char*; // x86-64 -O3
+template auto enum_to_string(E) -> string_view; // x86-64 -O3
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -846,7 +846,7 @@ enum_to_string(E):
 
 ```
 buffer:
-  .string  "A\0B\0"       // names
+  .string  "\1A\1B"       // size:name...
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
