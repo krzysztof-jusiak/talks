@@ -495,15 +495,13 @@ static_assert(0  == p2996(bar{}));
 
 ----
 
-#### P2996 / injection (https://godbolt.org/z/o39Kh6z7b)
+#### P2996 / injection (https://godbolt.org/z/bKGqzo6fT)
 
 ```cpp
 struct unpacked {
-  int  b;  // 4b => 4b
-  char a;  // 1b => 8b
-  int  c;  // 4b => 12b
-           // ---------
-           //       12b
+  short s;
+  int i;
+  bool b;
 };
 static_assert(12 == sizeof(unpacked));
 ```
@@ -513,11 +511,9 @@ static_assert(12 == sizeof(unpacked));
 
 ```cpp
 struct packed {
-  char a;  // 1b => 4b
-  char b;  // 1b => 4b
-  int  c;  // 4b => 8b
-           // --------
-           //       8b
+  int i;
+  short s;
+  bool b;
 };
 static_assert(8 == sizeof(packed));
 ```
