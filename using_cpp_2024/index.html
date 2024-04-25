@@ -104,7 +104,7 @@
 
 ----
 
-#### Reflection / Motivation
+#### Motivation
 
 - ##### Correctness/safety
 <!-- .element: class="fragment" -->
@@ -123,7 +123,7 @@
 ##### Reflection
 
 - ##### What?
-  - ##### Introspection (dynamic:run-time, static:compile-time)
+  - ##### Introspection
 <!-- .element: class="fragment" -->
       - ##### get enum name, get members of a struct
 <!-- .element: class="fragment" -->
@@ -218,8 +218,8 @@
 
 ### P2996 / meta-programming
 
-#### Possible in C++17 (https://github.com/boost-ext/mp)
-<!-- .element: class="fragment" data-fragment-index="0" -->
+#### Possible in C++17* (https://github.com/boost-ext/mp)
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -281,7 +281,7 @@ template<class...> struct type_list { };
 template<class... Ts>
 auto reverse_drop = [] {
 ```
-<!-- .element: class="fragment" data-fragment-index="5" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
   std::array input{^Ts...};
@@ -304,7 +304,7 @@ auto reverse_drop = [] {
 ```cpp
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="5" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 template<class... Ts>
@@ -647,13 +647,19 @@ consteval auto append(auto member) {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-    auto m = std::meta::substitute(^type_list_impl,
-             std::meta::reflect_value(i));
-    if (std::meta::is_incomplete_type(m)) { // not instantiated yet
+    if (auto m = substitute(^type_list_impl, {reflect_value(i)});
+        is_incomplete_type(m)) {            // not complete yet
       std::vector new_members = /* ... */;  // members... + member
-      return std::meta::define_class(       // versioning
-        std::meta::substitute(^type_list_impl, {reflect_value(i)}),
-        new_members);
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+     return define_class(substitute(^type_list_impl,{reflect_value(i)}),
+                         new_members);
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
     }
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
