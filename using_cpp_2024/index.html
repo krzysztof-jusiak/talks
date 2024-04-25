@@ -657,7 +657,9 @@ consteval auto append(auto member) {
              std::meta::reflect_value(i));
     if (std::meta::is_incomplete_type(m)) { // not instantiated yet
       std::vector new_members = /* ... */;  // members... + member
-      return define_class(^type_list_impl, new_members); // use i
+      return std::meta::define_class(       // versioning
+        std::meta::substitute(^type_list_impl, {reflect_value(i)}),
+        new_members);
     }
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
