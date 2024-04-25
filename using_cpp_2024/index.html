@@ -588,16 +588,6 @@ static_assert(typeid(pack_t<unpacked>) == typeid(packed<unpacked>));
 
 ----
 
-#### ... meta-programming model from P2996 itself 🤔
-
-<img src="images/mp1.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-#### https://godbolt.org/z/a7jrf9Y75
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
 #### P2996 / injection / global type_list (https://godbolt.org/z/d7GrW1j76)
 
 ```cpp
@@ -749,7 +739,7 @@ template auto enum_to_string(E) -> std::string; // x86-64 -O3
   - #### switch-case (based on compiler heurstics)
   <!-- .element: class="fragment" -->
 
-  - #### hashing/minimal perfect hashing
+  - #### perfect hashing
   <!-- .element: class="fragment" -->
 
   - #### ...
@@ -828,17 +818,17 @@ enum_to_string(E): // decision-tree for enum E
 
 ----
 
-#### P2996 / run-time / minimal-perfect-hashing (https://godbolt.org/z/fa8hv3TTj)
+#### P2996 / run-time / perfect-hashing (https://godbolt.org/z/fa8hv3TTj)
 
 ```cpp
-template auto enum_to_string(E) -> string_view; // x86-64 -O3
+template auto enum_to_string(E) -> nonstd::string_view;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-enum_to_string(E):
-  movl $519, %eax         // pre-computed mask at compile-time
-  pext %eax, %edi, %edi   // bit manipulation instruction set (BMI2)
+enum_to_string(E):        // x86-64 -O3
+  movl $519, %eax         // pre-computed at compile-time mask
+  pext %eax, %edi, %edi   // bit manipulation instruction set (BMI2) / 3 cycles
   movz buffer(%rdi), %edx // buffer
   ret
 ```
@@ -846,7 +836,7 @@ enum_to_string(E):
 
 ```
 buffer:
-  .string  "\1A\1B"       // size:name...
+  .string  "\1A\1B"       // size|name...
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
