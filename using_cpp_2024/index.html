@@ -612,7 +612,11 @@ int main() {
 
 ```cpp
   if (false) {
-    append_t<float>();
+    if constexpr (false) {
+      assert([] { throw; return false; }());
+
+      append_t<float>(); // ???
+    }
   }
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
