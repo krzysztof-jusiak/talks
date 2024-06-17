@@ -152,10 +152,10 @@ enum class coins : u8 {
 - 'Flag' Enum
 
 ```cpp
-enum Permissions : u8 {
-  READ     = 1 << 0, // 0b00000001
-  WRITE    = 1 << 1, // 0b00000010
-  EXECUTE  = 1 << 2, // 0b00000100
+enum class permissions : std::uint8_t {
+  read     = 1 << 0, // 0b00000001
+  write    = 1 << 1, // 0b00000010
+  execute  = 1 << 2, // 0b00000100
 };
 ```
 
@@ -551,6 +551,47 @@ Challanges
           [[assume(std::popcount(std::to_underlying(value)) == 1u]];
           return lut[std::popcount(std::to_underlying(value)-1u)] // or clz
         }
+        ```
+
+        ```cpp
+        unsafe$enum_2_string(permissions):
+          decl    %edi
+          popcntl %edi, %eax
+          leaq    auto unsafe$enum_to_string<permissions>(T)::lut(%rip), %rcx
+          movq    (%rcx,%rax,8), %rax
+          retq
+
+        auto unsafe$enum_to_string<permissions>(T)::lut:
+          .quad   .L.str
+          .quad   .L.str.1
+          .quad   .L.str.2
+
+        .L.str:   .asciz  "read"
+        .L.str.1: .asciz  "write"
+        .L.str.2: .asciz  "execute"
+        ```
+
+        ```cpp
+        Dispatch Width:    6
+        uOps Per Cycle:    4.59
+        IPC:               4.59
+        Block RThroughput: 1.0
+
+
+        Instruction Info:
+        [1]: #uOps
+        [2]: Latency
+        [3]: RThroughput
+        [4]: MayLoad
+        [5]: MayStore
+        [6]: HasSideEffects (U)
+
+        [1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+         1      1     0.25                        decl	%edi
+         1      1     0.25                        popcntl	%edi, %eax
+         1      1     0.33                        leaq	_ZZ21unsafe$enum_to_stringI11permissionsQaasr3stdE16is_scoped_enum_vIT_E14is_flag_enum_vIS1_EEDaS1_E3lut(%rip), %rcx
+         1      5     0.33    *                   movq	(%rcx,%rax,8), %rax
+         1      5     0.50                  U     retq
         ```
 
     - pext + simd
