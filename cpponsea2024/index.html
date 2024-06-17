@@ -520,14 +520,13 @@ Challanges
 
     - aligned/unaligned load
 
-
     std::simd - https://wg21.link/P1928
 
     // doesn't align
     alignas(x) std::array<int, a>
 
-      const auto r2 = _mm512_cmpeq_epi64_mask(_mm512_set1_epi64(key), _mm512_loadu_epi64(&keys_[hash + kwidth]));
-      if (r2) return mapped_ + hash + kwidth + offset(r2);
+      const auto rank = _mm512_cmpeq_epi64_mask(_mm512_set1_epi64(key), _mm512_loadu_epi64(&keys_[hash + kwidth]));
+      return rank ? std::popcount(rank-1u); // or ctz
 
     int cmp_1(const std::array<int, 8>& a, int value) {
           const auto x1 = _mm256_set1_epi32(value);
