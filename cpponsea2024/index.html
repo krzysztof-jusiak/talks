@@ -64,7 +64,7 @@
 ----
 
 Disclaimer
-  - mainly x86 based
+  - x86 based
   - proposal based (P2996, ...)
   - ideas translates to other cases
     - working solutions (mph)
@@ -86,6 +86,9 @@ Quick look at P2996
     <!-- .element: class="fragment" data-fragment-index="0" -->
 
       - mp - this model is possible since (C++17 with gcc,msvc,clang)
+
+  - meta-priogramming model with meta-programming model
+    - https://godbolt.org/z/694e1hrbM
 
   - introspection
 
@@ -132,6 +135,8 @@ enum Permissions : u8 {
 ----
 
 enum_to_string
+
+  - https://godbolt.org/z/TTdecKjsz
 
 Challanges
 
@@ -245,6 +250,8 @@ Challanges
         https://github.com/jermp/pthash
 
     - pext
+
+        llvm-mca
 
       <a href="https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext_u64"><img src="images/pext.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
@@ -400,7 +407,10 @@ Challanges
 
             arm doesn't have it
 
-          - pseudo-pext (Luke)
+          - pseudo-pext
+
+              Luke Valenty: A case study in zero-cost abstractions: High performance message dispatch
+                - https://schedule.cppnow.org/session/2024/a-case-study-in-zero-cost-abstractions-high-performance-message-dispatch/
 
               ```cpp
               // bmi2
