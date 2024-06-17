@@ -520,7 +520,31 @@ Challanges
 
     - aligned/unaligned load
 
+
     std::simd - https://wg21.link/P1928
+
+    // doesn't align
+    alignas(x) std::array<int, a>
+
+      const auto r2 = _mm512_cmpeq_epi64_mask(_mm512_set1_epi64(key), _mm512_loadu_epi64(&keys_[hash + kwidth]));
+      if (r2) return mapped_ + hash + kwidth + offset(r2);
+
+    int cmp_1(const std::array<int, 8>& a, int value) {
+          const auto x1 = _mm256_set1_epi32(value);
+          const auto y1 = _mm256_loadu_si256((__m256i*)&a[0]);
+          const auto m1 = _mm256_cmpeq_epi32(x1, y1);
+          return _mm256_testz_si256(m1, m1) ? __builtin_ctz(_mm256_movemask_ps((__m256)m1)) : -1;
+    }
+
+    int cmp(const std::array<int, 8>& a, int value) {
+      std::experimental::simd<int> broadcast(value);
+      std::experimental::simd<int> load;
+      load.copy_from(&a[0], std::experimental::element_aligned);
+      auto cmpeq = broadcast == load;
+      return std::experimental::any_of(cmpeq) ? std::experimental::find_first_set(cmpeq) : -1;
+    }
+
+    https://godbolt.org/z/xTvfWrKnc
 
 - perfect-hashing
    - https://en.wikipedia.org/wiki/Perfect_hash_function
