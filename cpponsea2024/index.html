@@ -65,20 +65,35 @@
 
 #### Agenda
 
-* #### Reflection
+- #### Reflection
 <!-- .element: class="fragment" -->
 
-    * #### Meta-programming
+    - #### Introspection
+    <!-- .element: class="fragment" -->
 
-* #### Case study
-    - enum_to_string
-    - string_to_enum
+    - #### Meta-programming
+    <!-- .element: class="fragment" -->
+
+- #### [Performance] Case study
+<!-- .element: class="fragment" -->
+
+    - `enum_to_string`
+    <!-- .element: class="fragment" -->
+
+    - `string_to_enum`
+    <!-- .element: class="fragment" -->
 
 - Summary
+<!-- .element: class="fragment" -->
+
+----
 
 #### Disclaimer
 
 - ##### Based on proposals
+<!-- .element: class="fragment" -->
+
+- ##### Focused on x86-64
 <!-- .element: class="fragment" -->
 
 - ##### Powered by Compiler Explorer (https://godbolt.org)
@@ -87,39 +102,178 @@
   - ##### Clang (https://github.com/bloomberg/clang-p2996)
   <!-- .element: class="fragment" -->
 
-Disclaimer
-  - x86 based
-  - proposal based (P2996, ...)
-  - ideas translates to other cases
-    - working solutions (mph)
+---
 
-Performance
-   - there is no sliver bullet just trade-offs
-   - know your data and your hardware!
-   - measure in end-2-end setup!
+### Quick look at P2996 (Reflection for C++26)
 
-Quick look at P2996
+- wg21.link/P2996
 
-  - wg21.link/P2996
-    - introspection / meta-programming
-        - ##### get enum name, get members of a struct
+    - ##### static (compile-time)
+    <!-- .element: class="fragment" data-fragment-index="0" -->
+
+      - ##### value/consteval based
+      <!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+- Introspection
+
+    <a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2996r3.html#member-queries"><img src="images/synopsis.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+
+----
+
+- Meta-programming
+
+    ```cpp
+    [: // splicer (reify)
+    ```
+    <!-- .element: class="fragment" data-fragment-index="3" -->
+
+    ```cpp
+      ^T // lift (reflexpr)
+    ```
+    <!-- .element: class="fragment" data-fragment-index="2" -->
+
+    ```cpp
+    :]
+    ```
+    <!-- .element: class="fragment" data-fragment-index="3" -->
+
+    ---
+
+    ```cpp
+    static_assert(
+      typeid(^T) ==           // type-erased AST info
+      typeid(std::meta::info)
+    );
+    ```
+    <!-- .element: class="fragment" data-fragment-index="4" -->
+
+    ```cpp
+    static_assert(
+      typeid(typename [: ^int :]) == typeid(int)
+    );
+    ```
+    <!-- .element: class="fragment" data-fragment-index="5" -->
+
+----
+
+##### P2996 / meta-programming (https://godbolt.org/z/43Yf8G8xz)
+
+```cpp
+template<size_t N, class... Ts>
+using at =
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  typename [: // splicer (reify)
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    std::array{^Ts...}[N] // lift into std::array{std::meta::info}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  :];
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+---
+
+```cpp
+static_assert(typeid(int)   == typeid(at<0, int, float, short>));
+static_assert(typeid(float) == typeid(at<1, int, float, short>));
+static_assert(typeid(short) == typeid(at<2, int, float, short>));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+##### P1858 / C++26 - Generalized pack declaration and usage (https://wg21.link/P2996)
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+template<size_t N, class... Ts>
+using at = Ts...[N];
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 
-  - meta-programming model | ranges
+----
+
+##### P2296 + ranges / meta-programming (https://godbolt.org/z/Y7edbe63c)
+
+```cpp
+template<class... Ts>
+using reverse_drop_t = typename [:
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+    std::meta::substitute(^type_list,
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+        std::array{^Ts...} // std::array{meta::info}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+      | std::views::reverse // stl.ranges
+      | std::views::drop(1)
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    )
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+:];
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+static_assert(typeid(reverse_drop_t<int, float, short>) ==
+              typeid(type_list<float, int>));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### `filter/transform/...` require more effort but it's possible
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+  - meta-programming model
 
     - compilation time benchmarks
 
     <a href="https://boost-ext.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
     <!-- .element: class="fragment" data-fragment-index="0" -->
 
-      - mp - this model is possible since (C++17 with gcc,msvc,clang)
+  - meta-programming model with meta-programming model
 
-  - meta-priogramming model with meta-programming model
+  ```cpp
+    template<std::size_t N, class... Ts>
+    using at = type_of<std::array{meta<Ts>...}[N]>;
+
+    static_assert(typeid(int)    == typeid(at<0, int, float, double>));
+    static_assert(typeid(float)  == typeid(at<1, int, float, double>));
+    static_assert(typeid(double) == typeid(at<2, int, float, double>));
+  ```
+
     - https://godbolt.org/z/694e1hrbM
 
-  - introspection
+        - via stateful meta-programming (supported by the proposal)
 
-    - enumrations_of
+    - mp - this model is possible since (C++17 with gcc,msvc,clang)
 
 ----
 
@@ -127,23 +281,35 @@ Enum
 
 <a href="https://eel.is/c++draft/dcl.enum#:%7b%7d,enum_declaration"><img src="images/enum.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
+----
+
 - Unscoped Enum (C-style Enum)
 
 ```cpp
 enum color {
-  RED,
-  GREEN,
-  BLUE,
+  red, green, blue,
 };
 ```
 
 - Scoped Enum (C++11)
 
 ```cpp
-enum class coins : u8 {
-  BTC = 1,
-  ETH = 2,
-  XRP = 3
+enum class http_status_code : std::uint32_t {
+  unknown = 0,
+  ok = 200,
+  created = 201,
+  accepted = 202,
+  no_content = 204,
+  bad_request = 400,
+  unauthorized = 401,
+  forbidden = 403,
+  not_found = 404,
+  method_not_allowed = 405,
+  conflict = 409,
+  internal_server_error = 500,
+  not_implemented = 501,
+  bad_gateway = 502,
+  service_unavailable = 503,
 };
 ```
 
@@ -161,6 +327,14 @@ enum class permissions : std::uint8_t {
 
 ----
 
+[Performance] Case study
+
+- there is no sliver bullet just trade-offs
+- know your data and your hardware!
+- measure in end-2-end setup!
+
+----
+
 enum_to_string
 
   - https://godbolt.org/z/TTdecKjsz
@@ -173,19 +347,19 @@ Challanges
     enum { A = 1, B = 1, };
     ```
 
-    enum_to_string(A);
-    enum_to_string(B);
+    enum_to_string(A); // ?
+    enum_to_string(B); // ?
 
     - flag-enum
 
     enum { A = 0b01, B = 0b10, };
 
-    enum_to_string(A | B);
+    enum_to_string(A | B); // ?
 
 - unknown value
 
     enum E { A };
-    - enum_to_string(static_cast<E>(42));
+    - enum_to_string(static_cast<E>(42)); // ?
 
         - ""
         - std::optional / std::expected
@@ -193,9 +367,9 @@ Challanges
 
 ---
 
-- P2996 (examples)
+- P2996
 
-  - template for
+  - example
   ```
   template <class E> requires std::is_enum_v<E>
   constexpr auto enum_to_string(E value) -> std::string_view {
@@ -234,6 +408,73 @@ Challanges
     - nested switch
 
         - based on optimizations
+
+        ```cpp
+        template<class E> requires std::is_enum_v<E>
+        constexpr auto enum_to_string(E value) -> std::string_view {
+        ```
+        <!-- .element: class="fragment" data-fragment-index="0" -->
+
+        ```cpp
+          return [&]<size_t I = 0>(this auto&& fn) { // C++23 deducing this
+            constexpr auto enumerators = std::meta::enumerators_of(^E);
+            constexpr auto size = std::size(enumerators);
+          ```
+        <!-- .element: class="fragment" data-fragment-index="2" -->
+
+          ```cpp
+            switch (value) { // nested switch
+              default:       // P2996 doesn't support code generation
+                if constexpr (I < std::size(enumerators) - 1) {
+                  return fn.template operator()<I+1>();
+                } else {
+                  return "";
+                }
+
+              case [: enumerators[I] :]:
+                return std::meta::name_of(enumerators[I]);
+            }
+          ```
+        <!-- .element: class="fragment" data-fragment-index="3" -->
+
+        ```cpp
+          }();
+        ```
+        <!-- .element: class="fragment" data-fragment-index="2" -->
+
+        ```cpp
+        }
+        ```
+        <!-- .element: class="fragment" data-fragment-index="0" -->
+
+        ----
+
+#### P2996 / run-time / switch-case (https://godbolt.org/z/8reMEx3Yq)
+
+        ```cpp
+        template auto enum_to_string(E) -> std::string_view; // x86-64 -O3
+        ```
+        <!-- .element: class="fragment" -->
+
+        ```cpp
+        enum_to_string(E): // decision-tree for enum E
+          cmp     edi, 1
+          lea     rax, [rip + .L.str.2]
+          lea     rcx, [rip + .L.str.1]
+          cmove   rcx, rax
+          test    edi, edi
+          lea     rax, [rip + .L.str]
+          cmovne  rax, rcx
+          xor     edx, edx
+          cmp     edi, 2
+          setb    dl
+          ret
+
+        .L.str:   .asciz  "A"
+        .L.str.2: .asciz  "B"
+        .L.str.1: .zero   1
+        ```
+        <!-- .element: class="fragment" -->
 
   - __expected_probability  / if we know the order
 
@@ -279,6 +520,8 @@ Challanges
 
     - aligned/unaligned load
 
+    std::simd - https://wg21.link/P1928
+
 - perfect-hashing
    - https://en.wikipedia.org/wiki/Perfect_hash_function
 
@@ -296,19 +539,17 @@ Challanges
 
     - approaches
 
-    - frozen
-      <a href="http://stevehanov.ca/blog/index.php?id=119"><img src="images/phash.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+        - frozen
+          <a href="http://stevehanov.ca/blog/index.php?id=119"><img src="images/phash.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
-        <a href="https://www.youtube.com/watch?v=vA5sdxbwUG8"><img src="images/frozen.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+            <a href="https://www.youtube.com/watch?v=vA5sdxbwUG8"><img src="images/frozen.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
-    - pthash
+        - pthash
 
-      <a href="https://www.youtube.com/watch?v=3kjWMbuD1U4"><img src="images/pthash.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
-        https://github.com/jermp/pthash
+          <a href="https://www.youtube.com/watch?v=3kjWMbuD1U4"><img src="images/pthash.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+            https://github.com/jermp/pthash
 
-    - pext (https://github.com/boost-ext/mph)
-
-        llvm-mca
+        - pext (https://github.com/boost-ext/mph)
 
       <a href="https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=pext_u64"><img src="images/pext.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
@@ -601,8 +842,8 @@ Challanges
     - concepts based overload (pick the best based)
 
     ```cpp
-    requires requires
-    if constexpr () {}
+    [[gnu::target("avx2")]] auto enum_to_string() reuqires entries.size() < 32
+    [[gnu::target("avx512f")]] auto enum_to_string() reuqires entries.size() < 32
     ```
 
 More comprehensive benchmarks
@@ -648,7 +889,6 @@ string_to_enum
     ```
 
     // show assembly
-
 
   - gperf
     string onlye
@@ -700,6 +940,8 @@ Summary
     - perfect hashing can be powerful tool for improving performance
     - There is no silver bullet if it comes to the performance just trade-offs
     - The more you know about your data the more you can optimize it
+    - static reflection has run-time parts
+    - enum_to_string and string_to_enum is tricky and challenging
 
 ----
 
@@ -708,6 +950,40 @@ Credits
   - fagner, uops, llvm-mca, godbolt
   - mph
 
+----
+
+#### C23 / introspection - #embed (https://godbolt.org/z/e5Kq61jjP)
+
+```cpp
+struct foo { };
+struct bar { };
+void fn();
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+static_assert(not meta_contains<"struct x">);
+static_assert(meta_contains<"struct foo">);
+static_assert(meta_contains<"struct bar">);
+static_assert(meta_contains<"void fn()">);
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+template<fixed_string Name>
+constexpr auto meta_contains = [] {
+  // #embed is C23 (https://wg21.link/P1967) and not C++23
+  static constexpr char self[] = { #embed __FILE__ };
+  const auto code = std::string_view(std::data(self), std::size(self));
+  const auto find = code.find(Name);
+  return find != std::string_view::npos and code[find-1] != '\"';
+}();
+```
+<!-- .element: class="fragment" -->
           </script>
         </section>
 
