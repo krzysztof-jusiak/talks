@@ -322,7 +322,7 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 
 ----
 
-### Enum - https://eel.is/c++draft/dcl.enum
+#### Enum - https://eel.is/c++draft/dcl.enum
 
 #### Unscoped Enum (C-style Enum)
 <!-- .element: class="fragment" style="float:left" -->
@@ -493,20 +493,20 @@ constexpr auto enum_to_string(E value) -> string_view {
 ---
 
 ```cpp
-[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
- 1      1     0.25                        test  edi, edi
- 1      1     0.50                        je    .LBB0_1
- 1      1     0.25                        cmp   edi, 1
- 1      1     0.50                        jne   .LBB0_4
- 1      1     0.50                        mov   eax, 5
- 1      1     0.33                        lea   rdx, [rip + .L.str.1]
- 1      5     0.50                  U     ret
- 1      1     0.50                        mov   eax, 3
- 1      1     0.33                        lea   rdx, [rip + .L.str]
- 1      5     0.50                  U     ret
- 1      1     0.50                        mov   eax, 4
- 1      1     0.33                        lea   rdx, [rip + .L.str.2]
- 1      5     0.50                  U     ret
+[1]    [2]    [3]    [4] [5] [6]  Instructions:
+ 1      1     0.25                test  edi, edi
+ 1      1     0.50                je    .LBB0_1
+ 1      1     0.25                cmp   edi, 1
+ 1      1     0.50                jne   .LBB0_4
+ 1      1     0.50                mov   eax, 5
+ 1      1     0.33                lea   rdx, [rip + .L.str.1]
+ 1      5     0.50            U   ret
+ 1      1     0.50                mov   eax, 3
+ 1      1     0.33                lea   rdx, [rip + .L.str]
+ 1      5     0.50            U   ret
+ 1      1     0.50                mov   eax, 4
+ 1      1     0.33                lea   rdx, [rip + .L.str.2]
+ 1      5     0.50            U   ret
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -552,13 +552,9 @@ auto bit_test_cluster::is_beneficial(auto count, auto uniq) {
 <!-- .element: class="fragment" style="float:left" -->
 
 ```cpp
-auto max_ratio = optimize_insn_for_size_p()  // -Os vs -O3
-  ? param_jump_table_max_growth_ratio_for_size   // 2
-  : param_jump_table_max_growth_ratio_for_speed; // 8
-
 auto jump_table_cluster::can_be_handled(auto cmp_count) {
   return get_range(get_low(), get_high()) <=
-    max_ratio * cmp_count;
+    (optimize_for_size() ? 2 : 8) * cmp_count;
 }
 
 auto jump_table_cluster::is_beneficial(auto start, auto end) {
@@ -631,7 +627,7 @@ static_assert(
 
 ```cpp
 template <class E> requires is_enum_v<E>
-[[nodiscard]] constexpr auto enum_to_string(E value) {
+constexpr auto enum_to_string(E value) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -733,7 +729,7 @@ assembly
 
 ----
 
-##### Let's leverage the fact that we know all values at compile-time
+#### Let's leverage the fact that we know enumerations at compile-time
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -822,9 +818,8 @@ constexpr auto enum_to_string(E value) const -> string_view {
 #### Hardware accelerated perfect hashing - mask
 
 ```cpp
-template<class E, class T = underlying_type_t<E>>
-  requires is_enum_v<E>
-[[nodiscard]] consteval auto mask() {
+template<class E, class T = underlying_type_t<E>> requires is_enum_v<E>
+consteval auto mask() {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -1495,10 +1490,10 @@ assembly
 
 ```cpp
 // value: input
-// lut:   ???
-// magic: ???
 // shift: known
 // mask:  known
+// magic: ???
+// lut:   ???
 ((lut >> (value * magic)) >> shift) & mask
 ```
 <!-- .element: class="fragment" data-fragment-index="6" -->
@@ -1560,7 +1555,7 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
         break;
       }
     }
-    if (magic and lut) return std::pair{magic, lut}; // found
+    if (magic and lut) return pair{magic, lut}; // found
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
