@@ -206,7 +206,7 @@ void bench_status() {
 }
 
 int main() {
-  bench_color();
+  //bench_color();
   bench_status();
 
   // boost unordered_flat_map
