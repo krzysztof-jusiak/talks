@@ -575,7 +575,7 @@ auto jump_table_cluster::is_beneficial(auto start, auto end) {
 
 ----
 
-### Let's make some helper utilities with P2996
+#### Let's make some helper utilities with P2996
 
 ```cpp
 template<class E> requires is_enum_v<E>
@@ -750,7 +750,7 @@ assembly
 ----
 
 ##### enum_to_string - Hash, Displace, Compress - https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61
-<a href="https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61"><img src="images/hdc.png" style="width: 38%; background:none; border:none; box-shadow:none;" /></a>
+<a href="https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61"><img src="images/hdc.png" style="width: 35%; background:none; border:none; box-shadow:none;" /></a>
 
 ----
 
@@ -761,9 +761,8 @@ assembly
 
 #### and more...
 
-----
-
-### Let's focus on optimizing run-time performance and ability to do it at compile-time
+#### ...let's focus on optimizing run-time performance and ability to do it at compile-time
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 -----
 
@@ -771,6 +770,9 @@ assembly
 
 <img src="images/idea.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### [Using std::cpp: Joaquín M. López Muñoz - Perfect Hashing in an Imperfect World](https://www.youtube.com/watch?v=yOo6GnbKzp8)
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 -----
 
@@ -794,21 +796,19 @@ constexpr auto enum_to_string(E value) const -> string_view {
 
 ```cpp
   static constexpr auto lookup = [] {
-    array<
-      decltype(enumerators<E>[0]), // pair<E, string_view>
-      (1u << std::popcount(mask))  // 2^N
-    > lookup{};
+    array<pair<E, string_view>, (1u << std::popcount(mask))> lookup{};
     for (const auto& [k, v] : enumerators<E>) {
       lookup[pext(k, mask<E>)] = {k, v};
     }
-    return lut;
+    return lookup;
   }();
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  auto&& [rhs, value] = lookup[pext(value, mask<E>)];
-  return value == rhs ? value : {};
+  auto&& lhs = value;
+  auto&& [rhs, result] = lookup[pext(lhs, mask<E>)];
+  return lhs == rhs ? result : {};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -829,7 +829,7 @@ template<class E, class T = underlying_type_t<E>>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  bitset<sizeof(T) * CHAR_BIT> mask(numeric_limits<T>::max());
+  bitset<sizeof(T)*CHAR_BIT> mask(numeric_limits<T>::max()); // 0b111...
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -874,15 +874,15 @@ time $CXX -std=c++20 -O3 64_keys.cpp -c          # 0.090s
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
- 1      1     0.25                        movl %edi, %ecx
- 1      1     0.25                        andl $3, %ecx # pext
- 1      1     0.25                        shll $4, %ecx
- 1      1     0.25                        leaq lookup(%rip), %rdx
- 1      1     0.25                        xorl %eax, %eax
- 2      5     0.50    *                   cmpl %edi, (%rcx,%rdx)
- 2      5     0.50    *                   cmoveq 8(%rcx,%rdx), %rax
- 2      1     0.50                  U     retq
+[1]    [2]    [3]    [4] [5] [6]  Instructions:
+ 1      0     0.17                mov ecx, edi
+ 1      1     0.25                and ecx, 3
+ 1      1     0.50                shl ecx, 4
+ 1      1     0.33                lea rdx, [rip + lookup]
+ 1      0     0.17                xor eax, eax
+ 1      5     0.33    *           cmp dword ptr [rcx + rdx], edi
+ 1      5     0.50    *           cmove rax, qword ptr [rcx + rdx + 8]
+ 1      5     0.50            U   ret
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -899,10 +899,10 @@ lookup:
 
 ----
 
-#### If the input can be guaranteed to be valid
+#### [Improvement] If the input can be guaranteed to be valid
 
 ```cpp
-assert(contains(enumerators, value)); // valid input
+          assert(contains(enumerators, value)); // valid input
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -938,11 +938,12 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
- 1      1     0.25                        andl $3, %edi
- 1      1     0.33                        leaq lookup(%rip), %rax
- 1      5     0.33    *                   movq (%rax,%rdi,8), %rax
- 1      5     0.50                  U     retq
+[1]    [2]    [3]    [4] [5] [6]  Instructions:
+ 1      1     0.25                and edi, 3
+ 1      1     0.25                shl edi, 4
+ 1      1     0.25                lea rax, [rip + lookup]
+ 1      4     0.50    *           mov rax, qword ptr [rdi + rax + 8]
+ 2      1     0.50            U   ret
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1024,7 +1025,7 @@ constexpr auto unsafe$enum_to_string(flag_enum value) {
 
 ```cpp
   [[assume(has_single_bit(to_underlying(value))]];
-  return lookup[popcount(to_underlying(value)-1u)];
+  return lookup[popcount(to_underlying(value) - 1)];
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1032,6 +1033,14 @@ constexpr auto unsafe$enum_to_string(flag_enum value) {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+4         = 0b100
+4 - 1 = 3 = 0b011 = popcount(0b011) = 2 // or countr_zero
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -1044,12 +1053,12 @@ constexpr auto unsafe$enum_to_string(flag_enum value) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
- 1      1     0.25                        decl %edi
- 1      1     0.25                        popcntl %edi, %eax
- 1      1     0.33                        leaq lookup(%rip), %rcx
- 1      5     0.33    *                   movq (%rcx,%rax,8), %rax
- 1      5     0.50                  U     retq
+[1]    [2]    [3]    [4] [5] [6]  Instructions:
+ 1      1     0.25                dec edi
+ 1      1     0.25                popcnt eax, edi
+ 1      1     0.33                lea rcx, [rip + lookup]
+ 1      5     0.33    *           mov rax, qword ptr [rcx + 8*rax]
+ 1      5     0.50            U   ret
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1066,11 +1075,6 @@ lookup:
 -----
 
 #### No BMI2? Zen2? ARM?
-
-#### <a href="https://schedule.cppnow.org/session/2024/a-case-study-in-zero-cost-abstractions-high-performance-message-dispatch/">C++Now 2024 - Luke Valenty: A case study in zero-cost abstractions: High performance message dispatch</a>
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
 
 ```cpp
 // bmi2
@@ -1089,13 +1093,14 @@ and     ecx, 248
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
+#### <a href="https://schedule.cppnow.org/session/2024/a-case-study-in-zero-cost-abstractions-high-performance-message-dispatch/">C++Now 2024 - Luke Valenty: A case study in zero-cost abstractions: High performance message dispatch</a>
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
 ----
 
 #### and more...
-
-----
-
-#### There is no sliver bullet!
+#### ...but there is no sliver bullet!
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 template <class E> requires is_enum_v<E> and
@@ -1103,25 +1108,25 @@ template <class E> requires is_enum_v<E> and
 [[gnu::target("sse, sse2, sse4.1, avx, avx2, avx512f")]]
 constexpr auto enum_to_string(E value) -> string_view;
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
 template<class E> requires is_enum_v<E>
 [[gnu::target("default")]]
 constexpr auto enum_to_string(E value) -> string_view;
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 [[gnu::target("default")]]
 constexpr auto enum_to_string(flag_enum value) -> string_view;
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
 ...
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
@@ -1232,7 +1237,7 @@ constexpr auto string_to_enum(string_view str) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  static const unordered_map<string_view, E> map{
+  static const unordered_map<string_view, E> map{ // constinit frozen
     {"red",   color::red},
     {"green", color::green},
     {"blue",  color::blue},
@@ -1254,13 +1259,7 @@ constexpr auto string_to_enum(string_view str) {
 
 ----
 
-#### string_to_enum - frozen - https://github.com/serge-sans-paille/frozen
-<a href="https://www.youtube.com/watch?v=vA5sdxbwUG8"><img src="images/frozen.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
-
-----
-
 #### Faster...
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ### string_to_enum
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1371,8 +1370,9 @@ template auto to<uint32_t>(string_view) -> uint32_t;
 
 ```cpp
 // $CXX -Ofast -DNDEBUG -mbmi2
-shll    $3, %edi
-bzhil   %edi, (%rsi), %eax
+sal  rdi, 3
+bzhi eax, DWORD PTR [rsi], edi
+ret
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1430,14 +1430,14 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  static constexpr auto lookup = /* same as enum_to_string */;
+  static constexpr auto lookup = /* same as in enum_to_string */;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
   auto&& lhs = to<T>(str); // T - uint32_t/uint64_t/...
-  auto&& [rhs, value] = lookup[pext(lhs, mask<E>)];
-  return (lhs == rhs) * value;
+  auto&& [rhs, result] = lookup[pext(lhs, mask<E>)];
+  return (lhs == rhs) * result;
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1462,14 +1462,18 @@ assembly
 #### Minimal perfect hashing
 
 #### bit mixer
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" style="float:left" data-fragment-index="0" -->
+<br />
+
 ```cpp
 (value * magic) >> shift
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 #### lookup table
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" style="float:left" data-fragment-index="2" -->
+<br />
+
 ```cpp
 {7, 42, 1, 10}[n]
 ```
@@ -1481,18 +1485,23 @@ assembly
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
-(0b'000111'101010'000001'001010 >> 6*i)[n] & 0b111111
+(0b'000111'101010'000001'001010 >> 6*n) & 0b111111
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
+#### magic
+<!-- .element: class="fragment" style="float:left" data-fragment-index="6" -->
+<br />
+
 ```cpp
+// value: input
+// lut:   ???
+// magic: ???
+// shift: known
+// mask:  known
 ((lut >> (value * magic)) >> shift) & mask
 ```
 <!-- .element: class="fragment" data-fragment-index="6" -->
-
-
-#### Goal: Find lut, magic
-<!-- .element: class="fragment" data-fragment-index="7" -->
 
 ----
 
@@ -1505,15 +1514,17 @@ constexpr auto string_to_enum(string_view str) -> E {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  constexpr auto nbits =
-  constexpr auto mask  = (1u << nbits) - 1u; // 0b111111
-  constexpr auto shift = sizeof(T) * CHAR_BIT - nbits;
+  constexpr auto size  = sizeof(T) * CHAR_BIT; // T = uint32_t/...
+  constexpr auto nbits = size - countr_zero(max(enumerators<E>));
+  constexpr auto mask  = (1u << nbits) - 1u; // 0b111111...
+  constexpr auto shift = size - nbits;
   constexpr auto [magic, lut] = magic_lut(mask, shift, MaxAttempts);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  return (lut >> ((to<T>(key) * magic) >> shift)) & mask;
+  auto&& value = to<T>(key);
+  return (lut >> ((value * magic) >> shift)) & mask;
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1545,7 +1556,7 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
     }
     for (const auto& [k, v] : enumerators<E>) {
       if ((lut >> (k * magic >> shift) & mask) != v) {
-        lut = {}; // keep-going
+        lut = {}; // not found, keep-going
         break;
       }
     }
@@ -1597,7 +1608,7 @@ enum uri { ftp = 1, file = 2, http = 3, ws = 4, wss = 5, };
 ---
 
 ```cpp
-no lookup table
+no lookup table (stored directly in a register)
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -1680,17 +1691,17 @@ constexpr auto on(const add_order& msg) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-[1]    [2]    [3]    [4] [5] [6]    Instructions:
- 1      5     0.33    *             mov rax, qword ptr [rsi + 8]
- 1      5     0.33    *             mov rcx, qword ptr [rax]
- 1      1     1.00                  movabs rax, 4419538124800 // mask
- 1      3     1.00                  pext rdx, rcx, rax
- 1      1     0.50                  shl edx, 4
- 1      1     0.33                  lea rsi, [rip + find<symbols>]
- 1      0     0.17                  xor eax, eax
- 1      5     0.33    *             cmp qword ptr [rdx + rsi], rcx
- 1      5     0.50    *             cmove eax, dword ptr [rdx + rsi + 8]
- 1      5     0.50            U     ret
+[1]    [2]    [3]    [4] [5] [6]  Instructions:
+ 1      5     0.33    *           mov rax, qword ptr [rsi + 8]
+ 1      5     0.33    *           mov rcx, qword ptr [rax]
+ 1      1     1.00                movabs rax, 4419538124800 // mask
+ 1      3     1.00                pext rdx, rcx, rax
+ 1      1     0.50                shl edx, 4
+ 1      1     0.33                lea rsi, [rip + find<symbols>]
+ 1      0     0.17                xor eax, eax
+ 1      5     0.33    *           cmp qword ptr [rdx + rsi], rcx
+ 1      5     0.50    *           cmove eax, dword ptr [rdx + rsi + 8]
+ 1      5     0.50            U   ret
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
