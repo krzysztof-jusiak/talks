@@ -457,12 +457,23 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ```cpp
   if (value == color::red)   { return "red";   }
-  if (value == color::green) { return "green"; }
-  if (value == color::blue)  { return "blue";  }
-
-  return {};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  if (value == color::green) { return "green"; }
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  if (value == color::blue)  { return "blue";  }
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+  return {};
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
 
 ```
 }
@@ -472,6 +483,14 @@ constexpr auto enum_to_string(E value) -> string_view {
 ----
 
 #### enum_to_string - P2996
+
+```cpp
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+---
 
 ```cpp
 [1]    [2]    [3]    [4]    [5]    [6]    Instructions:
@@ -489,6 +508,7 @@ constexpr auto enum_to_string(E value) -> string_view {
  1      1     0.33                        lea   rdx, [rip + .L.str.2]
  1      5     0.50                  U     ret
 ```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
@@ -848,38 +868,38 @@ time $CXX -std=c++20 -O3 64_keys.cpp -c          # 0.090s
 #### Hardware accelerated perfect hashing - https://godbolt.org/z/j4E5Pcjx1
 
 ```cpp
-[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
- 1      1     0.25                        movl	%edi, %ecx
- 1      1     0.25                        andl	$3, %ecx # pext
- 1      1     0.25                        shll	$4, %ecx
- 1      1     0.25                        leaq	lookup(%rip), %rdx
- 1      1     0.25                        xorl	%eax, %eax
- 2      5     0.50    *                   cmpl	%edi, (%rcx,%rdx)
- 2      5     0.50    *                   cmoveq	8(%rcx,%rdx), %rax
- 2      1     0.50                  U     retq
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      1     0.25                        movl %edi, %ecx
+ 1      1     0.25                        andl $3, %ecx # pext
+ 1      1     0.25                        shll $4, %ecx
+ 1      1     0.25                        leaq lookup(%rip), %rdx
+ 1      1     0.25                        xorl %eax, %eax
+ 2      5     0.50    *                   cmpl %edi, (%rcx,%rdx)
+ 2      5     0.50    *                   cmoveq 8(%rcx,%rdx), %rax
+ 2      1     0.50                  U     retq
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
 ```cpp
 lookup:
- .long   0
- .zero   4
- .quad   "red"
- .long   1
- .zero   4
- .quad   "green"
- .long   2
- .zero   4
- .quad   "blue"
+ .long   0 .quad   "red"
+ .long   1 .quad   "green"
+ .long   2 .quad   "blue"
+ .zero   16
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
-#### If we can guarantee all inputs are valid?
-<!-- .element: class="fragment" data-fragment-index="0" -->
+#### If the input can be guaranteed to be valid
 
 ```cpp
 assert(contains(enumerators, value)); // valid input
@@ -912,13 +932,19 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 #### Hardware accelerated perfect hashing - unsafe - https://godbolt.org/z/3hMxEoG5h
 
 ```cpp
-[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
- 1      1     0.25                        andl	$3, %edi
- 1      1     0.33                        leaq	lookup(%rip), %rax
- 1      5     0.33    *                   movq	(%rax,%rdi,8), %rax
- 1      5     0.50                  U     retq
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      1     0.25                        andl $3, %edi
+ 1      1     0.33                        leaq lookup(%rip), %rax
+ 1      5     0.33    *                   movq (%rax,%rdi,8), %rax
+ 1      5     0.50                  U     retq
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -928,14 +954,21 @@ lookup:
   .quad   "green"
   .quad   "blue"
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
 #### What about 'Flag' enum?
 
 ```cpp
-mask: 0b11111111111...
+enum class permissions : uint8_t {
+  read     = (1 << 0), // 0b001
+  write    = (1 << 1), // 0b010
+  execute  = (1 << 2), // 0b100
+  // ----------------------------//
+  // mask  :              0b111  // size: 2^(popcount(mask))
+  // ----------------------------//
+};
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -1005,14 +1038,20 @@ constexpr auto unsafe$enum_to_string(flag_enum value) {
 #### Flag enum - https://godbolt.org/z/4cc8MabjG
 
 ```cpp
-[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
- 1      1     0.25                        decl	%edi
- 1      1     0.25                        popcntl	%edi, %eax
- 1      1     0.33                        leaq	lookup(%rip), %rcx
- 1      5     0.33    *                   movq	(%rcx,%rax,8), %rax
- 1      5     0.50                  U     retq
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      1     0.25                        decl %edi
+ 1      1     0.25                        popcntl %edi, %eax
+ 1      1     0.33                        leaq lookup(%rip), %rcx
+ 1      5     0.33    *                   movq (%rcx,%rax,8), %rax
+ 1      5     0.50                  U     retq
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -1022,7 +1061,7 @@ lookup:
   .quad   "green"
   .quad   "blue"
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 -----
 
@@ -1160,7 +1199,7 @@ enum color { red, green, blue, black };
 template<class E> requires is_enum_v<E>
 constexpr auto string_to_enum(string_view str) -> optional<E> {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
   switch (str[0]) {
@@ -1168,19 +1207,19 @@ constexpr auto string_to_enum(string_view str) -> optional<E> {
     case 'g': return color::green;
     case 'b': {
       switch (str[2]) { // or size
-        case 'a': return color::black;
         case 'u': return color::blue;
+        case 'a': return color::black;
       }
     }
   }
   return nullopt;
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1220,17 +1259,21 @@ constexpr auto string_to_enum(string_view str) {
 
 ----
 
+#### Faster...
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
 ### string_to_enum
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 #### ...with some assumptions
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
 #### string to int - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
-static_assert(3+1 == sizeof("cpp"));
+static_assert(3 + 1 == sizeof("cpp"));
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -1252,7 +1295,7 @@ simd<char, 64> : 64 bytes // x86.avx512
 
 ----
 
-#### string to type - https://godbolt.org/z/GnKoK9vrj
+#### string to int - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
 template<class T, size_t Size> requires (Size <= sizeof(T))
@@ -1287,7 +1330,7 @@ constexpr auto to(string_view str) -> T {
 
 ----
 
-#### string to type - https://godbolt.org/z/GnKoK9vrj
+#### string to int - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
 template<class T>
@@ -1304,7 +1347,7 @@ constexpr auto to(string_view str) -> T {
 
 ----
 
-#### string to type - https://godbolt.org/z/GnKoK9vrj
+#### string to int - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
 [[gnu::target("default")]] auto bzhi(auto value, auto index) {
@@ -1335,18 +1378,18 @@ bzhil   %edi, (%rsi), %eax
 
 ----
 
-#### string to type - https://godbolt.org/z/GnKoK9vrj
+#### string to int - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
-template<class T, size_t PAGE_SIZE = 4096u>
+template<class T, size_t PageSize = 4096u>
 constexpr auto to(string_view str) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
   // https://github.com/glibc/blob/master/sysdeps/generic/memcopy.h
-  if ((uint64_t(str.data()) & (PAGE_SIZE - 1ul)) >
-      (PAGE_SIZE - sizeof(T))) [[unlikely]] { // page boundary
+  if ((uint64_t(str.data()) & (PageSize - 1ul)) >
+      (PageSize - sizeof(T))) [[unlikely]] { // page boundary
     return [&str] [[gnu::cold]] {
       T t;
       memcpy(&t, str.data(), str.size()); // slow path
@@ -1387,12 +1430,12 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  static constexpr auto lookup = /* same as before */;
+  static constexpr auto lookup = /* same as enum_to_string */;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  auto&& lhs = to<T>(str);
+  auto&& lhs = to<T>(str); // T - uint32_t/uint64_t/...
   auto&& [rhs, value] = lookup[pext(lhs, mask<E>)];
   return (lhs == rhs) * value;
 ```
@@ -1402,6 +1445,10 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+assembly
 
 ----
 
@@ -1526,32 +1573,33 @@ enum uri { ftp = 1, file = 2, http = 3, ws = 4, wss = 5, };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-```cpp
-template auto string_to_enum(string_view) -> uri;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
 ---
 
 ```cpp
-[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
- 1      1     0.50                        shll	$3, %edi
- 2      6     0.50    *                   bzhil	%edi, (%rsi), %eax
- 1      3     1.00                        imull	$385596323, %eax, %eax
- 1      1     0.50                        shrl	$29, %eax
- 1      1     0.25                        movl	$358, %ecx
- 1      1     0.50                        shrxl	%eax, %ecx, %eax
- 1      1     0.25                        andl	$7, %eax
- 3      7     1.00                  U     retq
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+[1]    [2]    [3]    [4] [5] [6]    Instructions:
+ 1      1     0.50                  shl edi, 3
+ 2      5     0.50    *             bzhi eax, dword ptr [rsi], edi
+ 1      3     1.00                  imul eax, eax, 385596323 // magic
+ 1      1     0.50                  shr eax, 29              // shift
+ 1      1     0.50                  mov ecx, 358             // lut
+ 1      1     0.50                  shrx eax, ecx, eax
+ 1      1     0.25                  and eax, 7               // mask
+ 1      5     0.50            U     ret
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ---
 
 ```cpp
 no lookup table
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
@@ -1626,18 +1674,33 @@ constexpr auto on(const add_order& msg) {
 #### Nasdaq TotalView-ITCH 5.0 - https://godbolt.org/z/n8Ex73e6P
 
 ```cpp
-on(add_order):
-  mov     rax, qword ptr [rsi + 8]
-  mov     rcx, qword ptr [rax]
-  movabs  rax, 4419538124800
-  pext    rdx, rcx, rax
-  shl     edx, 4
-  lea     rsi, [rip + find<symbols>]
-  xor     eax, eax
-  cmp     qword ptr [rdx + rsi], rcx
-  cmove   eax, dword ptr [rdx + rsi + 8]
-  ret
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+[1]    [2]    [3]    [4] [5] [6]    Instructions:
+ 1      5     0.33    *             mov rax, qword ptr [rsi + 8]
+ 1      5     0.33    *             mov rcx, qword ptr [rax]
+ 1      1     1.00                  movabs rax, 4419538124800 // mask
+ 1      3     1.00                  pext rdx, rcx, rax
+ 1      1     0.50                  shl edx, 4
+ 1      1     0.33                  lea rsi, [rip + find<symbols>]
+ 1      0     0.17                  xor eax, eax
+ 1      5     0.33    *             cmp qword ptr [rdx + rsi], rcx
+ 1      5     0.50    *             cmove eax, dword ptr [rdx + rsi + 8]
+ 1      5     0.50            U     ret
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+find<symbols>:
+  .quad 5498966892987031584 /* AAPL */ .long 2
+  .quad 4705227331476660256 /* TSLA */ .long 7
+  ...
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
