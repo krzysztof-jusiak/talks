@@ -555,7 +555,7 @@ auto jump_table_cluster::is_beneficial(auto start, auto end) {
 
 ----
 
-#### Let's make some helper utilities with P2996
+### Let's make some helper utilities with P2996
 
 ```cpp
 template<class E> requires is_enum_v<E>
@@ -747,14 +747,14 @@ assembly
 
 -----
 
-#### Hardware-accelerated perfect hashing
+#### Hardware accelerated perfect hashing
 
 <img src="images/idea.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 -----
 
-#### Hardware-accelerated perfect hashing
+#### Hardware accelerated perfect hashing
 
 <img src="images/pext.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -764,7 +764,7 @@ assembly
 
 ----
 
-#### Hardware-accelerated perfect hashing
+#### Hardware accelerated perfect hashing
 
 ```cpp
 template <class E> requires is_enum_v<E>
@@ -799,7 +799,7 @@ constexpr auto enum_to_string(E value) const -> string_view {
 
 ----
 
-#### Hardware-accelerated perfect hashing - mask
+#### Hardware accelerated perfect hashing - mask
 
 ```cpp
 template<class E, class T = underlying_type_t<E>>
@@ -845,7 +845,7 @@ time $CXX -std=c++20 -O3 64_keys.cpp -c          # 0.090s
 
 -----
 
-#### Hardware-accelerated perfect hashing - https://godbolt.org/z/j4E5Pcjx1
+#### Hardware accelerated perfect hashing - https://godbolt.org/z/j4E5Pcjx1
 
 ```cpp
 [1]    [2]    [3]    [4]    [5]    [6]    Instructions:
@@ -888,7 +888,7 @@ assert(contains(enumerators, value)); // valid input
 
 ----
 
-#### Hardware-accelerated perfect hashing - unsafe - https://godbolt.org/z/3hMxEoG5h
+#### Hardware accelerated perfect hashing - unsafe - https://godbolt.org/z/3hMxEoG5h
 
 ```cpp
 template <class E> requires is_enum_v<E>
@@ -909,7 +909,7 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 
 ----
 
-#### Hardware-accelerated perfect hashing - unsafe - https://godbolt.org/z/3hMxEoG5h
+#### Hardware accelerated perfect hashing - unsafe - https://godbolt.org/z/3hMxEoG5h
 
 ```cpp
 [1]    [2]    [3]    [4]    [5]    [6]    Instructions:
@@ -1227,7 +1227,7 @@ constexpr auto string_to_enum(string_view str) {
 
 ----
 
-#### string to type - https://godbolt.org/z/GnKoK9vrj
+#### string to int - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
 static_assert(3+1 == sizeof("cpp"));
@@ -1378,7 +1378,7 @@ constexpr auto to(string_view str) {
 
 ----
 
-#### Hardware-accelerated perfect hashing
+#### Hardware accelerated perfect hashing
 
 ```cpp
 template <class E> requires is_enum_v<E>
@@ -1556,6 +1556,31 @@ no lookup table
 ----
 
 #### Benchmarks - https://github.com/boost-ext/mph/tree/benchmark
+
+---
+
+##### Enum with 100 elements, successful lookup (Just a hook)
+<!-- .element: class="fragment" -->
+
+```cpp
+| 0.36ms | std::map
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+| 0.18ms | std::unordered_map
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+| 0.09ms | gperf
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+| 0.02ms | Hardware accelerated perfect hashing
+```
+<!-- .element: class="fragment" -->
 
 ----
 
