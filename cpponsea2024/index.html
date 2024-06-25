@@ -662,9 +662,50 @@ constexpr auto enum_to_string(E value) {
 
 ----
 
-#### switch-case - https://godbolt.org/z/8reMEx3Yq
+#### switch-case - https://godbolt.org/z/E5en4K8qn
 
-assembly
+```cpp
+enum class http_status_code : uint32_t {
+  ok         = 200,  // first cluster
+  created    = 201,
+  accepted   = 202,
+  no_content = 204,
+  im_used    = 226,  // odd value
+  forbidden  = 403,  // second cluster
+  not_found  = 404,
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### switch-case - https://godbolt.org/z/E5en4K8qn
+
+```cpp
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="1,6,9,14">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   1  0.33              lea eax, [rdi - 200]
+ 1   1  0.25              cmp eax, 5
+ 1   1  0.50              jae .LBB0_1
+ 1   1  0.50              mov ecx, 23
+ 1   1  0.50              bt ecx, eax  /*bitset*/
+ 1   1  0.50              jae .LBB0_1
+ 1   0  0.17              mov eax, eax /*jump-table*/
+ 1   1  0.33              lea rcx, [rip + .Lswitch.table]
+ 1   5  0.33  *           movsxd rax, dword ptr [rcx + 4*rax]
+ 1   1  0.25              add rax, rcx
+ 1   5  0.50          U   ret
+ 1   0  0.17              xor eax, eax
+ 1   1  0.25              cmp edi, 226 /*decision tree*/
+ 1   1  0.33              lea rax, [rip + .L.str.4]
+ 1   1  0.50              cmovne rax, rcx
+ 1   5  0.50          U   ret
+</code></pre>
 
 ----
 
@@ -725,12 +766,40 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ----
 
-assembly
+#### std::simd - https://godbolt.org/z/9c44jGnW6
+
+```cpp
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,8">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   1  1.00              vmovd xmm1, edi
+ 1   0  0.17              xor edx, edx
+ 1   1  0.50              vpbroadcastd  xmm0, xmm1
+ 1   8  0.50  *           vpcmpeqd xmm0, xmm0, xmmword ptr[rip+.keys]
+ 1   1  1.00              vmovmskps eax, xmm0
+ 1   1  0.25              movzx eax, al
+ 6   3  3.00              rep bsf eax, eax
+ 1   1  0.50              shl rax, 4
+ 1   5  0.33  *           mov rdx, qword ptr [rax + enumerators+8]
+ 1   5  0.50          U   ret
+</code></pre>
+
+```cpp
+keys:                enumerators:
+  .long   0            .quad   "red"
+  .long   1            .quad   "green"
+  .long   2            .quad   "blue"
+  .long   0            .quad   ""
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
-#### Let's leverage the fact that we know enumerations at compile-time
-<!-- .element: class="fragment" data-fragment-index="0" -->
+#### Want performance? Know your data!
 
 ----
 
@@ -741,24 +810,14 @@ assembly
 
 -----
 
-#### Approaches...
+#### Perfect hashing - approaches
 
-----
-
-##### enum_to_string - Hash, Displace, Compress - https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61
-<a href="https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61"><img src="images/hdc.png" style="width: 35%; background:none; border:none; box-shadow:none;" /></a>
-
-----
-
-##### enum_to_string - PTHash - https://arxiv.org/pdf/2104.10402
-<a href="https://arxiv.org/pdf/2104.10402"><img src="images/pthash.png" style="width: 53%; background:none; border:none; box-shadow:none;" /></a>
-
------
-
-#### and more...
-
-#### ...let's focus on optimizing run-time performance and ability to do it at compile-time
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<table><tr><td>
+<a href="https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61"><img src="images/hdc.png" style="width: 92%; background:none; border:none; box-shadow:none;" /></a>
+</td>
+<td>
+<a href="https://arxiv.org/pdf/2104.10402"><img src="images/pthash.png" style="width: 90%; background:none; border:none; box-shadow:none;" /></a>
+</td></tr></table>
 
 -----
 
@@ -1093,9 +1152,7 @@ and     ecx, 248
 
 ----
 
-#### and more...
-#### ...but there is no sliver bullet!
-<!-- .element: class="fragment" data-fragment-index="0" -->
+#### There is no sliver bullet!
 
 ```cpp
 template <class E> requires is_enum_v<E> and
@@ -1130,10 +1187,6 @@ constexpr auto enum_to_string(flag_enum value) -> string_view;
 ----
 
 ### string_to_enum
-
-----
-
-#### Approaches...
 
 ----
 
@@ -1232,7 +1285,7 @@ constexpr auto string_to_enum(string_view str) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  static const unordered_map<string_view, E> map{ // constinit frozen
+  static const unordered_map<string_view, E> map{
     {"red",   color::red},
     {"green", color::green},
     {"blue",  color::blue},
@@ -1246,21 +1299,21 @@ constexpr auto string_to_enum(string_view str) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+##### https://github.com/serge-sans-paille/frozen
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
 ----
 
-##### string_to_enum - gperf - https://www.gnu.org/software/gperf
+##### string_to_enum - [gperf](https://www.gnu.org/software/gperf)
 
 <a href="https://www.gnu.org/software/gperf/"><img src="images/gperf.png" style="width: 45%; background:none; border:none; box-shadow:none;" /></a>
 
 ----
 
-#### Faster...
-
 ### string_to_enum
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
-#### ...with some assumptions
-<!-- .element: class="fragment" data-fragment-index="2" -->
+#### Back to the basics!
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
