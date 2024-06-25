@@ -540,11 +540,11 @@ enum_to_string("blue");
 
 ----
 
-### switch-case
+#### switch-case
 
-----
-
-##### switch-case - lowering strategies - https://github.com/gcc-mirror/gcc/blob/master/gcc/tree-switch-conversion.cc
+##### lowering strategies - https://github.com/gcc-mirror/gcc/blob/master/gcc/tree-switch-conversion.cc
+<!-- .element: class="fragment" style="float:left" -->
+<br />
 
 ##### bitset (gcc)
 <!-- .element: class="fragment" style="float:left" -->
@@ -572,11 +572,17 @@ auto jump_table_cluster::is_beneficial(auto start, auto end) {
 ```
 <!-- .element: class="fragment" -->
 
-##### else &nbsp;
+##### decision<br />tree<br />(gcc/clang)
 <!-- .element: class="fragment" style="float:left" -->
 
-##### decision tree comparisons (gcc/clang)
-<!-- .element: class="fragment" style="float:left" -->
+```cpp
+
+otherwise // __builtin_expect_with_probability
+
+
+
+```
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -758,10 +764,11 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ```cpp
   simd<underlying_type_t<E>> lhs{value};
-  simd<underlying_type_t<E>> rhs{[&](auto i) {
-    return (i < enumerators<E>.size()) ? enumerators<E>[i].first : 0; }
-  };
+  simd<underlying_type_t<E>> rhs{
+    [&](auto i) { return enumerators<E>[i].first; }
+
   const auto match = lhs == rhs; // compare N elements at once
+
   return any_of(match)
     ? enumerators<E>[find_first_set(match)].second
     : {};
@@ -1168,7 +1175,6 @@ lookup:
 -----
 
 #### enum_to_string (there is no sliver bullet)
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 template <class E> requires is_enum_v<E> and
@@ -1326,10 +1332,13 @@ constexpr auto string_to_enum(string_view str) {
 
 ----
 
-### string_to_enum
+### Want performance?
 
-#### [different approach]
+#### Know your hardware!
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+#### Know your data!
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1477,15 +1486,11 @@ constexpr auto to(string_view str) {
 
 ----
 
-### string_to_enum
+#### string_to_enum - std::simd
 
 ----
 
-#### std::simd
-
-----
-
-#### Hardware accelerated perfect hashing
+#### string_to_enum - Hardware accelerated perfect hashing
 
 ```cpp
 template <class E> requires is_enum_v<E>
@@ -1516,14 +1521,14 @@ assembly
 
 ----
 
-#### Minimal perfect hashing
+#### string_to_enum - Minimal perfect hashing
 
 <img src="images/hashing.png" style="width: 75%; background:white; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-#### Minimal perfect hashing
+#### string_to_enum - Minimal perfect hashing
 
 #### bit mixer
 <!-- .element: class="fragment" style="float:left" data-fragment-index="0" -->
@@ -1569,7 +1574,7 @@ assembly
 
 ----
 
-#### Minimal perfect hashing
+#### string_to_enum - Minimal perfect hashing
 
 ```cpp
 template<class E, size_t MaxAttempts = 100'000> requires is_enum_v<E>
@@ -1599,7 +1604,7 @@ constexpr auto string_to_enum(string_view str) -> E {
 
 ----
 
-#### Minimal perfect hashing
+#### string_to_enum - Minimal perfect hashing
 
 ```cpp
 template<class T>
@@ -1641,7 +1646,7 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
 
 ----
 
-#### Minimal perfect hashing - https://godbolt.org/z/3j8qcabsj
+#### string_to_enum - Minimal perfect hashing - https://godbolt.org/z/3j8qcabsj
 
 ```cpp
 enum uri { ftp = 1, file = 2, http = 3, ws = 4, wss = 5, };
