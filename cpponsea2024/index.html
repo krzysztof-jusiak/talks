@@ -758,17 +758,23 @@ constexpr auto enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  simd<underlying_type_t<E>> lhs{value};
-  simd<underlying_type_t<E>> rhs{
+  simd<underlying_type_t<E>, enumerators<E>.size()> lhs{value};
+  simd<underlying_type_t<E>, enumerators<E>.size()> rhs{
     [&](auto i) { return enumerators<E>[i].first; }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
+```cpp
   const auto match = lhs == rhs; // compare N elements at once
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
+```cpp
   return any_of(match)
     ? enumerators<E>[find_first_set(match)].second
     : {};
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
 }
@@ -800,11 +806,10 @@ constexpr auto enum_to_string(E value) -> string_view {
 </code></pre>
 
 ```cpp
-keys:                enumerators:
-  .long   0            .quad   "red"
-  .long   1            .quad   "green"
-  .long   2            .quad   "blue"
-  .long   0            .quad   ""
+keys:        enumerators:
+  .long   0    .quad   "red"
+  .long   1    .quad   "green"
+  .long   2    .quad   "blue"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -837,9 +842,6 @@ keys:                enumerators:
 
 <img src="images/idea.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
-##### [Using std::cpp: Joaquín M. López Muñoz - Perfect Hashing in an Imperfect World](https://www.youtube.com/watch?v=yOo6GnbKzp8)
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 -----
 
@@ -1071,7 +1073,7 @@ enum class permissions : uint8_t {
 
 ----
 
-#### Flag enum - https://godbolt.org/z/aM7E1bTPz
+#### enum_to_string - 'Flag' enum - https://godbolt.org/z/aM7E1bTPz
 
 ```cpp
 template<class E>
@@ -1101,7 +1103,7 @@ static_assert(not flag_enum<f3>);
 
 ----
 
-#### Flag enum - https://godbolt.org/z/aM7E1bTPz
+#### enum_to_string - 'Flag' enum - https://godbolt.org/z/aM7E1bTPz
 
 ```cpp
 constexpr auto unsafe$enum_to_string(flag_enum value) {
@@ -1140,7 +1142,7 @@ constexpr auto unsafe$enum_to_string(flag_enum value) {
 
 ----
 
-#### Flag enum - https://godbolt.org/z/4cc8MabjG
+#### enum_to_string - 'Flag' enum - https://godbolt.org/z/4cc8MabjG
 
 ```cpp
 [1]: #uOps    [2]: Latency   [3]: RThroughput
