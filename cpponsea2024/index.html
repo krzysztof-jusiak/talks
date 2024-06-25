@@ -1334,11 +1334,17 @@ constexpr auto string_to_enum(string_view str) {
 
 ### Want performance?
 
+---
+
 #### Know your hardware!
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+---
+
 #### Know your data!
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
 
 ----
 
@@ -1414,40 +1420,15 @@ constexpr auto to(string_view str) -> T {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<a href="https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=bzhi"><img src="images/bzhi.png" style="width: 52%; background:none; border:none; box-shadow:none;" /></a>
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### string to int - https://godbolt.org/z/GnKoK9vrj
-
-```cpp
-[[gnu::target("default")]] auto bzhi(auto value, auto index) {
-  return value & ((1u << index) - 1u);
-}
-[[gnu::target("bmi2")]] auto bzhi(uint32_t value, uint32_t index) {
-  return _bzhi_u32(value, index);
-}
-[[gnu::target("bmi2")]] auto bzhi(uint64_t value, uint64_t index) {
-  return _bzhi_u64(value, index);
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
-template auto to<uint32_t>(string_view) -> uint32_t;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-// $CXX -Ofast -DNDEBUG -mbmi2
-sal  rdi, 3
+<table><tr><td>
+<a href="https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=bzhi"><img src="images/bzhi.png" style="width: 120%; background:none; border:none; box-shadow:none;" /></a>
+</td><td>
+<pre><code>sal  rdi, 3
 bzhi eax, DWORD PTR [rsi], edi
 ret
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+</code></pre>
+</td></tr></table>
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
