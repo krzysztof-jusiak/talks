@@ -86,9 +86,6 @@
     - ##### string_to_enum
     <!-- .element: class="fragment" -->
 
-- #### Examples
-<!-- .element: class="fragment" -->
-
 - #### Summary
 <!-- .element: class="fragment" -->
 
@@ -146,7 +143,7 @@ namespace std::meta {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  // more...
+  // ...
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -728,7 +725,7 @@ enum class http_status_code : uint32_t {
 
 ----
 
-### Want performance? Know your hardware!
+#### Want performance? Know your hardware!
 
 ----
 
@@ -813,7 +810,7 @@ keys:                enumerators:
 
 ----
 
-### Want performance? Know your data!
+#### Want performance? Know your data!
 
 ----
 
@@ -1682,77 +1679,7 @@ no lookup table (stored directly in a register)
 
 ----
 
-### Examples
-
-----
-
-#### Nasdaq TotalView-ITCH 5.0 - https://www.nasdaqtrader.com
-
-<img src="images/nasdaq.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
-
------
-
-#### Nasdaq TotalView-ITCH 5.0 - https://godbolt.org/z/n8Ex73e6P
-
-```cpp
-constexpr auto symbols = array{
-  pair{"    AMZN"sv, 1},
-  pair{"    AAPL"sv, 2},
-  pair{"   GOOGL"sv, 3},
-  pair{"    META"sv, 4},
-  pair{"    MSFT"sv, 5},
-  pair{"    NVDA"sv, 6},
-  pair{"    TSLA"sv, 7},
-};
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-array<uint32_t, order_book> order_books{}; // 0 is special
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-constexpr auto on(const add_order& msg) {
-  order_book[*find<symbols>(msg.stock)].on(msg);
-}
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Nasdaq TotalView-ITCH 5.0 - https://godbolt.org/z/n8Ex73e6P
-
-```cpp
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5">
-[1] [2] [3]  [4] [5] [6]  Instructions:
- 1   5  0.33  *           mov rax, qword ptr [rsi + 8]
- 1   5  0.33  *           mov rcx, qword ptr [rax]
- 1   1  1.00              movabs rax, 4419538124800 /*mask*/
- 1   3  1.00              pext rdx, rcx, rax
- 1   1  0.50              shl edx, 4
- 1   1  0.33              lea rsi, [rip + symbols]
- 1   0  0.17              xor eax, eax
- 1   5  0.33  *           cmp qword ptr [rdx + rsi], rcx
- 1   5  0.50  *           cmove eax, dword ptr [rdx + rsi + 8]
- 1   5  0.50          U   ret</code></pre>
-
-```cpp
-symbols:
-  .quad 5498966892987031584 /* AAPL */ .long 2
-  .quad 4705227331476660256 /* TSLA */ .long 7
-  ...
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-### Summary
+#### Summary
 
 - ##### Compile-time reflection is a powerful proposal which will impact how C++ is written
 <!-- .element: class="fragment" -->
@@ -1770,10 +1697,7 @@ symbols:
 ---
 
 #### Reflection for C++ - https://wg21.link/P2996
-<!-- .element: class="fragment" -->
-
 #### C++20 - https://github.com/boost-ext
-<!-- .element: class="fragment" -->
 
 ---
 
