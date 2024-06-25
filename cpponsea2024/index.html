@@ -480,6 +480,9 @@ constexpr auto enum_to_string(E value) -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+##### That's why 'break' is not supported with 'template for'
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
 ----
 
 #### enum_to_string - P2996
@@ -488,27 +491,33 @@ constexpr auto enum_to_string(E value) -> string_view {
 [1]: #uOps    [2]: Latency   [3]: RThroughput
 [4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,4,5">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   1  0.25              test  edi, edi
+ 1   1  0.50              je    .LBB0_1
+ 1   1  0.25              cmp   edi, 1
+ 1   1  0.50              jne   .LBB0_4
+ 1   1  0.50              mov   eax, 5
+ 1   1  0.33              lea   rdx, [rip + .L.str.1]
+ 1   5  0.50          U   ret
+ 1   1  0.50              mov   eax, 3
+ 1   1  0.33              lea   rdx, [rip + .L.str]
+ 1   5  0.50          U   ret
+ 1   1  0.50              mov   eax, 4
+ 1   1  0.33              lea   rdx, [rip + .L.str.2]
+ 1   5  0.50          U   ret
+</code></pre>
+
 ```cpp
-[1]    [2]    [3]    [4] [5] [6]  Instructions:
- 1      1     0.25                test  edi, edi
- 1      1     0.50                je    .LBB0_1
- 1      1     0.25                cmp   edi, 1
- 1      1     0.50                jne   .LBB0_4
- 1      1     0.50                mov   eax, 5
- 1      1     0.33                lea   rdx, [rip + .L.str.1]
- 1      5     0.50            U   ret
- 1      1     0.50                mov   eax, 3
- 1      1     0.33                lea   rdx, [rip + .L.str]
- 1      5     0.50            U   ret
- 1      1     0.50                mov   eax, 4
- 1      1     0.33                lea   rdx, [rip + .L.str.2]
- 1      5     0.50            U   ret
+.L.str:   "green"
+.L.str.1: "red"
+.L.str.2: "blue"
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -715,7 +724,7 @@ example
 
 ----
 
-#### Want performance? Know your hardware!
+### Want performance? Know your hardware!
 
 ----
 
@@ -782,7 +791,7 @@ constexpr auto enum_to_string(E value) -> string_view {
  1   8  0.50  *           vpcmpeqd xmm0, xmm0, xmmword ptr[rip+.keys]
  1   1  1.00              vmovmskps eax, xmm0
  1   1  0.25              movzx eax, al
- 6   3  3.00              rep bsf eax, eax
+ 6   3  3.00              rep bsf eax, eax // BitScanForward
  1   1  0.50              shl rax, 4
  1   5  0.33  *           mov rdx, qword ptr [rax + enumerators+8]
  1   5  0.50          U   ret
@@ -799,7 +808,7 @@ keys:                enumerators:
 
 ----
 
-#### Want performance? Know your data!
+### Want performance? Know your data!
 
 ----
 
@@ -817,7 +826,8 @@ keys:                enumerators:
 </td>
 <td>
 <a href="https://arxiv.org/pdf/2104.10402"><img src="images/pthash.png" style="width: 90%; background:none; border:none; box-shadow:none;" /></a>
-</td></tr></table>
+</td><td>...</td>
+</tr></table>
 
 -----
 
@@ -927,18 +937,18 @@ time $CXX -std=c++20 -O3 64_keys.cpp -c          # 0.090s
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-```cpp
-[1]    [2]    [3]    [4] [5] [6]  Instructions:
- 1      0     0.17                mov ecx, edi
- 1      1     0.25                and ecx, 3
- 1      1     0.50                shl ecx, 4
- 1      1     0.33                lea rdx, [rip + lookup]
- 1      0     0.17                xor eax, eax
- 1      5     0.33    *           cmp dword ptr [rcx + rdx], edi
- 1      5     0.50    *           cmove rax, qword ptr [rcx + rdx + 8]
- 1      5     0.50            U   ret
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3, 8">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   0  0.17              mov ecx, edi
+ 1   1  0.25              and ecx, 3 /*pext*/
+ 1   1  0.50              shl ecx, 4
+ 1   1  0.33              lea rdx, [rip + lookup]
+ 1   0  0.17              xor eax, eax
+ 1   5  0.33  *           cmp dword ptr [rcx + rdx], edi
+ 1   5  0.50  *           cmove rax, qword ptr [rcx + rdx + 8]
+ 1   5  0.50          U   ret
+</code></pre>
 
 ---
 
@@ -991,25 +1001,55 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-```cpp
-[1]    [2]    [3]    [4] [5] [6]  Instructions:
- 1      1     0.25                and edi, 3
- 1      1     0.25                shl edi, 4
- 1      1     0.25                lea rax, [rip + lookup]
- 1      4     0.50    *           mov rax, qword ptr [rdi + rax + 8]
- 2      1     0.50            U   ret
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="5">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   1  0.25              and edi, 3 /*pext*/
+ 1   1  0.25              shl edi, 4
+ 1   1  0.25              lea rax, [rip + lookup]
+ 1   4  0.50  *           mov rax, qword ptr [rdi + rax + 8]
+ 2   1  0.50          U   ret
+</code></pre>
 
 ---
 
 ```cpp
-lookup:
+lookup: // minimal
   .quad   "red"
   .quad   "green"
   .quad   "blue"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### No [BMI2](https://en.wikipedia.org/wiki/X86_Bit_manipulation_instruction_set)? Zen2? ARM?
+
+#### bmi2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
+
+```cpp
+mov     ecx, 789
+pext    ecx, eax, ecx
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+#### no bmi2&nbsp;&nbsp;
+<!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
+
+```cpp
+mov     ecx, eax
+and     ecx, 789
+imul    ecx, ecx, 57
+shr     ecx, 2
+and     ecx, 248
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+---
+
+##### <a href="https://schedule.cppnow.org/session/2024/a-case-study-in-zero-cost-abstractions-high-performance-message-dispatch/">C++Now 2024 - Luke Valenty: A case study in zero-cost abstractions: High performance message dispatch</a>
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
@@ -1106,15 +1146,14 @@ constexpr auto unsafe$enum_to_string(flag_enum value) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-```cpp
-[1]    [2]    [3]    [4] [5] [6]  Instructions:
- 1      1     0.25                dec edi
- 1      1     0.25                popcnt eax, edi
- 1      1     0.33                lea rcx, [rip + lookup]
- 1      5     0.33    *           mov rax, qword ptr [rcx + 8*rax]
- 1      5     0.50            U   ret
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   1  0.25              dec edi
+ 1   1  0.25              popcnt eax, edi
+ 1   1  0.33              lea rcx, [rip + lookup]
+ 1   5  0.33  *           mov rax, qword ptr [rcx + 8*rax]
+ 1   5  0.50          U   ret
+</code></pre>
 
 ---
 
@@ -1128,31 +1167,8 @@ lookup:
 
 -----
 
-#### No BMI2? Zen2? ARM?
-
-```cpp
-// bmi2
-mov     ecx, 789
-pext    ecx, eax, ecx
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-// no bmi2
-mov     ecx, eax
-and     ecx, 789
-imul    ecx, ecx, 57
-shr     ecx, 2
-and     ecx, 248
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-#### <a href="https://schedule.cppnow.org/session/2024/a-case-study-in-zero-cost-abstractions-high-performance-message-dispatch/">C++Now 2024 - Luke Valenty: A case study in zero-cost abstractions: High performance message dispatch</a>
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-----
-
-#### There is no sliver bullet!
+#### enum_to_string (there is no sliver bullet)
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 template <class E> requires is_enum_v<E> and
@@ -1312,7 +1328,7 @@ constexpr auto string_to_enum(string_view str) {
 
 ### string_to_enum
 
-#### Back to the basics!
+#### [different approach]
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -1640,18 +1656,17 @@ enum uri { ftp = 1, file = 2, http = 3, ws = 4, wss = 5, };
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
-```cpp
-[1]    [2]    [3]    [4] [5] [6]    Instructions:
- 1      1     0.50                  shl edi, 3
- 2      5     0.50    *             bzhi eax, dword ptr [rsi], edi
- 1      3     1.00                  imul eax, eax, 385596323 // magic
- 1      1     0.50                  shr eax, 29              // shift
- 1      1     0.50                  mov ecx, 358             // lut
- 1      1     0.50                  shrx eax, ecx, eax
- 1      1     0.25                  and eax, 7               // mask
- 1      5     0.50            U     ret
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="3" data-line-numbers="4,5,6,7,8">
+[1] [2] [3]  [4] [5] [6]   Instructions:
+ 1   1  0.50               shl edi, 3
+ 2   5  0.50  *            bzhi eax, dword ptr [rsi], edi
+ 1   3  1.00               imul eax, eax, 385596323 /*magic*/
+ 1   1  0.50               shr eax, 29              /*shift*/
+ 1   1  0.50               mov ecx, 358             /*lut*/
+ 1   1  0.50               shrx eax, ecx, eax
+ 1   1  0.25               and eax, 7               /*mask*/
+ 1   5  0.50          U    ret
+</code></pre>
 
 ---
 
@@ -1738,23 +1753,21 @@ constexpr auto on(const add_order& msg) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-```cpp
-[1]    [2]    [3]    [4] [5] [6]  Instructions:
- 1      5     0.33    *           mov rax, qword ptr [rsi + 8]
- 1      5     0.33    *           mov rcx, qword ptr [rax]
- 1      1     1.00                movabs rax, 4419538124800 // mask
- 1      3     1.00                pext rdx, rcx, rax
- 1      1     0.50                shl edx, 4
- 1      1     0.33                lea rsi, [rip + find<symbols>]
- 1      0     0.17                xor eax, eax
- 1      5     0.33    *           cmp qword ptr [rdx + rsi], rcx
- 1      5     0.50    *           cmove eax, dword ptr [rdx + rsi + 8]
- 1      5     0.50            U   ret
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   5  0.33  *           mov rax, qword ptr [rsi + 8]
+ 1   5  0.33  *           mov rcx, qword ptr [rax]
+ 1   1  1.00              movabs rax, 4419538124800 /*mask*/
+ 1   3  1.00              pext rdx, rcx, rax
+ 1   1  0.50              shl edx, 4
+ 1   1  0.33              lea rsi, [rip + symbols]
+ 1   0  0.17              xor eax, eax
+ 1   5  0.33  *           cmp qword ptr [rdx + rsi], rcx
+ 1   5  0.50  *           cmove eax, dword ptr [rdx + rsi + 8]
+ 1   5  0.50          U   ret</code></pre>
 
 ```cpp
-find<symbols>:
+symbols:
   .quad 5498966892987031584 /* AAPL */ .long 2
   .quad 4705227331476660256 /* TSLA */ .long 7
   ...
