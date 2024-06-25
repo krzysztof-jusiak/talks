@@ -1330,19 +1330,14 @@ constexpr auto string_to_enum(string_view str) {
 
 ----
 
-### Want performance?
+#### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Want performance?&nbsp;
+<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
 
----
-
-#### Know your hardware!
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
+#### Know your hardware!&nbsp;
+<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
 
 #### Know your data!
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
+<!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
 
 ----
 
@@ -1493,10 +1488,6 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-assembly
 
 ----
 
@@ -1665,8 +1656,9 @@ no lookup table (stored directly in a register)
 
 ---
 
-##### Enum with 100 elements, successful lookup (Just a hook)
-<!-- .element: class="fragment" -->
+##### Enum with 100 elements, successful lookup (just a hook)
+<!-- .element: class="fragment" style="float:left" -->
+<br />
 
 ```cpp
 | 0.36ms | std::map
@@ -1762,13 +1754,13 @@ symbols:
 
 ### Summary
 
-- ##### Compile-time reflection opens new possibilities
+- ##### Compile-time reflection is a powerful proposal which will impact how C++ is written
 <!-- .element: class="fragment" -->
 
-- ##### There is no sliver bullet if it comes to the performance just trade-offs
+- ##### Compile-time reflection has run-time parts
 <!-- .element: class="fragment" -->
 
-- ##### Performance is a shape not a number (always measure)
+- ##### There is no sliver bullet if it comes to the performance just trade-offs (always measure)
 <!-- .element: class="fragment" -->
 
 ----
