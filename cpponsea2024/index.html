@@ -93,7 +93,7 @@
 
 #### Disclaimer
 
-- ##### Proposal based ([P1306](https://wg21.link/P1306), [P1858](https://wg21.link/P1858), [P1928](https://wg21.link/P1928), [P2996](https://wg21.link/P2996), [P3294](https://wg21.link/P3294))
+- ##### Proposal based
 <!-- .element: class="fragment" -->
 
 - ##### x86-64 focused
@@ -606,9 +606,9 @@ static_assert(
   enumerators<color>
   ==
   array{
-    pair{color::red,   "red"},
-    pair{color::green, "green"},
-    pair{color::blue,  "blue"},
+    pair{color::red,   "red"   },
+    pair{color::green, "green" },
+    pair{color::blue,  "blue"  },
   }
 );
 ```
@@ -780,7 +780,7 @@ constexpr auto enum_to_string(E value) -> string_view {
  1   8  0.50  *           vpcmpeqd xmm0, xmm0, xmmword ptr[rip+.keys]
  1   1  1.00              vmovmskps eax, xmm0
  1   1  0.25              movzx eax, al
- 6   3  3.00              rep bsf eax, eax // BitScanForward
+ 6   3  3.00              rep bsf eax, eax // bit scan forward
  1   1  0.50              shl rax, 4
  1   5  0.33  *           mov rdx, qword ptr [rax + enumerators+8]
  1   5  0.50          U   ret
@@ -878,7 +878,8 @@ consteval auto mask() {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  bitset<sizeof(T)*CHAR_BIT> mask(numeric_limits<T>::max()); // 0b111...
+  // 0b111111...
+  bitset<sizeof(T) * CHAR_BIT> mask(numeric_limits<T>::max());
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1286,9 +1287,9 @@ constexpr auto string_to_enum(string_view str) {
 
 ```cpp
   static const unordered_map<string_view, E> map{
-    {"red",   color::red},
-    {"green", color::green},
-    {"blue",  color::blue},
+    {"red",   color::red   },
+    {"green", color::green },
+    {"blue",  color::blue  },
   };
   return map.at(str);
 ```
@@ -1679,8 +1680,7 @@ no lookup table (stored directly in a register)
 
 ---
 
-#### Reflection for C++ - https://wg21.link/P2996
-#### C++20 - https://github.com/boost-ext
+<img src="images/qr.png" style="width: 15%; background:none; border:none; box-shadow:none;" />
 
 ---
 
