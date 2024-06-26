@@ -976,7 +976,7 @@ lookup:
 
 ----
 
-#### Hardware accelerated perfect hashing - unsafe - https://godbolt.org/z/3hMxEoG5h
+#### Hardware accelerated perfect hashing (unsafe) - https://godbolt.org/z/3hMxEoG5h
 
 ```cpp
 template <class E> requires is_enum_v<E>
@@ -997,7 +997,7 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 
 ----
 
-#### Hardware accelerated perfect hashing - unsafe - https://godbolt.org/z/3hMxEoG5h
+#### Hardware accelerated perfect hashing (unsafe) - https://godbolt.org/z/3hMxEoG5h
 
 ```cpp
 [1]: #uOps    [2]: Latency   [3]: RThroughput
@@ -1029,17 +1029,20 @@ lookup: // minimal
 
 #### No [BMI2](https://en.wikipedia.org/wiki/X86_Bit_manipulation_instruction_set)? Zen2? ARM?
 
+<a href="https://uops.info/table.html?search=PEXT%20(R64%2C%20R64%2C%20R64)&cb_lat=on&cb_HSW=on&cb_BDW=on&cb_SKL=on&cb_RKL=on&cb_ZEN2=on&cb_ZEN3=on&cb_ZEN4=on&cb_measurements=on&cb_bmi=on"><img src="images/zen2.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
 #### bmi2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
+<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
 
 ```cpp
 mov     ecx, 789
 pext    ecx, eax, ecx
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 #### no bmi2&nbsp;&nbsp;
-<!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
+<!-- .element: class="fragment" data-fragment-index="3" style="float:left" -->
 
 ```cpp
 mov     ecx, eax
@@ -1048,12 +1051,12 @@ imul    ecx, ecx, 57
 shr     ecx, 2
 and     ecx, 248
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ---
 
 ##### <a href="https://schedule.cppnow.org/session/2024/a-case-study-in-zero-cost-abstractions-high-performance-message-dispatch/">C++Now 2024 - Luke Valenty: A case study in zero-cost abstractions: High performance message dispatch</a>
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="5" -->
 
 ----
 
@@ -1077,7 +1080,7 @@ enum class permissions : uint8_t {
 
 ```cpp
 template<class E>
-concept flag_enum = is_enum_v<E> and [] {
+concept FlagEnum = is_enum_v<E> and [] {
   for (const auto& enumeration : meta::enumerators_of(^E)) {
     if (not has_single_bit(to_underlying(enumeration))) {
       return false;
@@ -1095,9 +1098,9 @@ enum class f1 { a = 0, b = 1, c = 2, };
 enum class f2 { a = 1, b = 2, c = 16, };
 enum class f3 { a = 1, b = 2, c = 7, };
 
-static_assert(flag_enum<f1>);
-static_assert(flag_enum<f2>);
-static_assert(not flag_enum<f3>);
+static_assert(FlagEnum<f1>);
+static_assert(FlagEnum<f2>);
+static_assert(not FlagEnum<f3>);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1106,7 +1109,7 @@ static_assert(not flag_enum<f3>);
 #### enum_to_string - 'Flag' enum - https://godbolt.org/z/aM7E1bTPz
 
 ```cpp
-constexpr auto unsafe$enum_to_string(flag_enum value) {
+constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -1174,23 +1177,20 @@ lookup:
 #### enum_to_string (there is no sliver bullet)
 
 ```cpp
-template <class E> requires is_enum_v<E> and
-  (enumerators<E>.size() <= simd_size_v<underlying_type_t<E>>)
-[[gnu::target("sse, sse2, sse4.1, avx, avx2, avx512f")]]
-constexpr auto enum_to_string(E value) -> string_view;
+[[gnu::target("sse,avx,avx512f")]]
+constexpr auto enum_to_string(Enum auto value) requires /*...*/;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-template<class E> requires is_enum_v<E>
 [[gnu::target("default")]]
-constexpr auto enum_to_string(E value) -> string_view;
+constexpr auto enum_to_string(Enum auto value) requires /*...*/;
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 [[gnu::target("default")]]
-constexpr auto enum_to_string(flag_enum value) -> string_view;
+constexpr auto enum_to_string(FlagEnum auto value) requires /*...*/;
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
