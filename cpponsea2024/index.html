@@ -287,7 +287,7 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 
 ----
 
-##### P2996 - meta-programming / compilation times - https://github.com/boost-ext/mp/tree/benchmark
+##### P2996 - meta-programming / compilation times - https://boost-ext.github.io/mp
 
 <a href="https://boost-ext.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
@@ -513,25 +513,6 @@ constexpr auto enum_to_string(E value) -> string_view {
 .L.str:   "green"
 .L.str.1: "red"
 .L.str.2: "blue"
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-#### Performance is a shape not a number!
-
-```cpp
-enum_to_string("red");
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-enum_to_string("green");
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-enum_to_string("blue");
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
