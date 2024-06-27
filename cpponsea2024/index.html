@@ -298,24 +298,9 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 
 ----
 
-#### Latency Numbers Every Programmer Should Know
-
-<img src="images/latency.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-- #### LLVM Machine Code Analyzer - https://llvm.org/docs/CommandGuide/llvm-mca.html
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-- #### Instruction Tables - https://www.agner.org/optimize/instruction_tables.pdf
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
 #### enum_to_string
 
-<img src="images/enum_to_string.png" style="width: 200%; background:none; border:none; box-shadow:none;" />
+<img src="images/enum_to_string.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -480,6 +465,21 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ##### 'break' is not supported with 'template for'
 <!-- .element: class="fragment" data-fragment-index="6" -->
+
+----
+
+#### Latency Numbers Every Programmer Should Know
+
+<img src="images/latency.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+- #### LLVM Machine Code Analyzer - https://llvm.org/docs/CommandGuide/llvm-mca.html
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+- #### Instruction Tables - https://www.agner.org/optimize/instruction_tables.pdf
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -1184,9 +1184,9 @@ constexpr auto enum_to_string(FlagEnum auto value) requires /*...*/;
 
 ----
 
-#### enum_to_string - benchmarks - https://github.com/boost-ext/mph/tree/benchmark
+#### enum_to_string - benchmarks - https://github.com/boost-ext/mph/blob/benchmark/enum_to_string/benchmark.ipynb
 
-<img src="images/benchmark_enum_to_string.png" style="width: 200%; background:none; border:none; box-shadow:none;" />
+<img src="images/benchmark_enum_to_string.png" style="width: 90%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
