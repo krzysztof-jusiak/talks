@@ -60,8 +60,6 @@
 <br />&nbsp;
 <img src="images/qr.png" style="width: 15%; background:none; border:none; box-shadow:none;" />
 
----
-
 ###### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
 
 ----
@@ -315,7 +313,10 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 
 ----
 
-### enum_to_string
+#### enum_to_string
+
+<img src="images/enum_to_string.png" style="width: 200%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -399,7 +400,7 @@ enum_to_string(static_cast<E>(42)); // ?
 
 ----
 
-#### enum_to_string - P2996
+#### enum_to_string - P2996 - https://godbolt.org/z/fo58vedxj
 
 ```
 template <class E> requires is_enum_v<E>
@@ -437,7 +438,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ----
 
-#### enum_to_string - P2996
+#### enum_to_string - P2996 - https://godbolt.org/z/fo58vedxj
 
 ```cpp
 enum color { red, green, blue, };
@@ -482,7 +483,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ----
 
-#### enum_to_string - P2996
+#### enum_to_string - P2996 - https://godbolt.org/z/fo58vedxj
 
 ```cpp
 [1]: #uOps    [2]: Latency   [3]: RThroughput
@@ -1183,7 +1184,10 @@ constexpr auto enum_to_string(FlagEnum auto value) requires /*...*/;
 
 ----
 
-#### Benchmarks - https://github.com/boost-ext/mph/tree/benchmark
+#### enum_to_string - benchmarks - https://github.com/boost-ext/mph/tree/benchmark
+
+<img src="images/benchmark_enum_to_string.png" style="width: 200%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1633,33 +1637,10 @@ no lookup table (stored directly in a register)
 
 ----
 
-#### Benchmarks - https://github.com/boost-ext/mph/tree/benchmark
+#### string_to_enum - benchmarks - https://github.com/boost-ext/mph/tree/benchmark
 
----
-
-##### Enum with 100 elements, successful lookup (just a hook)
-<!-- .element: class="fragment" style="float:left" -->
-<br />
-
-```cpp
-| 0.36ms | std::map
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-| 0.18ms | std::unordered_map
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-| 0.09ms | gperf
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-| 0.02ms | Hardware accelerated perfect hashing
-```
-<!-- .element: class="fragment" -->
+<img src="images/enum_to_string.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 

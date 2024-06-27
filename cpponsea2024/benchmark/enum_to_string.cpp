@@ -56,7 +56,7 @@ void bench_color() {
   //std::uniform_int_distribution<int> dis{0, 2};
 
   ankerl::nanobench::Bench b{};
-  b.title("enum_to_string").warmup(100).performanceCounters(false);
+  //b.title("enum_to_string").warmup(100).performanceCounters(false);
 
   std::vector probabilities1 = {0.8, 0.1, 0.1};
   std::vector probabilities2 = {0.1, 0.8, 0.1};
