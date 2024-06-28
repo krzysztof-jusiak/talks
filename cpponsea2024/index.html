@@ -1449,10 +1449,6 @@ constexpr auto to(string_view str) {
 
 ----
 
-#### string_to_enum - std::simd
-
-----
-
 #### string_to_enum - Hardware accelerated perfect hashing
 
 ```cpp
@@ -1480,10 +1476,48 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 
 ----
 
+#### string_to_enum - Hardware accelerated perfect hashing -
+##### https://godbolt.org/z/1fqM5KEbP
+
+```cpp
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3,5,8,9,10">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   1  0.50              shl rdi, 3
+ 2   5  0.50  *           bzhi rcx, qword ptr [rsi], rdi
+ 1   1  0.50              mov eax, 17
+ 1   3  1.00              pext edx, ecx, eax
+ 1   1  0.50              shl edx, 4
+ 1   1  0.33              lea rsi, [rip + find]
+ 1   0  0.17              xor eax, eax
+ 1   5  0.33  *           cmp rcx, qword ptr [rdx + rsi]
+ 1   5  0.50  *           cmove eax, dword ptr [rdx + rsi + 8]
+ 1   5  0.50          U   ret
+</code></pre>
+
+---
+
+```cpp
+find:
+  .quad 1702194274/*blue*/.quad 47414754979/*green*/.quad 6579570/*red*/
+  .long 2                 .long 1                   .long 0
+  .zero 16
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
 #### string_to_enum - Minimal perfect hashing
 
 <img src="images/hashing.png" style="width: 75%; background:white; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### A minimal perfect hash function is a perfect hash function that maps n keys to n consecutive integers (0..N-1)
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
