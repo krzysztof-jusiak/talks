@@ -116,7 +116,7 @@
 - ##### Value/consteval based
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-- ##### Supports introspection/meta-programming
+- ##### Supports Introspection/Meta-Programming
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
@@ -159,7 +159,7 @@ using info = decltype(^::); // type-erased AST info
 
 ----
 
-#### P2996 - meta-programming
+#### P2996 - Meta-Programming
 
 ```cpp
 [: // splicer (reify)
@@ -195,7 +195,7 @@ static_assert(
 
 ----
 
-##### P2996 / meta-programming (https://godbolt.org/z/43Yf8G8xz)
+##### P2996 / Meta-Programming (https://godbolt.org/z/43Yf8G8xz)
 
 ```cpp
 template<size_t N, class... Ts>
@@ -241,7 +241,7 @@ using at = Ts...[N];
 
 ----
 
-##### P2996 + ranges / meta-programming (https://godbolt.org/z/Y7edbe63c)
+##### P2996 + ranges / Meta-Programming (https://godbolt.org/z/Y7edbe63c)
 
 ```cpp
 template<class... Ts>
@@ -285,11 +285,11 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 
 ----
 
-##### P2996 - meta-programming / compilation times - https://boost-ext.github.io/mp
+##### P2996 - Meta-Programming / compilation times - https://boost-ext.github.io/mp
 
 <a href="https://boost-ext.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
-##### Meta-Programming model possible since C++17 (msvc, gcc, clang) - https://github.com/boost-ext/mp
+##### Possible since C++17 (msvc, gcc, clang) - https://github.com/boost-ext/mp
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -832,9 +832,6 @@ keys:        values:
 
 #### Hardware accelerated perfect hashing
 
-<!--<img src="images/idea.png" style="width: 50%; background:none; border:none; box-shadow:none;" />-->
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
 <table><tr>
 <td><pre><code class="fragment" data-trim data-noescape data-fragment-index="1">
 5266
@@ -1240,6 +1237,10 @@ constexpr auto enum_to_string(FlagEnum auto value) requires /*...*/;
 
 <img src="images/benchmark_enum_to_string.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+### [Performance] Case study
 
 ----
 
