@@ -834,7 +834,7 @@ keys:        values:
 
 <table><tr>
 <td><pre><code class="fragment" data-trim data-noescape data-fragment-index="1">
-5266
+05266
 11147
 55460
 29060
@@ -844,7 +844,7 @@ keys:        values:
 59700
 14740
 41928
-1030
+01030
 47631
 </code></pre></td>
 <td><pre><code class="fragment" data-trim data-noescape data-fragment-index="2">
@@ -861,13 +861,13 @@ keys:        values:
 0 0 0 0 0 1 0 0 0 0 [0] [0] 0 [1] [1] [0]
 1 0 1 1 1 0 1 0 0 0 [0] [0] 1 [1] [1] [1]
 </code></pre></td>
-<td><img class="fragment" data-fragment-index="3" src="images/perfect.png" style="width: 61%; background:none; border:none; box-shadow:none;" />
+<td><img class="fragment" data-fragment-index="4" src="images/perfect.png" style="width: 61%; background:none; border:none; box-shadow:none;" />
 </td></tr>
 <td>
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="4">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="3">
 mask
 </code></pre></td>
-<td><pre><code class="fragment" data-trim data-noescape data-fragment-index="4">
+<td><pre><code class="fragment" data-trim data-noescape data-fragment-index="3">
 0 0 0 0 0 0 0 0 0 0  1   1  0  1   1   1
 </code></pre></td><td>
 </td></tr>
@@ -1569,7 +1569,7 @@ find:
 
 #### string_to_enum - Minimal perfect hashing
 
-#### bit mixer
+#### bit mixer - magic
 <!-- .element: class="fragment" style="float:left" data-fragment-index="0" -->
 <br />
 
@@ -1578,7 +1578,7 @@ find:
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-#### lookup table
+#### lookup table - lut
 <!-- .element: class="fragment" style="float:left" data-fragment-index="2" -->
 <br />
 
@@ -1597,14 +1597,11 @@ find:
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
-#### magic
-<!-- .element: class="fragment" style="float:left" data-fragment-index="6" -->
-<br />
+---
 
 ```cpp
-// value: input
-// shift: known
-// mask:  known
+// shift: how many bits are required to represent all values (6 bits)
+// mask:  0b111111 (6 bits)
 // magic: ???
 // lut:   ???
 ((lut >> (value * magic)) >> shift) & mask
@@ -1624,8 +1621,8 @@ constexpr auto string_to_enum(string_view str) -> E {
 ```cpp
   constexpr auto size  = sizeof(T) * CHAR_BIT; // T = uint32_t/...
   constexpr auto nbits = size - countr_zero(max(enumerators<E>));
-  constexpr auto mask  = (1u << nbits) - 1u; // 0b111111...
   constexpr auto shift = size - nbits;
+  constexpr auto mask  = (1u << nbits) - 1u; // 0b111111...
   constexpr auto [magic, lut] = magic_lut(mask, shift, MaxAttempts);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
