@@ -626,20 +626,28 @@ constexpr auto enum_to_string(E value) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  return [value]<size_t I = {}>(this auto&& self) -> string_view {
+  return [value]<size_t I = 0>(this auto&& self) -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-    switch (value) {
-      default:
-        if constexpr (I < enumerators<E>.size() - 1u)
-          return self.template operator()<I + 1u>();
-        else
-          return {};
+    if constexpr (I == enumerators<E>.size()) {
+      return {};
+    } else {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+```cpp
+      switch (value) {
+        default:
+          return self.template operator()<I + 1>();
 
-      case enumerators<E>[I].first:
+        case enumerators<E>[I].first:
           return enumerators<E>[I].second;
+      }
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
     }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -742,7 +750,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 ```cpp
   simd<underlying_type_t<E>, enumerators<E>.size()> lhs{value};
   simd<underlying_type_t<E>, enumerators<E>.size()> rhs{
-    [&](auto i) { return enumerators<E>[i].first; }
+    [&](auto i) { return keys<E>[i]; }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -752,9 +760,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  return any_of(match)
-    ? enumerators<E>[find_first_set(match)].second
-    : {};
+  return any_of(match) ? values[find_first_set(match)] : {};
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -783,12 +789,12 @@ constexpr auto enum_to_string(E value) -> string_view {
  1   1  0.25              movzx eax, al
  6   3  3.00              rep bsf eax, eax // bit scan forward
  1   1  0.50              shl rax, 4
- 1   5  0.33  *           mov rdx, qword ptr [rax + enumerators+8]
+ 1   5  0.33  *           mov rdx, qword ptr [rax + value+8]
  1   5  0.50          U   ret
 </code></pre>
 
 ```cpp
-keys:        enumerators:
+keys:        values:
   .long   0    .quad   "red"
   .long   1    .quad   "green"
   .long   2    .quad   "blue"
@@ -826,8 +832,52 @@ keys:        enumerators:
 
 #### Hardware accelerated perfect hashing
 
-<img src="images/idea.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+<!--<img src="images/idea.png" style="width: 50%; background:none; border:none; box-shadow:none;" />-->
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+<table><tr>
+<td><pre><code class="fragment" data-trim data-noescape data-fragment-index="1">
+ 5266
+11147
+55460
+29060
+56063
+30018
+10154
+59700
+14740
+41928
+ 1030
+47631
+</code></pre></td>
+<td><pre><code class="fragment" data-trim data-noescape data-fragment-index="2">
+0 0 0 1 0 1 0 0 1 0 0] [1] 0 [0] [1] [0]
+0 0 1 0 1 0 1 1 1 0 0] [0] 1 [0] [1] [1]
+1 1 0 1 1 0 0 0 1 0 1] [0] 0 [1] [0] [0]
+0 1 1 1 0 0 0 1 1 0 0] [0] 0 [1] [0] [0]
+1 1 0 1 1 0 1 0 1 1 1] [1] 1 [1] [1] [1]
+0 1 1 1 0 1 0 1 0 1 0] [0] 0 [0] [1] [0]
+0 0 1 0 0 1 1 1 1 0 1] [0] 1 [0] [1] [0]
+1 1 1 0 1 0 0 1 0 0 1] [1] 0 [1] [0] [0]
+0 0 1 1 1 0 0 1 1 0 0] [1] 0 [1] [0] [0]
+1 0 1 0 0 0 1 1 1 1 0] [0] 1 [0] [0] [0]
+0 0 0 0 0 1 0 0 0 0 0] [0] 0 [1] [1] [0]
+1 0 1 1 1 0 1 0 0 0 0] [0] 1 [1] [1] [1]
+</code></pre></td>
+<td><img class="fragment" data-fragment-index="3" src="images/perfect.png" style="width: 67%; background:none; border:none; box-shadow:none;" />
+</td></tr>
+<td>
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="4">
+mask
+</code></pre></td>
+<td><pre><code class="fragment" data-trim data-noescape data-fragment-index="4">
+0 0 0 0 0 0 0 0 0 0  1   1  0  1   1   1
+</code></pre></td><td>
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="3">
+[perfect]
+</code></pre>
+</td></tr>
+</table>
 
 -----
 
@@ -913,8 +963,8 @@ consteval auto mask() {
 ---
 
 ```cpp
-time $CXX -std=c++20 -O3 64_keys.cpp -c -DNTEST  # 0.043s
-time $CXX -std=c++20 -O3 64_keys.cpp -c          # 0.090s
+$CXX -std=c++20 -DNTEST 64_keys.cpp   # 0.043s
+$CXX -std=c++20         64_keys.cpp   # 0.090s
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -993,7 +1043,7 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="5">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,5">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  0.25              and edi, 3 /*pext*/
  1   1  0.25              shl edi, 4
@@ -1466,7 +1516,7 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 ```cpp
   auto&& lhs = to<T>(str); // T - uint32_t/uint64_t/...
   auto&& [rhs, result] = lookup[pext(lhs, mask<E>)];
-  return (lhs == rhs) * result;
+  return lhs == rhs ? result : {};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
