@@ -729,45 +729,67 @@ enum class http_status_code : uint32_t {
 
 ----
 
-#### std::simd - https://godbolt.org/z/9c44jGnW6
+#### std::simd (x86)
+
+##### x86.sse (128 bits)
+<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
+<br />
 
 ```cpp
-static_assert(4u  == simd_size_v<uint32_t>); // x86.sse     (128 bits)
-static_assert(8u  == simd_size_v<uint32_t>); // x86.avx     (256 bits)
-static_assert(16u == simd_size_v<uint32_t>); // x86.avx512f (512 bits)
+static_assert(4u  == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
----
+##### x86.avx (256 bits)
+<br />
+<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
+
+```cpp
+static_assert(8u  == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+##### x86.avx512f (512 bits)
+<br />
+<!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
+
+```cpp
+static_assert(16u == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### std::simd - https://godbolt.org/z/9c44jGnW6
 
 ```cpp
 template <class E> requires is_enum_v<E> and
   (enumerators<E>.size() <= simd_size_v<underlying_type_t<E>>)
 constexpr auto enum_to_string(E value) -> string_view {
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  simd<underlying_type_t<E>, enumerators<E>.size()> lhs{value};
-  simd<underlying_type_t<E>, enumerators<E>.size()> rhs{
-    [&](auto i) { return keys<E>[i]; }
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-  const auto match = lhs == rhs; // element-wise compound comparison
-```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  return any_of(match) ? values[find_first_set(match)] : {};
+  using type = underlying_type_t<E>;
+  simd<type, enumerators<E>.size()> lhs{value};
+  simd<type, enumerators<E>.size()> rhs{&keys[i], element_aligned}
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
+  const auto match = lhs == rhs; // element-wise compound comparison
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
+  return any_of(match) ? values[find_first_set(match)] : {};
+```
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
+```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
