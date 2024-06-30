@@ -1494,7 +1494,8 @@ constexpr auto to(string_view str) -> T {
 bzhi eax, DWORD PTR [rsi], edi
 ret
 
-bzhi 3*8, "cpp....." =~ "cpp"
+bzhi 3*8, "cpp....." ==
+          "cpp\0\0\0\0\0"
 </code></pre>
 </td></tr></table>
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1797,7 +1798,7 @@ no lookup table (stored directly in a register)
 
 ----
 
-#### string_to_enum - benchmarks -
+##### string_to_enum - benchmarks -
 ##### https://github.com/boost-ext/mph/blob/benchmark/string_to_enum/benchmark.ipynb
 
 <img src="images/benchmark_string_to_enum.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
@@ -1805,10 +1806,9 @@ no lookup table (stored directly in a register)
 
 ----
 
-#### Perfect hashing benchmarks -
-##### https://boost-ext.github.io/mph/perfect_hashing
+##### Perfect hashing benchmarks - https://boost-ext.github.io/mph/perfect_hashing
 
-<a href="https://boost-ext.github.io/mph/perfect_hashing/"><img src="images/benchmark.png" style="width: 200%; background:none; border:none; box-shadow:none;" /></a>
+<a href="https://boost-ext.github.io/mph/perfect_hashing/"><img src="images/benchmark.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
