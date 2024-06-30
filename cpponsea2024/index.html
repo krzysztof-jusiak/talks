@@ -244,6 +244,11 @@ using at = Ts...[N];
 ##### P2996 + ranges / Meta-Programming (https://godbolt.org/z/Y7edbe63c)
 
 ```cpp
+template<class...> struct type_list{ };
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
 template<class... Ts>
 using reverse_drop_t = typename [:
 ```
@@ -684,14 +689,13 @@ enum class http_status_code : uint32_t {
 #### switch-case - https://godbolt.org/z/E5en4K8qn
 
 ```cpp
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+[1]: #uOps [2]: Latency [3]: RThroughput [4]: MayLoad [5]: MayStore
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="1,6,9,14">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="1,6,9,13">
 [1] [2] [3]  [4] [5] [6]  Instructions:
- 1   1  0.33              lea eax, [rdi - 200]
+ 1   1  0.33              lea eax, [rdi - 200] /*jump-table offset*/
  1   1  0.25              cmp eax, 5
  1   1  0.50              jae .LBB0_1
  1   1  0.50              mov ecx, 23
@@ -700,7 +704,6 @@ enum class http_status_code : uint32_t {
  1   0  0.17              mov eax, eax /*jump-table*/
  1   1  0.33              lea rcx, [rip + .Lswitch.table]
  1   5  0.33  *           movsxd rax, dword ptr [rcx + 4*rax]
- 1   1  0.25              add rax, rcx
  1   5  0.50          U   ret
  1   0  0.17              xor eax, eax
  1   1  0.25              cmp edi, 226 /*decision tree*/
@@ -708,6 +711,13 @@ enum class http_status_code : uint32_t {
  1   1  0.50              cmovne rax, rcx
  1   5  0.50          U   ret
 </code></pre>
+
+```cpp
+.Lswitch.table:               .asciz  "accepted"    /*202*/
+  .asciz  "ok"       /*200*/  .asciz  ""
+  .asciz  "created"  /*201*/  .asciz  "no_content"  /*204*/
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -749,7 +759,7 @@ static_assert(8u  == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-##### x86.avx512f (512 bits)
+##### x86.avx512 (512 bits)
 <br />
 <!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
 
@@ -791,6 +801,14 @@ constexpr auto enum_to_string(E value) -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
+---
+
+```cpp
+std::array<E, enumerators<E>.size()> keys{};
+std::array<string_view, enumerators<E>.size()> values{};
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
 ----
 
 #### std::simd - https://godbolt.org/z/9c44jGnW6
@@ -805,11 +823,11 @@ constexpr auto enum_to_string(E value) -> string_view {
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  1.00              vmovd xmm1, edi
  1   0  0.17              xor edx, edx
- 1   1  0.50              vpbroadcastd  xmm0, xmm1
+ 1   1  0.50              vpbroadcastd  xmm0, xmm1 /*lhs*/
  1   8  0.50  *           vpcmpeqd xmm0, xmm0, xmmword ptr[rip+.keys]
  1   1  1.00              vmovmskps eax, xmm0
  1   1  0.25              movzx eax, al
- 6   3  3.00              rep bsf eax, eax // bit scan forward
+ 6   3  3.00              rep bsf eax, eax /*bit scan forward*/
  1   1  0.50              shl rax, 4
  1   5  0.33  *           mov rdx, qword ptr [rax + value+8]
  1   5  0.50          U   ret
@@ -817,9 +835,10 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ```cpp
 keys:        values:
-  .long   0    .quad   "red"
-  .long   1    .quad   "green"
-  .long   2    .quad   "blue"
+  .long 0      .quad "red"
+  .long 1      .quad "green"
+  .long 2      .quad "blue"
+  .long 0      .quad ""
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -836,7 +855,7 @@ keys:        values:
 
 -----
 
-#### Perfect hashing - approaches
+#### Perfect hashing
 
 <table><tr><td>
 <a href="https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61"><img src="images/hdc.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
@@ -927,9 +946,8 @@ constexpr auto enum_to_string(E value) const -> string_view {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  auto&& lhs = value;
-  auto&& [rhs, result] = lookup[pext(lhs, mask<E>)];
-  return lhs == rhs ? result : {};
+  auto&& [rhs, result] = lookup[pext(value, mask<E>)];
+  return value == rhs ? result : {};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -976,14 +994,6 @@ consteval auto mask() {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
----
-
-```cpp
-$CXX -std=c++20 -DNTEST 64_keys.cpp   # 0.043s
-$CXX -std=c++20         64_keys.cpp   # 0.090s
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
 -----
 
 #### Hardware accelerated perfect hashing - https://godbolt.org/z/j4E5Pcjx1
@@ -995,13 +1005,13 @@ $CXX -std=c++20         64_keys.cpp   # 0.090s
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3, 8">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3, 6, 7, 8">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   0  0.17              mov ecx, edi
  1   1  0.25              and ecx, 3 /*pext*/
  1   1  0.50              shl ecx, 4
  1   1  0.33              lea rdx, [rip + lookup]
- 1   0  0.17              xor eax, eax
+ 1   0  0.17              xor eax, eax /*unknown value*/
  1   5  0.33  *           cmp dword ptr [rcx + rdx], edi
  1   5  0.50  *           cmove rax, qword ptr [rcx + rdx + 8]
  1   5  0.50          U   ret
@@ -1011,10 +1021,10 @@ $CXX -std=c++20         64_keys.cpp   # 0.090s
 
 ```cpp
 lookup:
- .long   0 .quad   "red"
- .long   1 .quad   "green"
- .long   2 .quad   "blue"
- .zero   16
+ .long 0 .quad "red"
+ .long 1 .quad "green"
+ .long 2 .quad "blue"
+ .long 0 .quad ""
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1072,9 +1082,9 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 
 ```cpp
 lookup: // minimal
-  .quad   "red"
-  .quad   "green"
-  .quad   "blue"
+  .quad "red"
+  .quad "green"
+  .quad "blue"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1121,7 +1131,7 @@ enum class permissions : uint8_t {
   write    = (1 << 1), // 0b010
   execute  = (1 << 2), // 0b100
   // ----------------------------//
-  // mask  :              0b111  // size: 2^(popcount(mask))
+  // mask  :              0b111  // size: 2**(popcount(mask))
   // ----------------------------//
 };
 ```
@@ -1142,20 +1152,18 @@ concept FlagEnum = is_enum_v<E> and [] {
   return true;
 }();
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
 ```cpp
-enum class f1 { a = 0, b = 1, c = 2, };
-enum class f2 { a = 1, b = 2, c = 16, };
-enum class f3 { a = 1, b = 2, c = 7, };
+enum class f1 { a = 0b00, b = 0b01, c = 0b10, };
+enum class f2 { a = 0b00, b = 0b01, c = 0b11, };
 
 static_assert(FlagEnum<f1>);
-static_assert(FlagEnum<f2>);
-static_assert(not FlagEnum<f3>);
+static_assert(not FlagEnum<f2>);
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1218,10 +1226,10 @@ constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
 ---
 
 ```cpp
-lookup:
-  .quad   "red"
-  .quad   "green"
-  .quad   "blue"
+lookup: // minimal
+  .quad "red"
+  .quad "green"
+  .quad "blue"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1257,8 +1265,11 @@ constexpr auto enum_to_string(FlagEnum auto value) requires /*...*/;
 #### enum_to_string - benchmarks -
 ##### https://github.com/boost-ext/mph/blob/benchmark/enum_to_string/benchmark.ipynb
 
-<img src="images/benchmark_enum_to_string.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+<img src="images/benchmark_enum_to_string.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### Hardware accelerated perfect hashing + std::simd for size greater than 100
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1319,6 +1330,9 @@ constexpr auto string_to_enum(string_view str) -> optional<E> {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### hash can be std::bitcast* (explored later)
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -1479,6 +1493,8 @@ constexpr auto to(string_view str) -> T {
 <pre><code>sal  rdi, 3
 bzhi eax, DWORD PTR [rsi], edi
 ret
+
+bzhi 3*8, "cpp....." =~ "cpp"
 </code></pre>
 </td></tr></table>
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1494,7 +1510,6 @@ constexpr auto to(string_view str) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  // https://github.com/glibc/blob/master/sysdeps/generic/memcopy.h
   if ((uint64_t(str.data()) & (PageSize - 1ul)) >
       (PageSize - sizeof(T))) [[unlikely]] { // page boundary
     return [&str] [[gnu::cold]] {
@@ -1517,6 +1532,9 @@ constexpr auto to(string_view str) {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### https://github.com/glibc/blob/master/sysdeps/generic/memcopy.h
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1547,8 +1565,7 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 
 ----
 
-#### string_to_enum - Hardware accelerated perfect hashing -
-##### https://godbolt.org/z/1fqM5KEbP
+##### string_to_enum - Hardware accelerated perfect hashing - https://godbolt.org/z/1fqM5KEbP
 
 ```cpp
 [1]: #uOps    [2]: Latency   [3]: RThroughput
@@ -1556,7 +1573,7 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3,5,8,9,10">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3,5">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  0.50              shl rdi, 3
  2   5  0.50  *           bzhi rcx, qword ptr [rsi], rdi
@@ -1574,9 +1591,10 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 
 ```cpp
 find:
-  .quad 1702194274/*blue*/.quad 47414754979/*green*/.quad 6579570/*red*/
-  .long 2                 .long 1                   .long 0
-  .zero 16
+  .quad 1702194274  /*blue*/  .long 2
+  .quad 47414754979 /*green*/ .long 1
+  .quad 6579570     /*red*/   .long 0
+  .quad 0                     .long 0
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1672,7 +1690,7 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
 
 ```cpp
   while (max_attempts--) {
-    magic = random(); // compile-time random number generation
+    magic = random(); // compile-time pseudo random number generation
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1744,6 +1762,14 @@ no lookup table (stored directly in a register)
 ##### https://github.com/boost-ext/mph/blob/benchmark/string_to_enum/benchmark.ipynb
 
 <img src="images/benchmark_string_to_enum.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### Perfect hashing benchmarks -
+##### https://boost-ext.github.io/mph/perfect_hashing
+
+<a href="https://boost-ext.github.io/mph/perfect_hashing/"><img src="images/benchmark.png" style="width: 200%; background:none; border:none; box-shadow:none;" /></a>
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
