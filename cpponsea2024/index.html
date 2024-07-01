@@ -501,18 +501,18 @@ constexpr auto enum_to_string(E value) -> string_view {
  1   1  0.50              mov  eax, 5
  1   1  0.33              lea  rdx, [rip + .L.str.1]
  1   5  0.50          U   ret
+                          .LBB0_1:
  1   1  0.50              mov  eax, 3
  1   1  0.33              lea  rdx, [rip + .L.str]
  1   5  0.50          U   ret
+                          .LBB0_4
  1   1  0.50              mov  eax, 4
  1   1  0.33              lea  rdx, [rip + .L.str.2]
  1   5  0.50          U   ret
 </code></pre>
 
 ```cpp
-.L.str:   "green"
-.L.str.1: "red"
-.L.str.2: "blue"
+.L.str: "green" .L.str.1: "red" .L.str.2: "blue"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -527,11 +527,9 @@ constexpr auto enum_to_string(E value) -> string_view {
 ##### bitset (gcc)
 <!-- .element: class="fragment" style="float:left" -->
 ```cpp
-auto bit_test_cluster::is_beneficial(auto count, auto uniq) {
-  // uniq - number of edges, count - number of cases handled
-  return (uniq == 1 && count >= 3) || 
-         (uniq == 2 && count >= 5) ||
-         (uniq == 3 && count >= 6);
+switch (value) {
+  default: return error();
+  case '0': case '3': case 'A': return fn();
 }
 ```
 <!-- .element: class="fragment" -->
@@ -540,13 +538,13 @@ auto bit_test_cluster::is_beneficial(auto count, auto uniq) {
 <!-- .element: class="fragment" style="float:left" -->
 
 ```cpp
-auto jump_table_cluster::can_be_handled() {
-  return get_range(get_low(), get_high()) <=
-         optimize_for_size() ? 2 : 8; // sparsity
-}
-
-auto jump_table_cluster::is_beneficial(auto start, auto end) {
-  return end - start + 1 >= 5; // prune small jump tables
+switch (value) { // sparsity: optimize_for_size() ? 2 : 8
+  default: return error();
+  case 0:  return fn();
+  case 1:  return fn();
+  case 2:  return fn();
+  case 3:  return fn();
+  case 7:  return fn();
 }
 ```
 <!-- .element: class="fragment" -->
@@ -555,11 +553,12 @@ auto jump_table_cluster::is_beneficial(auto start, auto end) {
 <!-- .element: class="fragment" style="float:left" -->
 
 ```cpp
-
-otherwise // __builtin_expect_with_probability
-
-
-
+switch (__builtin_expect_with_probability(value, 42, 1.)) {
+  default:  return error();
+  case 42:  return fn();
+  case 77:  return fn();
+  case 123: return fn();
+}
 ```
 <!-- .element: class="fragment" -->
 
@@ -668,13 +667,11 @@ constexpr auto enum_to_string(E value) {
 
 ```cpp
 enum class http_status_code : uint32_t {
-  ok         = 200,  // first cluster
+  ok         = 200,  // first cluster - jump-table
   created    = 201,
   accepted   = 202,
   no_content = 204,
-  im_used    = 226,  // odd value
-  forbidden  = 403,  // second cluster
-  not_found  = 404,
+  forbidden  = 403,  // second cluster - decision-tree
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -688,21 +685,19 @@ enum class http_status_code : uint32_t {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="1,6,9,13">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="6,11">
 [1] [2] [3]  [4] [5] [6]  Instructions:
- 1   1  0.33              lea eax, [rdi - 200] /*jump-table offset*/
+ 1   1  0.33              lea eax, [rdi - 200]
  1   1  0.25              cmp eax, 5
- 1   1  0.50              jae .LBB0_1
- 1   1  0.50              mov ecx, 23
- 1   1  0.50              bt  ecx, eax /*bitset*/
  1   1  0.50              jae .LBB0_1
  1   0  0.17              mov eax, eax
  1   1  0.33              lea rcx,[rip+.Lswitch.table] /*jump-table*/
  1   5  0.33  *           movsxd rax, dword ptr [rcx + 4*rax]
  1   5  0.50          U   ret
+                         .LBB0_1
  1   0  0.17              xor eax, eax
- 1   1  0.25              cmp edi, 226 /*decision-tree*/
- 1   1  0.33              lea rax, [rip + .L.str.4]
+ 1   1  0.25              cmp edi, 403 /*decision-tree*/
+ 1   1  0.33              lea rax, [rip + .L.str]
  1   1  0.50              cmovne rax, rcx
  1   5  0.50          U   ret
 </code></pre>
@@ -711,6 +706,8 @@ enum class http_status_code : uint32_t {
 .Lswitch.table:               .asciz  "accepted"    /*202*/
   .asciz  "ok"       /*200*/  .asciz  ""
   .asciz  "created"  /*201*/  .asciz  "no_content"  /*204*/
+.L.str:
+  .asciz  "forbidden" /*403*/
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
