@@ -1031,10 +1031,10 @@ lookup:
 
 ----
 
-#### [Improvement] If the input can be guaranteed to be valid
+#### Potential improvement if the input can be guaranteed to be valid
 
 ```cpp
-          assert(contains(enumerators, value)); // valid input
+          assert(contains<enumerator<E>>(value)); // valid input
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1049,7 +1049,7 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  [[assume(contains(enumerators, value)]];
+  [[assume(contains<enumerators<E>>(value)]];
   return lookup[pext(value, mask<E>)];
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
