@@ -393,7 +393,7 @@ enum_to_string(static_cast<E>(42)); // ?
 #### enum_to_string - P2996 - https://godbolt.org/z/fo58vedxj
 
 ```
-template <class E> requires is_enum_v<E>
+template<class E> requires is_enum_v<E>
 constexpr auto enum_to_string(E value) -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -438,7 +438,7 @@ enum color { red, green, blue, };
 ---
 
 ```cpp
-template <class E> requires is_enum_v<E>
+template<class E> requires is_enum_v<E>
 constexpr auto enum_to_string(E value) -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -625,7 +625,7 @@ static_assert(
 #### switch-case - https://godbolt.org/z/Mc5Yvsrxc
 
 ```cpp
-template <class E> requires is_enum_v<E>
+template<class E> requires is_enum_v<E>
 constexpr auto enum_to_string(E value) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -773,16 +773,16 @@ static_assert(16u == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
 #### std::simd - https://godbolt.org/z/9c44jGnW6
 
 ```cpp
-template <class E> requires is_enum_v<E> and
-  (enumerators<E>.size() <= simd_size_v<underlying_type_t<E>>)
+template<class E, class T = underlying_type_t<E>>
+  requires (is_enum_v<E> and enumerators<E>.size() <=
+                             simd_size_v<T, simd_abi::native<T>>)
 constexpr auto enum_to_string(E value) -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  using type = underlying_type_t<E>;
-  simd<type, enumerators<E>.size()> lhs{value};
-  simd<type, enumerators<E>.size()> rhs{&keys[i], element_aligned}
+  simd<T, enumerators<E>.size()> lhs{value};
+  simd<T, enumerators<E>.size()> rhs{&keys[i], element_aligned}
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -932,7 +932,7 @@ mask
 #### Hardware accelerated perfect hashing
 
 ```cpp
-template <class E> requires is_enum_v<E>
+template<class E> requires is_enum_v<E>
 constexpr auto enum_to_string(E value) const -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -1045,7 +1045,7 @@ lookup:
 #### Hardware accelerated perfect hashing (unsafe) - https://godbolt.org/z/3hMxEoG5h
 
 ```cpp
-template <class E> requires is_enum_v<E>
+template<class E> requires is_enum_v<E>
 constexpr auto unsafe$enum_to_string(E value) -> string_view {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -1241,27 +1241,37 @@ lookup: // minimal
 #### enum_to_string (there is no sliver bullet)
 
 ```cpp
-[[gnu::target("sse,avx,avx512f")]]
-constexpr auto enum_to_string(Enum auto value) requires /*...*/;
+template<class E, class T = underlying_type_t<E>>
+  requires (is_enum_v<E> and enumerators<E>.size() <=
+                             simd_size_v<T, simd_abi::native<T>>)
+constexpr auto enum_to_string(E value) -> string_view;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-[[gnu::target("default")]]
-constexpr auto enum_to_string(Enum auto value) requires /*...*/;
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-[[gnu::target("default")]]
-constexpr auto enum_to_string(FlagEnum auto value) requires /*...*/;
+template<class E>
+  requires (is_enum_v<E> and enumerators<E>.size() <= 64u)
+constexpr auto enum_to_string(E value) -> string_view;
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-...
+template<class E>
+  requires (is_enum_v<E> and enumerators<E>.size() > 64u)
+constexpr auto enum_to_string(E value) -> string_view;
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+template<class E> requires is_flag_enum_v<E>
+constexpr auto enum_to_string(E value) -> string_view;
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+...
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
 
 ----
 
@@ -1545,7 +1555,7 @@ constexpr auto to(string_view str) {
 #### string_to_enum - Hardware accelerated perfect hashing
 
 ```cpp
-template <class E> requires is_enum_v<E>
+template<class E> requires is_enum_v<E>
 constexpr auto string_to_enum(std::string_view str) -> E {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
