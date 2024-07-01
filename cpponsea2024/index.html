@@ -528,9 +528,10 @@ constexpr auto enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" style="float:left" -->
 ```cpp
 auto bit_test_cluster::is_beneficial(auto count, auto uniq) {
-  // count: number of cases, uniq: number of distinct values
-  return (uniq==1 && count>=3) || (uniq==2 && count>=5) ||
-         (uniq==3 && count>=6);
+  // uniq - number of edges, count - number of cases handled
+  return (uniq == 1 && count >= 3) || 
+         (uniq == 2 && count >= 5) ||
+         (uniq == 3 && count >= 6);
 }
 ```
 <!-- .element: class="fragment" -->
@@ -539,13 +540,13 @@ auto bit_test_cluster::is_beneficial(auto count, auto uniq) {
 <!-- .element: class="fragment" style="float:left" -->
 
 ```cpp
-auto jump_table_cluster::can_be_handled(auto cmp_count) {
+auto jump_table_cluster::can_be_handled() {
   return get_range(get_low(), get_high()) <=
-    (optimize_for_size() ? 2 : 8) * cmp_count;
+         optimize_for_size() ? 2 : 8; // sparsity
 }
 
 auto jump_table_cluster::is_beneficial(auto start, auto end) {
-  return end - start + 1 >= 5;
+  return end - start + 1 >= 5; // prune small jump tables
 }
 ```
 <!-- .element: class="fragment" -->
