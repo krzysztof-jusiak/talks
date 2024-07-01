@@ -301,6 +301,15 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 
 ### [Performance] Case study
 
+- #### LLVM Machine Code Analyzer - https://llvm.org/docs/CommandGuide/llvm-mca.html
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+- #### Instruction Tables - https://www.agner.org/optimize/instruction_tables.pdf
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+<img src="images/latencies.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
 ----
 
 #### enum_to_string
@@ -473,21 +482,6 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ----
 
-#### Latency Numbers Every Programmer Should Know
-
-<img src="images/latency.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-- #### LLVM Machine Code Analyzer - https://llvm.org/docs/CommandGuide/llvm-mca.html
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-- #### Instruction Tables - https://www.agner.org/optimize/instruction_tables.pdf
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
 #### enum_to_string - P2996 - https://godbolt.org/z/fo58vedxj
 
 ```cpp
@@ -500,18 +494,18 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 <pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,4,5">
 [1] [2] [3]  [4] [5] [6]  Instructions:
- 1   1  0.25              test  edi, edi
- 1   1  0.50              je    .LBB0_1
- 1   1  0.25              cmp   edi, 1
- 1   1  0.50              jne   .LBB0_4
- 1   1  0.50              mov   eax, 5
- 1   1  0.33              lea   rdx, [rip + .L.str.1]
+ 1   1  0.25              test edi, edi
+ 1   1  0.50              je   .LBB0_1
+ 1   1  0.25              cmp  edi, 1
+ 1   1  0.50              jne  .LBB0_4
+ 1   1  0.50              mov  eax, 5
+ 1   1  0.33              lea  rdx, [rip + .L.str.1]
  1   5  0.50          U   ret
- 1   1  0.50              mov   eax, 3
- 1   1  0.33              lea   rdx, [rip + .L.str]
+ 1   1  0.50              mov  eax, 3
+ 1   1  0.33              lea  rdx, [rip + .L.str]
  1   5  0.50          U   ret
- 1   1  0.50              mov   eax, 4
- 1   1  0.33              lea   rdx, [rip + .L.str.2]
+ 1   1  0.50              mov  eax, 4
+ 1   1  0.33              lea  rdx, [rip + .L.str.2]
  1   5  0.50          U   ret
 </code></pre>
 
@@ -699,7 +693,7 @@ enum class http_status_code : uint32_t {
  1   1  0.25              cmp eax, 5
  1   1  0.50              jae .LBB0_1
  1   1  0.50              mov ecx, 23
- 1   1  0.50              bt ecx, eax  /*bitset*/
+ 1   1  0.50              bt  ecx, eax /*bitset*/
  1   1  0.50              jae .LBB0_1
  1   0  0.17              mov eax, eax /*jump-table*/
  1   1  0.33              lea rcx, [rip + .Lswitch.table]
@@ -869,7 +863,7 @@ keys:        values:
 <td>...</td>
 </tr></table>
 
-##### PTHash is especially good for large (> 1'000'000) sizes
+##### `cmph/pthash` can handle large (> 1'000'000) sizes
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 -----
@@ -1010,12 +1004,12 @@ consteval auto mask() {
 
 <pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3, 6, 7, 8">
 [1] [2] [3]  [4] [5] [6]  Instructions:
- 1   0  0.17              mov ecx, edi
- 1   1  0.25              and ecx, 3 /*pext*/
- 1   1  0.50              shl ecx, 4
- 1   1  0.33              lea rdx, [rip + lookup]
- 1   0  0.17              xor eax, eax /*unknown value*/
- 1   5  0.33  *           cmp dword ptr [rcx + rdx], edi
+ 1   0  0.17              mov   ecx, edi
+ 1   1  0.25              and   ecx, 3   /*pext*/
+ 1   1  0.50              shl   ecx, 4
+ 1   1  0.33              lea   rdx, [rip + lookup]
+ 1   0  0.17              xor   eax, eax /*unknown value*/
+ 1   5  0.33  *           cmp   dword ptr [rcx + rdx], edi
  1   5  0.50  *           cmove rax, qword ptr [rcx + rdx + 8]
  1   5  0.50          U   ret
 </code></pre>
@@ -1142,7 +1136,7 @@ enum class permissions : uint8_t {
 
 ----
 
-#### enum_to_string - 'Flag' enum - https://godbolt.org/z/aM7E1bTPz
+#### enum_to_string - 'Flag' enum - https://godbolt.org/z/MMd9K6xz4
 
 ```cpp
 template<class E>
@@ -1160,8 +1154,8 @@ concept FlagEnum = is_enum_v<E> and [] {
 ---
 
 ```cpp
-enum class f1 { a = 0b00, b = 0b01, c = 0b10, };
-enum class f2 { a = 0b00, b = 0b01, c = 0b11, };
+enum class f1 : uint8_t { a = 0b00, b = 0b01, c = 0b10, };
+enum class f2 : uint8_t { a = 0b00, b = 0b01, c = 0b11, };
 
 static_assert(FlagEnum<f1>);
 static_assert(not FlagEnum<f2>);
@@ -1170,7 +1164,7 @@ static_assert(not FlagEnum<f2>);
 
 ----
 
-#### enum_to_string - 'Flag' enum - https://godbolt.org/z/aM7E1bTPz
+#### enum_to_string - 'Flag' enum - https://godbolt.org/z/MMd9K6xz4
 
 ```cpp
 constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
@@ -1190,7 +1184,7 @@ constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
 
 ```cpp
   [[assume(has_single_bit(to_underlying(value))]];
-  return lookup[popcount(to_underlying(value) - 1)];
+  return lut[countr_zero(to_underlying(value))]; 
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1202,10 +1196,11 @@ constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
 ---
 
 ```cpp
-4         = 0b100
-4 - 1 = 3 = 0b011 = popcount(0b011) = 2 // or countr_zero
+// countr_zero - count the number of trailing zero bits
+0b000000100
+        ^21 = 2
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
@@ -1219,8 +1214,7 @@ constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
 
 <pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3">
 [1] [2] [3]  [4] [5] [6]  Instructions:
- 1   1  0.25              dec edi
- 1   1  0.25              popcnt eax, edi
+ 2   2  0.50              tzcnt eax, edi
  1   1  0.33              lea rcx, [rip + lookup]
  1   5  0.33  *           mov rax, qword ptr [rcx + 8*rax]
  1   5  0.50          U   ret
@@ -1400,20 +1394,30 @@ constexpr auto string_to_enum(string_view str) {
     {"green", color::green },
     {"blue",  color::blue  },
   };
-  return map.at(str);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return map.at(str);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+##### (constexpr frozen::unordered_map) https://github.com/serge-sans-paille/frozen
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
 ----
 
-##### string_to_enum - [gperf](https://www.gnu.org/software/gperf)
+##### string_to_enum - gperf
 
-<a href="https://www.gnu.org/software/gperf/"><img src="images/gperf.png" style="width: 45%; background:none; border:none; box-shadow:none;" /></a>
+<a href="https://www.gnu.org/software/gperf/"><img src="images/gperf.png" style="width: 43%; background:none; border:none; box-shadow:none;" /></a>
+
+##### https://www.gnu.org/software/gperf
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1555,7 +1559,7 @@ constexpr auto to(string_view str) {
 #### string_to_enum - Hardware accelerated perfect hashing
 
 ```cpp
-template<class E> requires is_enum_v<E>
+template<class E, class T = underlying_type_t<E>> requires is_enum_v<E>
 constexpr auto string_to_enum(std::string_view str) -> E {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -1566,7 +1570,7 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  auto&& lhs = to<T>(str); // T - uint32_t/uint64_t/...
+  auto&& lhs = to<T>(str);
   auto&& [rhs, result] = lookup[pext(lhs, mask<E>)];
   return lhs == rhs ? result : {};
 ```
@@ -1589,14 +1593,14 @@ constexpr auto string_to_enum(std::string_view str) -> E {
 
 <pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3,5">
 [1] [2] [3]  [4] [5] [6]  Instructions:
- 1   1  0.50              shl rdi, 3
- 2   5  0.50  *           bzhi rcx, qword ptr [rsi], rdi
- 1   1  0.50              mov eax, 17
- 1   3  1.00              pext edx, ecx, eax
- 1   1  0.50              shl edx, 4
- 1   1  0.33              lea rsi, [rip + find]
- 1   0  0.17              xor eax, eax
- 1   5  0.33  *           cmp rcx, qword ptr [rdx + rsi]
+ 1   1  0.50              shl   rdi, 3
+ 2   5  0.50  *           bzhi  rcx, qword ptr [rsi], rdi
+ 1   1  0.50              mov   eax, 17
+ 1   3  1.00              pext  edx, ecx, eax
+ 1   1  0.50              shl   edx, 4
+ 1   1  0.33              lea   rsi, [rip + find]
+ 1   0  0.17              xor   eax, eax
+ 1   5  0.33  *           cmp   rcx, qword ptr [rdx + rsi]
  1   5  0.50  *           cmove eax, dword ptr [rdx + rsi + 8]
  1   5  0.50          U   ret
 </code></pre>
@@ -1705,13 +1709,13 @@ assert((to<u32>("wss")  * 2893426669) >> 29) == 3);
 #### string_to_enum - Minimal perfect hashing
 
 ```cpp
-template<class E, size_t MaxAttempts = 100'000> requires is_enum_v<E>
+template<class E, size_t MaxAttempts = 100'000,
+         class T = underlying_type_t<E>> requires is_enum_v<E>
 constexpr auto string_to_enum(string_view str) -> E {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  using T = uint32_t;
   constexpr auto size  = sizeof(T) * CHAR_BIT;
   constexpr auto nbits = size - countr_zero(max(enumerators<E>));
   constexpr auto shift = size - nbits;       // 29
@@ -1792,13 +1796,13 @@ enum uri { ftp = 0, file = 1, http = 2, ws = 3, wss = 4, };
 
 <pre><code class="fragment" data-trim data-noescape data-fragment-index="3" data-line-numbers="4,5,6,7,8">
 [1] [2] [3]  [4] [5] [6]   Instructions:
- 1   1  0.50               shl edi, 3
+ 1   1  0.50               shl  edi, 3
  2   5  0.50  *            bzhi eax, dword ptr [rsi], edi
- 1   3  1.00               imul eax, eax, 2893426669  /*magic*/
- 1   1  0.50               shr eax, 29                /*shift*/
- 1   1  0.50               mov ecx, 0b001100000010011 /*lut*/
+ 1   3  1.00               imul eax, eax, 2893426669   /*magic*/
+ 1   1  0.50               shr  eax, 29                /*shift*/
+ 1   1  0.50               mov  ecx, 0b001100000010011 /*lut*/
  1   1  0.50               shrx eax, ecx, eax
- 1   1  0.25               and eax, 0b111             /*mask*/
+ 1   1  0.25               and  eax, 0b111             /*mask*/
  1   5  0.50          U    ret
 </code></pre>
 
