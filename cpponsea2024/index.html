@@ -660,8 +660,8 @@ constexpr auto enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  native_simd<T> lhs{value};
-  native_simd<T> rhs{&keys[i]}
+  native_simd<T> lhs{value}; // broadcast
+  native_simd<T> rhs{&keys}
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
