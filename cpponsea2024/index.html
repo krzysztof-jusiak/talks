@@ -308,9 +308,6 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 - #### Instruction Tables - https://www.agner.org/optimize/instruction_tables.pdf
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-<img src="images/latencies.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
 ----
 
 #### enum_to_string
@@ -699,7 +696,7 @@ aligned_array<string_view, size> values{};
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 <pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,8,10">
-[1] [2] [3]  [4] [5] [6]  Instructions:
+[1] [2] [3]  [4] [5] [6]  Instructions: /*-mavx2*/
  1   1  1.00              vmovd xmm1, edi
  1   0  0.17              xor edx, edx
  1   1  0.50              vpbroadcastd xmm0, xmm1 /*lhs*/
@@ -840,6 +837,7 @@ enum class http_status_code : uint32_t {
   created    = 201,
   accepted   = 202,
   no_content = 204,
+
   forbidden  = 403,  // second cluster - decision-tree
 };
 ```
@@ -854,7 +852,7 @@ enum class http_status_code : uint32_t {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="6,10,11,13">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,6,10,11,13">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  0.33              lea eax, [rdi - 200]
  1   1  0.25              cmp eax, 5
@@ -892,6 +890,8 @@ enum class http_status_code : uint32_t {
 <br />
 <br />
 <!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
+
+---
 
 ```cpp
 consteval void gen_cases(auto& builder, auto cases) {
@@ -1659,19 +1659,18 @@ constexpr auto string_to_enum(string_view str) -> E {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-```cpp
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="8">
   static constexpr auto lookup = [] {
-    array<pair<T, E>, (1u << popcount(mask))> lookup{};
-    for (const auto& [enumeration, name] : enumerators<E>) {
-      lookup[pext(id, mask<E>)] = {to<T>(name), enumeration};
+    array&lt;pair&lt;T, E&gt;, (1u &lt;&lt; popcount(mask))&gt; lookup{};
+    for (const auto& [enumeration, name] : enumerators&lt;E&gt;) {
+      lookup[pext(id, mask&lt;E&gt;)] = {to&lt;T&gt;(name), enumeration};
     }
     return lookup;
   }();
-  auto&& value = to<T>(str);
-  auto&& [rhs, result] = lookup[pext(value, mask<E>)];
+  auto&& value = to&lt;T&gt;(str);
+  auto&& [rhs, result] = lookup[pext(value, mask&lt;E&gt;)];
   return value == rhs ? result : {};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+</code></pre>
 
 ```cpp
 }
