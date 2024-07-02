@@ -1801,7 +1801,7 @@ assert((to<u32>("wss")  * 2893426669) >> 29) == 3);
 <br />
 
 ```cpp
-((lut >> (value * magic)) >> shift) & mask
+(lut >> ((value * magic) >> shift)) & mask
 
 // shift - 29
 // mask  - 0b111
