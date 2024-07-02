@@ -99,6 +99,8 @@
 
     - ##### https://github.com/bloomberg/clang-p2996
     <!-- .element: class="fragment" -->
+    <a href="godbolt.org"><img src="images/godbolt.jpg" style="width: 10%; background:none; border:none; box-shadow:none;" /></a>
+    <!-- .element: class="fragment" -->
 
 - ##### C++20
 <!-- .element: class="fragment" -->
@@ -481,7 +483,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ----
 
-#### Helper utilities - P2996
+#### Utilities - P2996
 
 ```cpp
 template<class E> requires is_enum_v<E>
@@ -511,7 +513,7 @@ inline constexpr auto enumerators =
 
 ----
 
-#### Helper utilities - P2996
+#### Utilities - P2996
 
 ```cpp
 enum color { red, green, blue, };
@@ -599,6 +601,140 @@ constexpr auto enum_to_string(E value) -> string_view {
 .L.str: "green" .L.str.1: "red" .L.str.2: "blue"
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### Want performance? Know your hardware!
+
+----
+
+#### Single Instruction, Multiple Data - SIMD
+
+<img src="images/simd.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+#### std::simd - https://wg21.link/P1928
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### std::simd (x86)
+
+##### x86.sse (128 bits)
+<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
+<br />
+
+```cpp
+static_assert(4u  == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### x86.avx (256 bits)
+<br />
+<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
+
+```cpp
+static_assert(8u  == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+##### x86.avx512 (512 bits)
+<br />
+<!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
+
+```cpp
+static_assert(16u == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### std::simd - https://godbolt.org/z/9c44jGnW6
+
+```cpp
+template<class E, class T = underlying_type_t<E>>
+  requires (is_enum_v<E> and enumerators<E>.size() <=
+                             simd_size_v<T, simd_abi::native<T>>)
+constexpr auto enum_to_string(E value) -> string_view {
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  native_simd<T> lhs{value};
+  native_simd<T> rhs{&keys[i], vector_aligned}
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+  const auto match = lhs == rhs; // element-wise comparison
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+```cpp
+  return any_of(match) ? values[find_first_set(match)] : {};
+```
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+---
+
+```cpp
+aligned_array<E, size> keys{};
+aligned_array<string_view, size> values{};
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+#### std::simd - https://godbolt.org/z/9c44jGnW6
+
+```cpp
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,8">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   1  1.00              vmovd xmm1, edi
+ 1   0  0.17              xor edx, edx
+ 1   1  0.50              vpbroadcastd  xmm0, xmm1 /*lhs*/
+ 1   8  0.50  *           vpcmpeqd xmm0, xmm0, xmmword ptr[rip+.keys]
+ 1   1  1.00              vmovmskps eax, xmm0
+ 1   1  0.25              movzx eax, al
+ 6   3  3.00              rep bsf eax, eax /*bit scan forward*/
+ 1   1  0.50              shl rax, 4
+ 1   5  0.33  *           mov rdx, qword ptr [rax + value+8]
+ 1   5  0.50          U   ret
+</code></pre>
+
+```cpp
+keys:        values:
+  .long 0      .quad "red"
+  .long 1      .quad "green"
+  .long 2      .quad "blue"
+  .long 0      .quad ""
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### Want performance? Know your data!
+
+```cpp
+enum class http_status_code : uint32_t {
+  ok         = 200,
+  created    = 201,
+  accepted   = 202,
+  no_content = 204,
+  forbidden  = 403,
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -749,126 +885,7 @@ enum class http_status_code : uint32_t {
 
 ----
 
-#### Want performance? Know your hardware!
-
-----
-
-#### Single Instruction, Multiple Data - SIMD
-
-<img src="images/simd.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-#### std::simd - https://wg21.link/P1928
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### std::simd (x86)
-
-##### x86.sse (128 bits)
-<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
-<br />
-
-```cpp
-static_assert(4u  == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-##### x86.avx (256 bits)
-<br />
-<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
-
-```cpp
-static_assert(8u  == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-##### x86.avx512 (512 bits)
-<br />
-<!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
-
-```cpp
-static_assert(16u == simd_size_v<uint32_t, simd_abi::native<uint32_t>>);
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-#### std::simd - https://godbolt.org/z/9c44jGnW6
-
-```cpp
-template<class E, class T = underlying_type_t<E>>
-  requires (is_enum_v<E> and enumerators<E>.size() <=
-                             simd_size_v<T, simd_abi::native<T>>)
-constexpr auto enum_to_string(E value) -> string_view {
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  native_simd<T> lhs{value};
-  native_simd<T> rhs{&keys[i], vector_aligned}
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-```cpp
-  const auto match = lhs == rhs; // element-wise comparison
-```
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
-```cpp
-  return any_of(match) ? values[find_first_set(match)] : {};
-```
-<!-- .element: class="fragment" data-fragment-index="6" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
----
-
-```cpp
-aligned_array<E, size> keys{};
-aligned_array<string_view, size> values{};
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-----
-
-#### std::simd - https://godbolt.org/z/9c44jGnW6
-
-```cpp
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,8">
-[1] [2] [3]  [4] [5] [6]  Instructions:
- 1   1  1.00              vmovd xmm1, edi
- 1   0  0.17              xor edx, edx
- 1   1  0.50              vpbroadcastd  xmm0, xmm1 /*lhs*/
- 1   8  0.50  *           vpcmpeqd xmm0, xmm0, xmmword ptr[rip+.keys]
- 1   1  1.00              vmovmskps eax, xmm0
- 1   1  0.25              movzx eax, al
- 6   3  3.00              rep bsf eax, eax /*bit scan forward*/
- 1   1  0.50              shl rax, 4
- 1   5  0.33  *           mov rdx, qword ptr [rax + value+8]
- 1   5  0.50          U   ret
-</code></pre>
-
-```cpp
-keys:        values:
-  .long 0      .quad "red"
-  .long 1      .quad "green"
-  .long 2      .quad "blue"
-  .long 0      .quad ""
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-#### Want performance? Know your data!
+#### Want performance? Know your data at compile/initialization-time!
 
 ----
 
@@ -1123,6 +1140,203 @@ lookup: // minimal
 
 ----
 
+#### enum_to_string - Minimal perfect hashing
+
+<img src="images/hashing.png" style="width: 75%; background:white; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### enum_to_string - Minimal perfect hashing
+
+```cpp
+enum uri { ftp = 0, file = 1, http = 2, ws = 3, wss = 4, };
+```
+<!-- .element: class="fragment" style="float:left" data-fragment-index="0" -->
+
+---
+
+#### bit mixer
+<!-- .element: class="fragment" style="float:left" data-fragment-index="1" -->
+<br />
+
+```cpp
+(value * magic) >> shift
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+// shift
+static_assert(
+  (sizeof(u32) * CHAR_BIT) - countr_zero(max(&enumerators<E>::second))
+  ==
+  29 // 4 * 8 - 3
+);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+---
+
+```cpp
+// magic
+assert((to<u32>("ftp")  * 2893426669) >> 29) == 1);
+assert((to<u32>("file") * 2893426669) >> 29) == 4);
+assert((to<u32>("http") * 2893426669) >> 29) == 0);
+assert((to<u32>("ws")   * 2893426669) >> 29) == 2);
+assert((to<u32>("wss")  * 2893426669) >> 29) == 3);
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+#### enum_to_string - Minimal perfect hashing
+
+#### lookup table
+<!-- .element: class="fragment" style="float:left" data-fragment-index="2" -->
+<br />
+
+```cpp
+{1, 4, 0, 2, 3}[n]
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+{0b001, 0b100, 0b000, 0b010, 0b011}[n]
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+(0b'001'100'000'010'011 >> 3*n) & 0b111
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+---
+
+#### lookup
+<!-- .element: class="fragment" style="float:left" data-fragment-index="6" -->
+<br />
+
+```cpp
+((lut >> (value * magic)) >> shift) & mask
+
+// shift - 29
+// mask  - 0b111
+// magic - 2893426669 (???)
+// lut   - 0b001100000010011 (???)
+```
+<!-- .element: class="fragment" data-fragment-index="6" -->
+
+----
+
+#### enum_to_string - Minimal perfect hashing
+
+```cpp
+template<class E, size_t MaxAttempts = 100'000,
+         class T = underlying_type_t<E>> requires is_enum_v<E>
+constexpr auto unsafe$enum_to_string(string_view str) -> E {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  constexpr auto size  = sizeof(T) * CHAR_BIT;
+  constexpr auto clz   = countr_zero(max(&enumerators<E>::second));
+  constexpr auto nbits = size - clz;
+  constexpr auto shift = size - nbits;       // 29
+  constexpr auto mask  = (1u << nbits) - 1u; // 0b111
+  constexpr auto [magic, lut] = magic_lut(mask, shift, MaxAttempts);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  auto&& value = to<T>(key);
+  return (lut >> ((value * magic) >> shift)) & mask;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### enum_to_string - Minimal perfect hashing
+
+```cpp
+template<class T>
+consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  while (max_attempts--) {
+    magic = random(); // compile-time pseudo random number generation
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    T lut{};
+    for (const auto& [id, name] : enumerators<E>) {
+      lut |= (id << (to<T>(name) * magic >> shift));
+    }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    for (const auto& [id, name] : enumerators<E>) {
+      if ((lut >> (to<T>(name) * magic >> shift) & mask) != id) {
+        lut = {}; break; // not found, keep-going
+      }
+    }
+    if (magic and lut) return pair{magic, lut}; // found
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }
+  return {};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### enum_to_string - Minimal perfect hashing - https://godbolt.org/z/3j8qcabsj
+
+```cpp
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,7,8">
+[1] [2] [3]  [4] [5] [6]   Instructions:
+ 1   1  0.50               shl  edi, 3
+ 2   5  0.50  *            bzhi eax, dword ptr [rsi], edi
+ 1   3  1.00               imul eax, eax, 2893426669   /*magic*/
+ 1   1  0.50               shr  eax, 29                /*shift*/
+ 1   1  0.50               mov  ecx, 0b001100000010011 /*lut*/
+ 1   1  0.50               shrx eax, ecx, eax
+ 1   1  0.25               and  eax, 0b111             /*mask*/
+ 1   5  0.50          U    ret
+</code></pre>
+
+---
+
+```cpp
+no lookup table (stored directly in a register)
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+
+----
+
 #### No [BMI2](https://en.wikipedia.org/wiki/X86_Bit_manipulation_instruction_set)? Zen2? ARM?
 
 <a href="https://uops.info/table.html?search=PEXT%20(R64%2C%20R64%2C%20R64)&cb_lat=on&cb_HSW=on&cb_BDW=on&cb_SKL=on&cb_RKL=on&cb_ZEN2=on&cb_ZEN3=on&cb_ZEN4=on&cb_measurements=on&cb_bmi=on"><img src="images/zen2.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
@@ -1324,7 +1538,7 @@ constexpr auto enum_to_string(E value) -> string_view;
 
 ----
 
-#### string_to_enum - if/else - https://godbolt.org/z/Yha87c9f3
+#### string_to_enum - P2996 - https://godbolt.org/z/Yha87c9f3
 
 ```cpp
 template<class E> requires is_enum_v<E>
@@ -1338,7 +1552,7 @@ constexpr auto string_to_enum(string_view str) -> optional<E> {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-    if (str == name) {
+    if (str == name) { // string comparison!
       return id;
     }
 ```
@@ -1350,7 +1564,7 @@ constexpr auto string_to_enum(string_view str) -> optional<E> {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-  return nullopt;;
+  return nullopt;
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1473,7 +1687,7 @@ constexpr auto string_to_enum(string_view str) {
 
 ----
 
-#### string to int - https://godbolt.org/z/GnKoK9vrj
+#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
 static_assert(3 + 1/*null termination*/ == sizeof("cpp"));
@@ -1498,7 +1712,7 @@ simd<char, 64> : 64 bytes // x86.avx512
 
 ----
 
-#### string to int - https://godbolt.org/z/GnKoK9vrj
+#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
 template<class T, size_t Size> requires (Size <= sizeof(T))
@@ -1533,7 +1747,7 @@ constexpr auto to(string_view str) -> T {
 
 ----
 
-#### string to int - https://godbolt.org/z/GnKoK9vrj
+#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
 template<class T>
@@ -1560,7 +1774,7 @@ bzhi 3*8, "cpp....." ==
 
 ----
 
-#### string to int - https://godbolt.org/z/GnKoK9vrj
+#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
 
 ```cpp
 template<class T, size_t PageSize = 4096u>
@@ -1594,33 +1808,6 @@ constexpr auto to(string_view str) {
 
 ##### https://github.com/glibc/blob/master/sysdeps/generic/memcopy.h
 <!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### string_to_enum - Hardware accelerated perfect hashing
-
-```cpp
-template<class E, class T = underlying_type_t<E>> requires is_enum_v<E>
-constexpr auto string_to_enum(string_view str) -> E {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  static constexpr auto lookup = /* same as in enum_to_string */;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  auto&& lhs = to<T>(str);
-  auto&& [rhs, result] = lookup[pext(lhs, mask<E>)];
-  return lhs == rhs ? result : {};
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1659,197 +1846,7 @@ find:
 
 ----
 
-#### string_to_enum - Minimal perfect hashing
-
-<img src="images/hashing.png" style="width: 75%; background:white; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### string_to_enum - Minimal perfect hashing
-
-```cpp
-enum uri { ftp = 0, file = 1, http = 2, ws = 3, wss = 4, };
-```
-<!-- .element: class="fragment" style="float:left" data-fragment-index="0" -->
-
----
-
-#### bit mixer
-<!-- .element: class="fragment" style="float:left" data-fragment-index="1" -->
-<br />
-
-```cpp
-(value * magic) >> shift
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-// shift
-static_assert(
-  (sizeof(u32) * CHAR_BIT) - countr_zero(max(&enumerators<E>::second))
-  ==
-  29 // 4 * 8 - 3
-);
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
----
-
-```cpp
-// magic
-assert((to<u32>("ftp")  * 2893426669) >> 29) == 1);
-assert((to<u32>("file") * 2893426669) >> 29) == 4);
-assert((to<u32>("http") * 2893426669) >> 29) == 0);
-assert((to<u32>("ws")   * 2893426669) >> 29) == 2);
-assert((to<u32>("wss")  * 2893426669) >> 29) == 3);
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-----
-
-#### string_to_enum - Minimal perfect hashing
-
-#### lookup table
-<!-- .element: class="fragment" style="float:left" data-fragment-index="2" -->
-<br />
-
-```cpp
-{1, 4, 0, 2, 3}[n]
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-{0b001, 0b100, 0b000, 0b010, 0b011}[n]
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-```cpp
-(0b'001'100'000'010'011 >> 3*n) & 0b111
-```
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
----
-
-#### lookup
-<!-- .element: class="fragment" style="float:left" data-fragment-index="6" -->
-<br />
-
-```cpp
-((lut >> (value * magic)) >> shift) & mask
-
-// shift - 29
-// mask  - 0b111
-// magic - 2893426669 (???)
-// lut   - 0b001100000010011 (???)
-```
-<!-- .element: class="fragment" data-fragment-index="6" -->
-
-----
-
-#### string_to_enum - Minimal perfect hashing
-
-```cpp
-template<class E, size_t MaxAttempts = 100'000,
-         class T = underlying_type_t<E>> requires is_enum_v<E>
-constexpr auto string_to_enum(string_view str) -> E {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  constexpr auto size  = sizeof(T) * CHAR_BIT;
-  constexpr auto clz   = countr_zero(max(&enumerators<E>::second));
-  constexpr auto nbits = size - clz;
-  constexpr auto shift = size - nbits;       // 29
-  constexpr auto mask  = (1u << nbits) - 1u; // 0b111
-  constexpr auto [magic, lut] = magic_lut(mask, shift, MaxAttempts);
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  auto&& value = to<T>(key);
-  return (lut >> ((value * magic) >> shift)) & mask;
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### string_to_enum - Minimal perfect hashing
-
-```cpp
-template<class T>
-consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  while (max_attempts--) {
-    magic = random(); // compile-time pseudo random number generation
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-    T lut{};
-    for (const auto& [id, name] : enumerators<E>) {
-      lut |= (id << (to<T>(name) * magic >> shift));
-    }
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    for (const auto& [id, name] : enumerators<E>) {
-      if ((lut >> (to<T>(name) * magic >> shift) & mask) != id) {
-        lut = {}; break; // not found, keep-going
-      }
-    }
-    if (magic and lut) return pair{magic, lut}; // found
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  }
-  return {};
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### string_to_enum - Minimal perfect hashing - https://godbolt.org/z/3j8qcabsj
-
-```cpp
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,7,8">
-[1] [2] [3]  [4] [5] [6]   Instructions:
- 1   1  0.50               shl  edi, 3
- 2   5  0.50  *            bzhi eax, dword ptr [rsi], edi
- 1   3  1.00               imul eax, eax, 2893426669   /*magic*/
- 1   1  0.50               shr  eax, 29                /*shift*/
- 1   1  0.50               mov  ecx, 0b001100000010011 /*lut*/
- 1   1  0.50               shrx eax, ecx, eax
- 1   1  0.25               and  eax, 0b111             /*mask*/
- 1   5  0.50          U    ret
-</code></pre>
-
----
-
-```cpp
-no lookup table (stored directly in a register)
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+# ...
 
 ----
 
@@ -1873,8 +1870,11 @@ no lookup table (stored directly in a register)
 - ##### Compile-time reflection is a powerful proposal which will impact how C++ is written
 <!-- .element: class="fragment" -->
 
-- ##### There is no sliver bullet if it comes to the performance just trade-offs (always measure)
+- ##### There is no sliver bullet if it comes to the performance just trade-offs
 <!-- .element: class="fragment" -->
+
+  - ##### Always measure in the specific use-case/hardware/environment
+  <!-- .element: class="fragment" -->
 
 ----
 
