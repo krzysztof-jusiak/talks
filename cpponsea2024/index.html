@@ -406,7 +406,7 @@ enum_to_string(static_cast<E>(42)); // ?
 
 #### enum_to_string - P2996 - https://godbolt.org/z/fo58vedxj
 
-```
+```cpp
 template<class E> requires is_enum_v<E>
 constexpr auto enum_to_string(E value) -> string_view {
 ```
@@ -541,7 +541,7 @@ static_assert(
 
 #### enum_to_string - P2996 - https://godbolt.org/z/M3rPMfxE9
 
-```
+```cpp
 template<class E> requires is_enum_v<E>
 constexpr auto enum_to_string(E value) -> string_view {
 ```
