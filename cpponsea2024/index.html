@@ -717,7 +717,7 @@ enum class http_status_code : uint32_t {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="6,11">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="6,10,11">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  0.33              lea eax, [rdi - 200]
  1   1  0.25              cmp eax, 5
@@ -727,7 +727,7 @@ enum class http_status_code : uint32_t {
  1   5  0.33  *           movsxd rax, dword ptr [rcx + 4*rax]
  1   5  0.50          U   ret
                          .LBB0_1
- 1   0  0.17              xor eax, eax
+ 1   0  0.17              xor eax, eax /*unknown value*/
  1   1  0.25              cmp edi, 403 /*decision-tree*/
  1   1  0.33              lea rax, [rip + .L.str]
  1   1  0.50              cmovne rax, rcx
@@ -1248,7 +1248,7 @@ constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,4">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,4">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  2   2  0.50              tzcnt eax, edi
  1   1  0.33              lea rcx, [rip + lookup]
