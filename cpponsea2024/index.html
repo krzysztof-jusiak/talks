@@ -861,7 +861,7 @@ enum class http_status_code : uint32_t {
  1   1  0.50              jae .LBB0_1
  1   0  0.17              xor eax, eax
  1   1  0.33              lea rcx,[rip+.Lswitch.table] /*jump-table*/
- 1   5  0.33  *           movsxd rax, dword ptr [rcx + 4*rax]
+ 1   5  0.33  *           movsxd rax, dword ptr [rcx + 4 * rax]
  1   5  0.50          U   ret
                          .LBB0_1
  1   0  0.17              xor eax, eax /*unknown value*/
@@ -884,7 +884,7 @@ enum class http_status_code : uint32_t {
 
 #### switch-case - code generation
 
-#### Code Injection with Token Sequences - https://wg21.link/P3294 
+#### Code Injection with Token Sequences - https://wg21.link/P3294
 <!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
 <br />
 
