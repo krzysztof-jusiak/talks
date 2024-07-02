@@ -544,12 +544,12 @@ constexpr auto enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  for (const auto& [id, name] : enumerators<E>) {
+  for (const auto& [enumeration, name] : enumerators<E>) {
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-    if (value == id) {
+    if (value == enumeration) {
       return name;
     }
 ```
@@ -604,7 +604,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ----
 
-#### Want performance? Know your hardware!
+#### Performance? Know your hardware!
 
 ----
 
@@ -661,7 +661,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ```cpp
   native_simd<T> lhs{value};
-  native_simd<T> rhs{&keys[i], vector_aligned}
+  native_simd<T> rhs{&keys[i]}
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -698,17 +698,17 @@ aligned_array<string_view, size> values{};
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,8">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,8,10">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  1.00              vmovd xmm1, edi
  1   0  0.17              xor edx, edx
- 1   1  0.50              vpbroadcastd  xmm0, xmm1 /*lhs*/
+ 1   1  0.50              vpbroadcastd xmm0, xmm1 /*lhs*/
  1   8  0.50  *           vpcmpeqd xmm0, xmm0, xmmword ptr[rip+.keys]
  1   1  1.00              vmovmskps eax, xmm0
  1   1  0.25              movzx eax, al
  6   3  3.00              rep bsf eax, eax /*bit scan forward*/
  1   1  0.50              shl rax, 4
- 1   5  0.33  *           mov rdx, qword ptr [rax + value+8]
+ 1   5  0.33  *           mov rdx, qword ptr [rax + value + 8]
  1   5  0.50          U   ret
 </code></pre>
 
@@ -723,7 +723,7 @@ keys:        values:
 
 ----
 
-#### Want performance? Know your data!
+#### Performance? Know your data!
 
 ```cpp
 enum class http_status_code : uint32_t {
@@ -731,6 +731,7 @@ enum class http_status_code : uint32_t {
   created    = 201,
   accepted   = 202,
   no_content = 204,
+  // ...
   forbidden  = 403,
 };
 ```
@@ -853,7 +854,7 @@ enum class http_status_code : uint32_t {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="6,10,11">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="6,10,11,13">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  0.33              lea eax, [rdi - 200]
  1   1  0.25              cmp eax, 5
@@ -881,11 +882,41 @@ enum class http_status_code : uint32_t {
 
 ----
 
-#### Code Injection with Token Sequences - https://wg21.link/P3294
+#### switch-case - code generation
+
+#### Code Injection with Token Sequences - https://wg21.link/P3294 
+<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
+<br />
+
+#### Code Reckons - https://cppmeta.codereckons.com
+<br />
+<br />
+<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
+
+```cpp
+consteval void gen_cases(auto& builder, auto cases) {
+  for (auto e : constants(cases)) {
+    append_case(builder, make_decl_ref_expr(e)); // case N:
+    append_return(builder, name_of(e));          //   return "...";
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+template<class E> requires is_enum_v<E>
+constexpr auto enum_to_string(E value) -> strig_view {
+  switch(value) {
+    default : return {};
+    %gen_cases(^E); // Code Reckons
+  }
+}
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
-#### Want performance? Know your data at compile/initialization-time!
+#### Performance? Know your data at compile/initialization-time!
 
 ----
 
@@ -980,8 +1011,8 @@ constexpr auto enum_to_string(E value) const -> string_view {
 ```cpp
   static constexpr auto lookup = [] {
     array<pair<E, string_view>, (1u << popcount(mask))> lookup{};
-    for (const auto& [id, name] : enumerators<E>) {
-      lookup[pext(id, mask<E>)] = {id, name};
+    for (const auto& [enumeration, name] : enumerators<E>) {
+      lookup[pext(id, mask<E>)] = {enumeration, name};
     }
     return lookup;
   }();
@@ -1053,7 +1084,7 @@ consteval auto mask() {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3, 6, 7, 8">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3, 5, 6, 7, 8">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   0  0.17              mov   ecx, edi
  1   1  0.25              and   ecx, 3   /*pext*/
@@ -1080,11 +1111,11 @@ lookup:
 #### Hardware accelerated perfect hashing (unsafe)
 
 ```cpp
-          assert(
-            value == "red"sv or
-            value == "green"sv or
-            value == "blue"sv
-          );
+assert(
+  value == "red"sv or
+  value == "green"sv or
+  value == "blue"sv
+);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1120,7 +1151,7 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,5">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,4">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  0.25              and edi, 3 /*pext*/
  1   1  0.25              lea rax, [rip + lookup]
@@ -1135,6 +1166,550 @@ lookup: // minimal
   .quad "red"
   .quad "green"
   .quad "blue"
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### No [BMI2](https://en.wikipedia.org/wiki/X86_Bit_manipulation_instruction_set)? Zen2? ARM?
+
+<a href="https://uops.info/table.html?search=PEXT%20(R64%2C%20R64%2C%20R64)&cb_lat=on&cb_HSW=on&cb_BDW=on&cb_SKL=on&cb_RKL=on&cb_ZEN2=on&cb_ZEN3=on&cb_ZEN4=on&cb_measurements=on&cb_bmi=on"><img src="images/zen2.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+#### bmi2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
+
+```cpp
+mov     ecx, 789
+pext    ecx, eax, ecx
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+#### no bmi2&nbsp;&nbsp;
+<!-- .element: class="fragment" data-fragment-index="3" style="float:left" -->
+
+```cpp
+mov     ecx, eax
+and     ecx, 789
+imul    ecx, ecx, 57
+shr     ecx, 2
+and     ecx, 248
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+---
+
+##### <a href="https://schedule.cppnow.org/session/2024/a-case-study-in-zero-cost-abstractions-high-performance-message-dispatch/">C++Now 2024 - Luke Valenty: A case study in zero-cost abstractions: High performance message dispatch</a>
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+----
+
+#### What about 'Flag' enum?
+
+```cpp
+enum class permissions : uint8_t {
+  read     = (1 << 0), // 0b001
+  write    = (1 << 1), // 0b010
+  execute  = (1 << 2), // 0b100
+  // ----------------------------//
+  // mask  :              0b111  // size: 2**(popcount(mask))
+  // ----------------------------//
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### enum_to_string - 'Flag' enum - https://godbolt.org/z/MMd9K6xz4
+
+```cpp
+template<class E>
+concept FlagEnum = is_enum_v<E> and [] {
+  for (const auto& [enumeration, _] : enumerators<E>)) {
+    if (not has_single_bit(to_underlying(enumeration))) {
+      return false;
+    }
+  }
+  return true;
+}();
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+enum class f1 : uint8_t { a = 0b00, b = 0b01, c = 0b10, };
+enum class f2 : uint8_t { a = 0b00, b = 0b01, c = 0b11, };
+
+static_assert(    FlagEnum<f1>);
+static_assert(not FlagEnum<f2>);
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### enum_to_string - 'Flag' enum - https://godbolt.org/z/MMd9K6xz4
+
+```cpp
+constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  static constexpr auto lookup = [] {
+    array<string_view, enumerators<E>.size()> lookup{};
+    for (auto i = 0u; const auto& [_, name] : enumerators<E>) {
+      lookup[i++] = name;
+    }
+    return lookup;
+  }();
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  [[assume(has_single_bit(to_underlying(value))]];
+  return lookup[countr_zero(to_underlying(value))];
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+// countr_zero - count the number of trailing zero bits
+0b000000100
+        ^21 = 2
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+#### enum_to_string - 'Flag' enum - https://godbolt.org/z/4cc8MabjG
+
+```cpp
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,4">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 2   2  0.50              tzcnt eax, edi
+ 1   1  0.33              lea rcx, [rip + lookup]
+ 1   5  0.33  *           mov rax, qword ptr [rcx + 8*rax]
+ 1   5  0.50          U   ret
+</code></pre>
+
+---
+
+```cpp
+lookup: // minimal
+  .quad "red"
+  .quad "green"
+  .quad "blue"
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+-----
+
+#### enum_to_string (there is no sliver bullet)
+
+```cpp
+template<class E, class T = underlying_type_t<E>>
+  requires (is_enum_v<E> and enumerators<E>.size() <=
+                             simd_size_v<T, simd_abi::native<T>>)
+constexpr auto enum_to_string(E value) -> string_view;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+template<class E>
+  requires (is_enum_v<E> and enumerators<E>.size() <= 64u)
+constexpr auto enum_to_string(E value) -> string_view;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+template<class E>
+  requires (is_enum_v<E> and enumerators<E>.size() > 64u)
+constexpr auto enum_to_string(E value) -> string_view;
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+template<class E> requires is_flag_enum_v<E>
+constexpr auto enum_to_string(E value) -> string_view;
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+...
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+----
+
+#### enum_to_string - benchmarks -
+##### https://github.com/boost-ext/mph/blob/benchmark/enum_to_string/benchmark.ipynb
+
+<table><tr><td>
+<a href="images/benchmark_enum_to_string_16.png"><img src="images/benchmark_enum_to_string_16.png" style="width: 100vw; background:none; border:none; box-shadow:none;" /></a>
+</td>
+<td>
+<a href="images/benchmark_enum_to_string.png"><img src="images/benchmark_enum_to_string.png" style="width: 100vw; background:none; border:none; box-shadow:none;" /></a>
+</td>
+</tr>
+</table>
+
+----
+
+### [Performance] Case study
+
+----
+
+#### string_to_enum
+
+<img src="images/string_to_enum.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### string_to_enum - P2996 - https://godbolt.org/z/Yha87c9f3
+
+```cpp
+template<class E> requires is_enum_v<E>
+constexpr auto string_to_enum(string_view str) -> optional<E> {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  for (const auto& [enumeration, name] : enumerators<E>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    if (str == name) { // string comparison!
+      return enumeration;
+    }
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  return nullopt;
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### string_to_enum - switch-case - https://godbolt.org/z/Yha87c9f3
+
+```cpp
+template<class E> requires is_enum_v<E>
+constexpr auto string_to_enum(string_view str) -> optional<E> {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  switch (hash(str)) {
+    case hash("red"):   return color::red;
+    case hash("green"): return color::green;
+    case hash("blue"):  return color::blue;
+  }
+  return nullopt;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### hash can be a cast (explored later)
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### string_to_enum - trie - https://godbolt.org/z/Yha87c9f3
+
+```cpp
+enum color { red, green, blue, black };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+template<class E> requires is_enum_v<E>
+constexpr auto string_to_enum(string_view str) -> optional<E> {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  switch (str[0]) {
+    case 'r': return color::red;
+    case 'g': return color::green;
+    case 'b': {
+      switch (str[2]) { // or size
+        case 'u': return color::blue;
+        case 'a': return color::black;
+      }
+    }
+  }
+  return nullopt;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### string_to_enum - map - https://godbolt.org/z/Yha87c9f3
+
+```cpp
+template<class E> requires is_enum_v<E>
+constexpr auto string_to_enum(string_view str) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  static const unordered_map<string_view, E> map{
+    {"red",   color::red   },
+    {"green", color::green },
+    {"blue",  color::blue  },
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  return map.at(str);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### (constexpr frozen::unordered_map) https://github.com/serge-sans-paille/frozen
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+##### string_to_enum - gperf
+
+<a href="https://www.gnu.org/software/gperf/"><img src="images/gperf.png" style="width: 40%; background:none; border:none; box-shadow:none;" /></a>
+##### https://www.gnu.org/software/gperf (used by gcc, chrome, ...)
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Performance?&nbsp;
+<!-- .element:  data-fragment-index="0" style="float:left" -->
+
+#### Know your hardware!&nbsp;
+<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
+
+#### Know your data!
+<!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
+
+----
+
+#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
+
+```cpp
+static_assert(3 + 1/*null termination*/ == sizeof("cpp"));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```
+int32_t        :  4 bytes
+int64_t        :  8 bytes
+simd<char, 16> : 16 bytes // x86.sse
+simd<char, 32> : 32 bytes // x86.avx
+simd<char, 64> : 64 bytes // x86.avx512
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+##### simd<char, N> can be used to implement optimized string
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
+
+```cpp
+template<class T, size_t Size> requires (Size <= sizeof(T))
+constexpr auto to(const char (&str)[Size]) -> T {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  T t{};
+  memcpy(&t, str, Size); // optimized (bitcast)
+  return t;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+template<class T>
+constexpr auto to(string_view str) -> T {
+  T t{};
+  assert(str.size() <= sizeof(T));
+  memcpy(&t, str.data(), str.size()); // slow
+  return t;
+}
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
+
+```cpp
+template<class T>
+constexpr auto to(string_view str) -> T {
+  T t;
+  memcpy(&t, str.data(), sizeof(t)); // potentially unsafe
+  return bzhi(t, str.size() * CHAR_BIT);
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<table><tr><td>
+<a href="https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=bzhi"><img src="images/bzhi.png" style="width: 120%; background:none; border:none; box-shadow:none;" /></a>
+</td><td>
+<pre><code>sal  rdi, 3
+bzhi eax, DWORD PTR [rsi], edi
+ret
+
+bzhi 3*8, "cpp....." ==
+          "cpp\0\0\0\0\0"
+</code></pre>
+</td></tr></table>
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
+
+```cpp
+template<class T, size_t PageSize = 4096u>
+constexpr auto to(string_view str) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  if ((uint64_t(str.data()) & (PageSize - 1ul)) >
+      (PageSize - sizeof(T))) [[unlikely]] { // page boundary
+    return [&str] [[gnu::cold]] {
+      T t;
+      memcpy(&t, str.data(), str.size()); // slow path
+      return t;
+    }();
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  T t{};
+  memcpy(&t, str.data(), sizeof(t)); // fast path
+  return bzhi(t, str.size() * CHAR_BIT);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### https://github.com/glibc/blob/master/sysdeps/generic/memcopy.h
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### string_to_enum - Hardware accelerated perfect hashing
+
+```cpp
+template<class E, class T = underlying_type_t<E>> requires is_enum_v<E>
+constexpr auto string_to_enum(string_view str) -> E {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  static constexpr auto lookup = [] {
+    array<pair<T, E>, (1u << popcount(mask))> lookup{};
+    for (const auto& [enumeration, name] : enumerators<E>) {
+      lookup[pext(id, mask<E>)] = {to<T>(name), enumeration};
+    }
+    return lookup;
+  }();
+  auto&& value = to<T>(str);
+  auto&& [rhs, result] = lookup[pext(value, mask<E>)];
+  return value == rhs ? result : {};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+##### string_to_enum - Hardware accelerated perfect hashing - https://godbolt.org/z/1fqM5KEbP
+
+```cpp
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3,5">
+[1] [2] [3]  [4] [5] [6]  Instructions:
+ 1   1  0.50              shl   rdi, 3
+ 2   5  0.50  *           bzhi  rcx, qword ptr [rsi], rdi
+ 1   1  0.50              mov   eax, 17
+ 1   3  1.00              pext  edx, ecx, eax
+ 1   1  0.50              shl   edx, 4
+ 1   1  0.33              lea   rsi, [rip + find]
+ 1   0  0.17              xor   eax, eax
+ 1   5  0.33  *           cmp   rcx, qword ptr [rdx + rsi]
+ 1   5  0.50  *           cmove eax, dword ptr [rdx + rsi + 8]
+ 1   5  0.50          U   ret
+</code></pre>
+
+---
+
+```cpp
+find:
+  .quad 1702194274  /*blue*/  .long 2
+  .quad 47414754979 /*green*/ .long 1
+  .quad 6579570     /*red*/   .long 0
+  .quad 0                     .long 0
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1275,20 +1850,20 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-    T lut{};
-    for (const auto& [id, name] : enumerators<E>) {
-      lut |= (id << (to<T>(name) * magic >> shift));
-    }
+   T lut{};
+   for (const auto& [enumeration, name] : enumerators<E>) {
+     lut |= (enumeration << (to<T>(name) * magic >> shift));
+   }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-    for (const auto& [id, name] : enumerators<E>) {
-      if ((lut >> (to<T>(name) * magic >> shift) & mask) != id) {
-        lut = {}; break; // not found, keep-going
-      }
-    }
-    if (magic and lut) return pair{magic, lut}; // found
+   for (const auto& [enumeration, name] : enumerators<E>) {
+     if ((lut >> (to<T>(name) * magic >> shift) & mask) != enumeration){
+       lut = {}; break; // not found, keep-going
+     }
+   }
+   if (magic and lut) return pair{magic, lut}; // found
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -1334,534 +1909,21 @@ no lookup table (stored directly in a register)
 
 ----
 
-
-----
-
-#### No [BMI2](https://en.wikipedia.org/wiki/X86_Bit_manipulation_instruction_set)? Zen2? ARM?
-
-<a href="https://uops.info/table.html?search=PEXT%20(R64%2C%20R64%2C%20R64)&cb_lat=on&cb_HSW=on&cb_BDW=on&cb_SKL=on&cb_RKL=on&cb_ZEN2=on&cb_ZEN3=on&cb_ZEN4=on&cb_measurements=on&cb_bmi=on"><img src="images/zen2.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-#### bmi2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
-
-```cpp
-mov     ecx, 789
-pext    ecx, eax, ecx
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-#### no bmi2&nbsp;&nbsp;
-<!-- .element: class="fragment" data-fragment-index="3" style="float:left" -->
-
-```cpp
-mov     ecx, eax
-and     ecx, 789
-imul    ecx, ecx, 57
-shr     ecx, 2
-and     ecx, 248
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
----
-
-##### <a href="https://schedule.cppnow.org/session/2024/a-case-study-in-zero-cost-abstractions-high-performance-message-dispatch/">C++Now 2024 - Luke Valenty: A case study in zero-cost abstractions: High performance message dispatch</a>
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
-----
-
-#### What about 'Flag' enum?
-
-```cpp
-enum class permissions : uint8_t {
-  read     = (1 << 0), // 0b001
-  write    = (1 << 1), // 0b010
-  execute  = (1 << 2), // 0b100
-  // ----------------------------//
-  // mask  :              0b111  // size: 2**(popcount(mask))
-  // ----------------------------//
-};
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### enum_to_string - 'Flag' enum - https://godbolt.org/z/MMd9K6xz4
-
-```cpp
-template<class E>
-concept FlagEnum = is_enum_v<E> and [] {
-  for (const auto& enumeration : meta::enumerators_of(^E)) {
-    if (not has_single_bit(to_underlying(enumeration))) {
-      return false;
-    }
-  }
-  return true;
-}();
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-enum class f1 : uint8_t { a = 0b00, b = 0b01, c = 0b10, };
-enum class f2 : uint8_t { a = 0b00, b = 0b01, c = 0b11, };
-
-static_assert(    FlagEnum<f1>);
-static_assert(not FlagEnum<f2>);
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### enum_to_string - 'Flag' enum - https://godbolt.org/z/MMd9K6xz4
-
-```cpp
-constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  static constexpr auto lookup = [] {
-    array<string_view, enumerators<E>.size()> lookup{};
-    for (auto i = 0u; const auto& [_, name] : enumerators<E>) {
-      lookup[i++] = name;
-    }
-    return lookup;
-  }();
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  [[assume(has_single_bit(to_underlying(value))]];
-  return lookup[countr_zero(to_underlying(value))];
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
-// countr_zero - count the number of trailing zero bits
-0b000000100
-        ^21 = 2
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-----
-
-#### enum_to_string - 'Flag' enum - https://godbolt.org/z/4cc8MabjG
-
-```cpp
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,4">
-[1] [2] [3]  [4] [5] [6]  Instructions:
- 2   2  0.50              tzcnt eax, edi
- 1   1  0.33              lea rcx, [rip + lookup]
- 1   5  0.33  *           mov rax, qword ptr [rcx + 8*rax]
- 1   5  0.50          U   ret
-</code></pre>
-
----
-
-```cpp
-lookup: // minimal
-  .quad "red"
-  .quad "green"
-  .quad "blue"
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
------
-
-#### enum_to_string (there is no sliver bullet)
-
-```cpp
-template<class E, class T = underlying_type_t<E>>
-  requires (is_enum_v<E> and enumerators<E>.size() <=
-                             simd_size_v<T, simd_abi::native<T>>)
-constexpr auto enum_to_string(E value) -> string_view;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-template<class E>
-  requires (is_enum_v<E> and enumerators<E>.size() <= 64u)
-constexpr auto enum_to_string(E value) -> string_view;
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-template<class E>
-  requires (is_enum_v<E> and enumerators<E>.size() > 64u)
-constexpr auto enum_to_string(E value) -> string_view;
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-template<class E> requires is_flag_enum_v<E>
-constexpr auto enum_to_string(E value) -> string_view;
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-
-```cpp
-...
-```
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
-----
-
-#### enum_to_string - benchmarks
-##### https://github.com/boost-ext/mph/blob/benchmark/enum_to_string/benchmark.ipynb (compilation times, binary size, ...)
-
-<img src="images/benchmark_enum_to_string.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-### [Performance] Case study
-
-----
-
-#### string_to_enum
-
-<img src="images/string_to_enum.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### string_to_enum - P2996 - https://godbolt.org/z/Yha87c9f3
-
-```cpp
-template<class E> requires is_enum_v<E>
-constexpr auto string_to_enum(string_view str) -> optional<E> {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  for (const auto& [id, name] : enumerators<E>) {
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    if (str == name) { // string comparison!
-      return id;
-    }
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  }
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-  return nullopt;
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### string_to_enum - switch-case - https://godbolt.org/z/Yha87c9f3
-
-```cpp
-template<class E> requires is_enum_v<E>
-constexpr auto string_to_enum(string_view str) -> optional<E> {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  switch (hash(str)) {
-    case hash("red"):   return color::red;
-    case hash("green"): return color::green;
-    case hash("blue"):  return color::blue;
-  }
-  return nullopt;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-##### hash can be a cast (explored later)
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-#### string_to_enum - trie - https://godbolt.org/z/Yha87c9f3
-
-```cpp
-enum color { red, green, blue, black };
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
-template<class E> requires is_enum_v<E>
-constexpr auto string_to_enum(string_view str) -> optional<E> {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  switch (str[0]) {
-    case 'r': return color::red;
-    case 'g': return color::green;
-    case 'b': {
-      switch (str[2]) { // or size
-        case 'u': return color::blue;
-        case 'a': return color::black;
-      }
-    }
-  }
-  return nullopt;
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### string_to_enum - map - https://godbolt.org/z/Yha87c9f3
-
-```cpp
-template<class E> requires is_enum_v<E>
-constexpr auto string_to_enum(string_view str) {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  static const unordered_map<string_view, E> map{
-    {"red",   color::red   },
-    {"green", color::green },
-    {"blue",  color::blue  },
-  };
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  return map.at(str);
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-##### (constexpr frozen::unordered_map) https://github.com/serge-sans-paille/frozen
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-----
-
-##### string_to_enum - gperf
-
-<a href="https://www.gnu.org/software/gperf/"><img src="images/gperf.png" style="width: 40%; background:none; border:none; box-shadow:none;" /></a>
-##### https://www.gnu.org/software/gperf (used by gcc, chrome, ...)
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Want performance?&nbsp;
-<!-- .element:  data-fragment-index="0" style="float:left" -->
-
-#### Know your hardware!&nbsp;
-<!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
-
-#### Know your data!
-<!-- .element: class="fragment" data-fragment-index="2" style="float:left" -->
-
-----
-
-#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
-
-```cpp
-static_assert(3 + 1/*null termination*/ == sizeof("cpp"));
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```
-int32_t        :  4 bytes
-int64_t        :  8 bytes
-simd<char, 16> : 16 bytes // x86.sse
-simd<char, 32> : 32 bytes // x86.avx
-simd<char, 64> : 64 bytes // x86.avx512
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-##### simd<char, N> can be used to implement optimized string
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
-
-```cpp
-template<class T, size_t Size> requires (Size <= sizeof(T))
-constexpr auto to(const char (&str)[Size]) -> T {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  T t{};
-  memcpy(&t, str, Size); // optimized (bitcast)
-  return t;
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-template<class T>
-constexpr auto to(string_view str) -> T {
-  T t{};
-  assert(str.size() <= sizeof(T));
-  memcpy(&t, str.data(), str.size()); // slow
-  return t;
-}
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-----
-
-#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
-
-```cpp
-template<class T>
-constexpr auto to(string_view str) -> T {
-  T t;
-  memcpy(&t, str.data(), sizeof(t)); // potentially unsafe
-  return bzhi(t, str.size() * CHAR_BIT);
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+#### string_to_enum - benchmarks -
+##### https://github.com/boost-ext/mph/blob/benchmark/string_to_enum/benchmark.ipynb
 
 <table><tr><td>
-<a href="https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=bzhi"><img src="images/bzhi.png" style="width: 120%; background:none; border:none; box-shadow:none;" /></a>
-</td><td>
-<pre><code>sal  rdi, 3
-bzhi eax, DWORD PTR [rsi], edi
-ret
-
-bzhi 3*8, "cpp....." ==
-          "cpp\0\0\0\0\0"
-</code></pre>
-</td></tr></table>
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<a href="images/benchmark_string_to_enum_16.png"><img src="images/benchmark_string_to_enum_16.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+</td>
+<td>
+<a href="images/benchmark_string_to_enum.png"><img src="images/benchmark_string_to_enum.png" style="width: 90%; background:none; border:none; box-shadow:none;" /></a>
+</td>
+</tr>
+</table>
 
 ----
 
-#### to\<T\>(string) - https://godbolt.org/z/GnKoK9vrj
-
-```cpp
-template<class T, size_t PageSize = 4096u>
-constexpr auto to(string_view str) {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  if ((uint64_t(str.data()) & (PageSize - 1ul)) >
-      (PageSize - sizeof(T))) [[unlikely]] { // page boundary
-    return [&str] [[gnu::cold]] {
-      T t;
-      memcpy(&t, str.data(), str.size()); // slow path
-      return t;
-    }();
-  }
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  T t{};
-  memcpy(&t, str.data(), sizeof(t)); // fast path
-  return bzhi(t, str.size() * CHAR_BIT);
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-##### https://github.com/glibc/blob/master/sysdeps/generic/memcopy.h
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-##### string_to_enum - Hardware accelerated perfect hashing - https://godbolt.org/z/1fqM5KEbP
-
-```cpp
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="3,5">
-[1] [2] [3]  [4] [5] [6]  Instructions:
- 1   1  0.50              shl   rdi, 3
- 2   5  0.50  *           bzhi  rcx, qword ptr [rsi], rdi
- 1   1  0.50              mov   eax, 17
- 1   3  1.00              pext  edx, ecx, eax
- 1   1  0.50              shl   edx, 4
- 1   1  0.33              lea   rsi, [rip + find]
- 1   0  0.17              xor   eax, eax
- 1   5  0.33  *           cmp   rcx, qword ptr [rdx + rsi]
- 1   5  0.50  *           cmove eax, dword ptr [rdx + rsi + 8]
- 1   5  0.50          U   ret
-</code></pre>
-
----
-
-```cpp
-find:
-  .quad 1702194274  /*blue*/  .long 2
-  .quad 47414754979 /*green*/ .long 1
-  .quad 6579570     /*red*/   .long 0
-  .quad 0                     .long 0
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-# ...
-
-----
-
-#### string_to_enum - benchmarks
-##### https://github.com/boost-ext/mph/blob/benchmark/string_to_enum/benchmark.ipynb (compilation times, binary size, ...)
-
-<img src="images/benchmark_string_to_enum.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-##### Perfect hashing - benchmarks - https://boost-ext.github.io/mph/perfect_hashing
-
-<a href="https://boost-ext.github.io/mph/perfect_hashing/"><img src="images/benchmark.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
-<!-- .element: class="fragment" data-fragment-index="0" -->
+#### Perfect hashing - benchmarks - https://boost-ext.github.io/mph/perfect_hashing
 
 ----
 
@@ -1873,7 +1935,7 @@ find:
 - ##### There is no sliver bullet if it comes to the performance just trade-offs
 <!-- .element: class="fragment" -->
 
-  - ##### Always measure in the specific use-case/hardware/environment
+  - ##### Always measure (use case)
   <!-- .element: class="fragment" -->
 
 ----
