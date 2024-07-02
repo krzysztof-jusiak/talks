@@ -131,6 +131,11 @@ namespace std::meta {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
+  // ...
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
   // #member-queries
   consteval auto enumerators_of(info) -> vector<info>;
 ```
@@ -147,6 +152,7 @@ namespace std::meta {
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
+
 ```cpp
 }
 ```
@@ -155,7 +161,7 @@ namespace std::meta {
 ---
 
 ```cpp
-using info = decltype(^::); // type-erased AST info
+using info = /*type-erased AST node*/;
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -185,14 +191,14 @@ static_assert(
   typeid(^T) == typeid(meta::info)
 );
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 static_assert(
   typeid(typename[:^int:]) == typeid(int)
 );
 ```
-<!-- .element: class="fragment" data-fragment-index="5" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 
 ----
@@ -206,7 +212,7 @@ using at =
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  typename [: // splicer (reify)
+  typename [: // type splicer
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -247,39 +253,40 @@ using at = Ts...[N];
 ```cpp
 template<class...> struct type_list{ };
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 template<class... Ts>
 using reverse_drop_t = typename [:
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
     meta::substitute(^type_list,
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
         array{^Ts...} // array{meta::info}
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
       | views::reverse
       | views::drop(1)
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-    )
+      | ranges::to<std::vector>()
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
+    )
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
 :];
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -287,7 +294,7 @@ using reverse_drop_t = typename [:
 static_assert(typeid(reverse_drop_t<int, float, short>) ==
               typeid(type_list<float, int>));
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -852,7 +859,7 @@ enum class http_status_code : uint32_t {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,6,10,11,13">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,6,7,10,11,13">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  0.33              lea eax, [rdi - 200]
  1   1  0.25              cmp eax, 5
@@ -894,6 +901,7 @@ enum class http_status_code : uint32_t {
 ---
 
 ```cpp
+// Syntax likely to change!
 consteval void gen_cases(auto& builder, auto cases) {
   for (auto e : constants(cases)) {
     append_case(builder, make_decl_ref_expr(e)); // case N:
@@ -930,18 +938,18 @@ constexpr auto enum_to_string(E value) -> strig_view {
 #### Perfect hashing
 
 <table><tr><td>
-<a href="https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61"><img src="images/hdc.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+<a class="fragment" href="https://link.springer.com/chapter/10.1007/978-3-642-04128-0_61"><img src="images/hdc.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 </td>
 <td>
-<a href="https://arxiv.org/pdf/2104.10402"><img src="images/pthash.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+<a class="fragment" href="https://arxiv.org/pdf/2104.10402"><img src="images/pthash.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 </td>
 <td>
-<a href="https://github.com/serge-sans-paille/frozen"><img src="images/phash.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+<a class="fragment" href="https://github.com/serge-sans-paille/frozen"><img src="images/phash.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 </td>
 </tr></table>
 
-##### 'cmph/pthash' can handle large sizes (> 1'000'000)
-<!-- .element: class="fragment" data-fragment-index="0" -->
+##### Focused on sizes > 1'000'000
+<!-- .element: class="fragment" -->
 
 -----
 
@@ -1012,7 +1020,8 @@ constexpr auto enum_to_string(E value) const -> string_view {
   static constexpr auto lookup = [] {
     array<pair<E, string_view>, (1u << popcount(mask))> lookup{};
     for (const auto& [enumeration, name] : enumerators<E>) {
-      lookup[pext(id, mask<E>)] = {enumeration, name};
+      lookup[pext(to_underlying(enumeration), mask<E>)] = 
+        {enumeration, name};
     }
     return lookup;
   }();
@@ -1020,7 +1029,7 @@ constexpr auto enum_to_string(E value) const -> string_view {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  auto&& [rhs, result] = lookup[pext(value, mask<E>)];
+  auto&& [rhs, result] = lookup[pext(to_underlying(value), mask<E>)];
   return value == rhs ? result : {};
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -1131,7 +1140,7 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 
 ```cpp
   [[assume(contains<enumerators<E>>(value)]];
-  return lookup[pext(value, mask<E>)];
+  return lookup[pext(to_underlying(value), mask<E>)];
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -1162,7 +1171,7 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 ---
 
 ```cpp
-lookup: // minimal
+lookup: /*minimal*/
   .quad "red"
   .quad "green"
   .quad "blue"
@@ -1212,7 +1221,7 @@ enum class permissions : uint8_t {
   write    = (1 << 1), // 0b010
   execute  = (1 << 2), // 0b100
   // ----------------------------//
-  // mask  :              0b111  // size: 2**(popcount(mask))
+  // mask  =              0b111  // size: 2**(popcount(mask))
   // ----------------------------//
 };
 ```
@@ -1300,14 +1309,14 @@ constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
 [1] [2] [3]  [4] [5] [6]  Instructions:
  2   2  0.50              tzcnt eax, edi
  1   1  0.33              lea rcx, [rip + lookup]
- 1   5  0.33  *           mov rax, qword ptr [rcx + 8*rax]
+ 1   5  0.33  *           mov rax, qword ptr [rcx + 8 * rax]
  1   5  0.50          U   ret
 </code></pre>
 
 ---
 
 ```cpp
-lookup: // minimal
+lookup: /*minimal*/
   .quad "red"
   .quad "green"
   .quad "blue"
@@ -1434,8 +1443,8 @@ constexpr auto string_to_enum(string_view str) -> optional<E> {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-##### hash can be a cast (explored later)
-<!-- .element: class="fragment" data-fragment-index="2" -->
+##### hash/bitcast
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1503,7 +1512,7 @@ constexpr auto string_to_enum(string_view str) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-##### (constexpr frozen::unordered_map) https://github.com/serge-sans-paille/frozen
+##### constexpr frozen::unordered_map - https://github.com/serge-sans-paille/frozen
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
@@ -1659,16 +1668,17 @@ constexpr auto string_to_enum(string_view str) -> E {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="8">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="9">
   static constexpr auto lookup = [] {
     array&lt;pair&lt;T, E&gt;, (1u &lt;&lt; popcount(mask))&gt; lookup{};
     for (const auto& [enumeration, name] : enumerators&lt;E&gt;) {
-      lookup[pext(id, mask&lt;E&gt;)] = {to&lt;T&gt;(name), enumeration};
+      lookup[pext(to_underlying(enumeration), mask&lt;E&gt;)] = 
+        {to&lt;T&gt;(name), enumeration};
     }
     return lookup;
   }();
   auto&& value = to&lt;T&gt;(str);
-  auto&& [rhs, result] = lookup[pext(value, mask&lt;E&gt;)];
+  auto&& [rhs, result] = lookup[pext(to_underlying(value), mask&lt;E&gt;)];
   return value == rhs ? result : {};
 </code></pre>
 
