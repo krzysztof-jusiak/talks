@@ -113,7 +113,7 @@
 - ##### Static (compile-time)
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-- ##### Value/consteval based
+- ##### Value (consteval) based
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 - ##### Supports Introspection/Meta-Programming
@@ -237,7 +237,6 @@ template<size_t N, class... Ts>
 using at = Ts...[N];
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
-
 
 ----
 
@@ -482,6 +481,91 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ----
 
+#### Helper utilities - P2996
+
+```cpp
+template<class E> requires is_enum_v<E>
+inline constexpr auto enumerators =
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  []<size_t... Ns>(index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    return array{
+      pair{
+        [: meta::enumerators_of(^E)[Ns] :],
+        meta::name_of(meta::enumerators_of(^E)[Ns])
+      }...
+    };
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```
+}(make_index_sequence<meta::enumerators_of(^E).size()>{});
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### Helper utilities - P2996
+
+```cpp
+enum color { red, green, blue, };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+static_assert(
+  enumerators<color>
+  ==
+  array{
+    pair{color::red,   "red"   },
+    pair{color::green, "green" },
+    pair{color::blue,  "blue"  },
+  }
+);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### enum_to_string - P2996 - https://godbolt.org/z/fo58vedxj
+
+```
+template<class E> requires is_enum_v<E>
+constexpr auto enum_to_string(E value) -> string_view {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  for (const auto& [id, name] : enumerators<E>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    if (value == id) {
+      return name;
+    }
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  return {};
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
 #### enum_to_string - P2996 - https://godbolt.org/z/fo58vedxj
 
 ```cpp
@@ -528,8 +612,8 @@ constexpr auto enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" style="float:left" -->
 ```cpp
 switch (value) {
-  default: return error();
-  case '0': case '3': case 'A': return fn();
+  default: return not_found();
+  case '0': case '3': case 'A': return found();
 }
 ```
 <!-- .element: class="fragment" -->
@@ -538,14 +622,14 @@ switch (value) {
 <!-- .element: class="fragment" style="float:left" -->
 
 ```cpp
-switch (value) { // sparsity: optimize_for_size() ? 2 : 8
-  default: return error();
-  case 0:  return fn();
-  case 1:  return fn();
-  case 2:  return fn();
-  case 3:  return fn();
-  case 7:  return fn();
-}
+switch (value) { // sparsity = optimize_for_size() ? 2 : 8
+  default: return not_found();
+  case 0:  return found();
+  case 1:  return found();
+  case 2:  return found();
+  case 3:  return found();
+  case 7:  return found();
+} // prune = end - begin > 5
 ```
 <!-- .element: class="fragment" -->
 
@@ -554,65 +638,13 @@ switch (value) { // sparsity: optimize_for_size() ? 2 : 8
 
 ```cpp
 switch (__builtin_expect_with_probability(value, 42, 1.)) {
-  default:  return error();
-  case 42:  return fn();
-  case 77:  return fn();
-  case 123: return fn();
+  default:  return not_found();
+  case 42:  return found();
+  case 77:  return found();
+  case 123: return found();
 }
 ```
 <!-- .element: class="fragment" -->
-
-----
-
-#### Helper utilities with P2996
-
-```cpp
-template<class E> requires is_enum_v<E>
-inline constexpr auto enumerators =
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  []<size_t... Ns>(index_sequence<Ns...>) {
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-    return array{
-      pair{
-        [: meta::enumerators_of(^E)[Ns] :],
-        meta::name_of(meta::enumerators_of(^E)[Ns])
-      }...
-    };
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```
-}(make_index_sequence<meta::enumerators_of(^E).size()>{});
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-----
-
-#### Helper utilities with P2996
-
-```cpp
-enum color { red, green, blue, };
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-static_assert(
-  enumerators<color>
-  ==
-  array{
-    pair{color::red,   "red"   },
-    pair{color::green, "green" },
-    pair{color::blue,  "blue"  },
-  }
-);
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -690,7 +722,7 @@ enum class http_status_code : uint32_t {
  1   1  0.33              lea eax, [rdi - 200]
  1   1  0.25              cmp eax, 5
  1   1  0.50              jae .LBB0_1
- 1   0  0.17              mov eax, eax
+ 1   0  0.17              xor eax, eax
  1   1  0.33              lea rcx,[rip+.Lswitch.table] /*jump-table*/
  1   5  0.33  *           movsxd rax, dword ptr [rcx + 4*rax]
  1   5  0.50          U   ret
@@ -773,13 +805,13 @@ constexpr auto enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  simd<T, enumerators<E>.size()> lhs{value};
-  simd<T, enumerators<E>.size()> rhs{&keys[i], element_aligned}
+  native_simd<T> lhs{value};
+  native_simd<T> rhs{&keys[i], vector_aligned}
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
-  const auto match = lhs == rhs; // element-wise compound comparison
+  const auto match = lhs == rhs; // element-wise comparison
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
@@ -796,8 +828,8 @@ constexpr auto enum_to_string(E value) -> string_view {
 ---
 
 ```cpp
-std::array<E, enumerators<E>.size()> keys{};
-std::array<string_view, enumerators<E>.size()> values{};
+aligned_array<E, size> keys{};
+aligned_array<string_view, size> values{};
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -930,9 +962,9 @@ constexpr auto enum_to_string(E value) const -> string_view {
 
 ```cpp
   static constexpr auto lookup = [] {
-    array<pair<E, string_view>, (1u << std::popcount(mask))> lookup{};
-    for (const auto& [k, v] : enumerators<E>) {
-      lookup[pext(k, mask<E>)] = {k, v};
+    array<pair<E, string_view>, (1u << popcount(mask))> lookup{};
+    for (const auto& [id, name] : enumerators<E>) {
+      lookup[pext(id, mask<E>)] = {id, name};
     }
     return lookup;
   }();
@@ -1008,7 +1040,6 @@ consteval auto mask() {
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   0  0.17              mov   ecx, edi
  1   1  0.25              and   ecx, 3   /*pext*/
- 1   1  0.50              shl   ecx, 4
  1   1  0.33              lea   rdx, [rip + lookup]
  1   0  0.17              xor   eax, eax /*unknown value*/
  1   5  0.33  *           cmp   dword ptr [rcx + rdx], edi
@@ -1029,10 +1060,14 @@ lookup:
 
 ----
 
-#### Potential improvement if the input can be guaranteed to be valid
+#### Hardware accelerated perfect hashing (unsafe)
 
 ```cpp
-          assert(contains<enumerator<E>>(value)); // valid input
+          assert(
+            value == "red"sv or
+            value == "green"sv or
+            value == "blue"sv
+          );
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1071,7 +1106,6 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 <pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,5">
 [1] [2] [3]  [4] [5] [6]  Instructions:
  1   1  0.25              and edi, 3 /*pext*/
- 1   1  0.25              shl edi, 4
  1   1  0.25              lea rax, [rip + lookup]
  1   4  0.50  *           mov rax, qword ptr [rdi + rax + 8]
  2   1  0.50          U   ret
@@ -1271,14 +1305,11 @@ constexpr auto enum_to_string(E value) -> string_view;
 
 ----
 
-#### enum_to_string - benchmarks -
-##### https://github.com/boost-ext/mph/blob/benchmark/enum_to_string/benchmark.ipynb
+#### enum_to_string - benchmarks
+##### https://github.com/boost-ext/mph/blob/benchmark/enum_to_string/benchmark.ipynb (compilation times, binary size, ...)
 
 <img src="images/benchmark_enum_to_string.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
-##### Hardware accelerated perfect hashing + std::simd for size greater than 100
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1302,15 +1333,24 @@ constexpr auto string_to_enum(string_view str) -> optional<E> {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  if (str == "red")   { return color::red;   }
-  if (str == "green") { return color::green; }
-  if (str == "blue")  { return color::blue;  }
-
-  return nullopt;
+  for (const auto& [id, name] : enumerators<E>) {
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
+    if (str == name) {
+      return id;
+    }
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  return nullopt;;
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1340,7 +1380,7 @@ constexpr auto string_to_enum(string_view str) -> optional<E> {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-##### hash can be std::bitcast* (explored later)
+##### hash can be a cast (explored later)
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
@@ -1468,7 +1508,7 @@ constexpr auto to(const char (&str)[Size]) -> T {
 
 ```cpp
   T t{};
-  memcpy(&t, str, Size); // optimized
+  memcpy(&t, str, Size); // optimized (bitcast)
   return t;
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -1561,7 +1601,7 @@ constexpr auto to(string_view str) {
 
 ```cpp
 template<class E, class T = underlying_type_t<E>> requires is_enum_v<E>
-constexpr auto string_to_enum(std::string_view str) -> E {
+constexpr auto string_to_enum(string_view str) -> E {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -1755,18 +1795,21 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
 
 ```cpp
     T lut{};
-    for (const auto& [k, v] : enumerators<E>) {
-      lut |= (v << (to<T>(k) * magic >> shift));
+    for (const auto& [id, name] : enumerators<E>) {
+      lut |= (id << (to<T>(name) * magic >> shift));
     }
-    for (const auto& [k, v] : enumerators<E>) {
-      if ((lut >> (k * magic >> shift) & mask) != v) {
-        lut = {}; // not found, keep-going
-        break;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    for (const auto& [id, name] : enumerators<E>) {
+      if ((lut >> (to<T>(name) * magic >> shift) & mask) != id) {
+        lut = {}; break; // not found, keep-going
       }
     }
     if (magic and lut) return pair{magic, lut}; // found
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
   }
@@ -1784,19 +1827,12 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
 #### string_to_enum - Minimal perfect hashing - https://godbolt.org/z/3j8qcabsj
 
 ```cpp
-enum uri { ftp = 0, file = 1, http = 2, ws = 3, wss = 4, };
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
 [1]: #uOps    [2]: Latency   [3]: RThroughput
 [4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="3" data-line-numbers="4,5,6,7,8">
+<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="4,5,6,7,8">
 [1] [2] [3]  [4] [5] [6]   Instructions:
  1   1  0.50               shl  edi, 3
  2   5  0.50  *            bzhi eax, dword ptr [rsi], edi
@@ -1813,12 +1849,12 @@ enum uri { ftp = 0, file = 1, http = 2, ws = 3, wss = 4, };
 ```cpp
 no lookup table (stored directly in a register)
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
-##### string_to_enum - benchmarks -
-##### https://github.com/boost-ext/mph/blob/benchmark/string_to_enum/benchmark.ipynb
+#### string_to_enum - benchmarks
+##### https://github.com/boost-ext/mph/blob/benchmark/string_to_enum/benchmark.ipynb (compilation times, binary size, ...)
 
 <img src="images/benchmark_string_to_enum.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" data-fragment-index="0" -->
