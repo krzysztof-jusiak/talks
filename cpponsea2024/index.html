@@ -120,7 +120,7 @@
 
 - ##### Supports Introspection/Meta-Programming
 <!-- .element: class="fragment" data-fragment-index="2" -->
-  - ##### (Stateful Meta-Programming, Data Member Injection)
+  - ##### Stateful Meta-Programming, Data Member Injection
   <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
@@ -172,12 +172,12 @@ using info = /*type-erased AST node*/;
 #### P2996 - Meta-Programming
 
 ```cpp
-[: // splicer (reify)
+[:   // splicer (unreflexpr)
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  ^T // lift (reflexpr)
+  ^T // lift    (reflexpr)
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -281,7 +281,7 @@ using reverse_drop_t =
 ```cpp
       | views::reverse
       | views::drop(1)
-      | ranges::to<std::vector>()
+      | ranges::to<vector>()
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
@@ -308,9 +308,10 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 ##### P2996 - Meta-Programming / compilation times - https://boost-ext.github.io/mp
 
 <a href="https://boost-ext.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ##### Possible since C++17 (msvc, gcc, clang) - https://github.com/boost-ext/mp
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -319,8 +320,11 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 - #### LLVM Machine Code Analyzer - https://llvm.org/llvm-mca.html
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-- #### perf: Linux profiling with performance counters - https://perf.wiki.kernel.org
+- #### Linux profiling with performance counters - https://perf.wiki.kernel.org
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+- #### ...
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -611,7 +615,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 ```cpp
 .L.str: "green" .L.str.1: "red" .L.str.2: "blue"
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -718,7 +722,7 @@ aligned_array<string_view, size> values{};
  1   1  1.00              vmovmskps eax, xmm0
  1   1  0.25              movzx eax, al
  6   3  3.00              rep bsf eax, eax /*bit scan forward*/
- 1   1  0.50              shl rax, 4
+ 1   1  0.50              shl rax, 4       /*least significant 1bit*/
  1   5  0.33  *           mov rdx, qword ptr [rax + value + 8]
  1   5  0.50          U   ret
 </code></pre>
@@ -730,7 +734,7 @@ keys:        values:
   .long 2      .quad "blue"
   .long 0      .quad ""
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -890,7 +894,7 @@ enum class http_status_code : uint32_t {
 .L.str:
   .asciz  "forbidden" /*403*/
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1112,7 +1116,7 @@ lookup:
  .long 2 .quad "blue"
  .long 0 .quad ""
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1175,7 +1179,7 @@ lookup: /*minimal, no keys*/
   .quad "green"
   .quad "blue"
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1601,7 +1605,7 @@ find:
   .quad 6579570     /*red*/   .long 0
   .quad 0                     .long 0
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1794,7 +1798,7 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
 ```cpp
 no lookup table (stored directly in a register)
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
