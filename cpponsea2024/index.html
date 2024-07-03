@@ -120,6 +120,8 @@
 
 - ##### Supports Introspection/Meta-Programming
 <!-- .element: class="fragment" data-fragment-index="2" -->
+  - ##### (Stateful Meta-Programming, Data Member Injection)
+  <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
@@ -948,7 +950,7 @@ constexpr auto enum_to_string(E value) -> strig_view {
 </td>
 </tr></table>
 
-##### Focused on sizes > 1'000'000
+##### Research mainly focuses on sizes greater than 1'000'000
 <!-- .element: class="fragment" -->
 
 -----
@@ -971,29 +973,31 @@ constexpr auto enum_to_string(E value) -> strig_view {
 47631
 </code></pre></td>
 <td><pre><code class="fragment" data-trim data-noescape data-fragment-index="2">
-0 0 0 1 0 1 0 0 1 0 [0] [1] 0 [0] [1] [0]
-0 0 1 0 1 0 1 1 1 0 [0] [0] 1 [0] [1] [1]
-1 1 0 1 1 0 0 0 1 0 [1] [0] 0 [1] [0] [0]
-0 1 1 1 0 0 0 1 1 0 [0] [0] 0 [1] [0] [0]
-1 1 0 1 1 0 1 0 1 1 [1] [1] 1 [1] [1] [1]
-0 1 1 1 0 1 0 1 0 1 [0] [0] 0 [0] [1] [0]
-0 0 1 0 0 1 1 1 1 0 [1] [0] 1 [0] [1] [0]
-1 1 1 0 1 0 0 1 0 0 [1] [1] 0 [1] [0] [0]
-0 0 1 1 1 0 0 1 1 0 [0] [1] 0 [1] [0] [0]
-1 0 1 0 0 0 1 1 1 1 [0] [0] 1 [0] [0] [0]
-0 0 0 0 0 1 0 0 0 0 [0] [0] 0 [1] [1] [0]
-1 0 1 1 1 0 1 0 0 0 [0] [0] 1 [1] [1] [1]
+0 0 0 1 0 1 0 0 1 0 [0] 1 0 [0] [1] [0]
+0 0 1 0 1 0 1 1 1 0 [0] 0 1 [0] [1] [1]
+1 1 0 1 1 0 0 0 1 0 [1] 0 0 [1] [0] [0]
+0 1 1 1 0 0 0 1 1 0 [0] 0 0 [1] [0] [0]
+1 1 0 1 1 0 1 0 1 1 [1] 1 1 [1] [1] [1]
+0 1 1 1 0 1 0 1 0 1 [0] 0 0 [0] [1] [0]
+0 0 1 0 0 1 1 1 1 0 [1] 0 1 [0] [1] [0]
+1 1 1 0 1 0 0 1 0 0 [1] 1 0 [1] [0] [0]
+0 0 1 1 1 0 0 1 1 0 [0] 1 0 [1] [0] [0]
+1 0 1 0 0 0 1 1 1 1 [0] 0 1 [0] [0] [0]
+0 0 0 0 0 1 0 0 0 0 [0] 0 0 [1] [1] [0]
+1 0 1 1 1 0 1 0 0 0 [0] 0 1 [1] [1] [1]
 </code></pre></td>
-<td><img class="fragment" data-fragment-index="4" src="images/perfect.png" style="width: 61%; background:none; border:none; box-shadow:none;" />
+<td><img class="fragment" data-fragment-index="4" src="images/perfect.png" style="width: 45%; background:none; border:none; box-shadow:none;" />
 </td></tr>
-<td>
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="3">
-mask
-</code></pre></td>
+<td/></td>
 <td><pre><code class="fragment" data-trim data-noescape data-fragment-index="3">
-0 0 0 0 0 0 0 0 0 0  1   1  0  1   1   1
-</code></pre></td><td>
-</td></tr>
+mask
+0 0 0 0 0 0 0 0 0 0  1  0 0  1   1   1
+</code></pre>
+<td><pre><code class="fragment" data-trim data-noescape data-fragment-index="5">
+lookup table size
+pow(2, popcount(mask))
+</code></pre></td>
+</tr>
 </table>
 
 -----
@@ -1020,7 +1024,7 @@ constexpr auto enum_to_string(E value) const -> string_view {
   static constexpr auto lookup = [] {
     array<pair<E, string_view>, (1u << popcount(mask))> lookup{};
     for (const auto& [enumeration, name] : enumerators<E>) {
-      lookup[pext(to_underlying(enumeration), mask<E>)] = 
+      lookup[pext(to_underlying(enumeration), mask<E>)] =
         {enumeration, name};
     }
     return lookup;
@@ -1220,9 +1224,9 @@ enum class permissions : uint8_t {
   read     = (1 << 0), // 0b001
   write    = (1 << 1), // 0b010
   execute  = (1 << 2), // 0b100
-  // ----------------------------//
-  // mask  =              0b111  // size: 2**(popcount(mask))
-  // ----------------------------//
+  // --------------------------
+  //               mask - 0b111
+  //  lookup table size - pow(2, 3) - all bits required!
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -1672,7 +1676,7 @@ constexpr auto string_to_enum(string_view str) -> E {
   static constexpr auto lookup = [] {
     array&lt;pair&lt;T, E&gt;, (1u &lt;&lt; popcount(mask))&gt; lookup{};
     for (const auto& [enumeration, name] : enumerators&lt;E&gt;) {
-      lookup[pext(to_underlying(enumeration), mask&lt;E&gt;)] = 
+      lookup[pext(to_underlying(enumeration), mask&lt;E&gt;)] =
         {to&lt;T&gt;(name), enumeration};
     }
     return lookup;
@@ -1868,9 +1872,8 @@ consteval auto magic_lut(auto mask, auto shift, auto max_attempts) {
 
 ```cpp
    for (const auto& [enumeration, name] : enumerators<E>) {
-     if ((lut >> (to<T>(name) * magic >> shift) & mask) != enumeration){
-       lut = {}; break; // not found, keep-going
-     }
+     if ((lut >> (to<T>(name) * magic >> shift) & mask) != enumeration)
+       { lut = {}; break; } // not found, keep-going
    }
    if (magic and lut) return pair{magic, lut}; // found
 ```
@@ -1938,13 +1941,16 @@ no lookup table (stored directly in a register)
 
 #### Summary
 
-- ##### Compile-time reflection is a powerful proposal which will impact how C++ is written
+- ##### Compile-time reflection will impact how C++ is written
+<!-- .element: class="fragment" -->
+
+- ##### Compile-time information in + low-level control = performance
 <!-- .element: class="fragment" -->
 
 - ##### There is no sliver bullet if it comes to the performance just trade-offs
 <!-- .element: class="fragment" -->
 
-  - ##### Always measure (use case)
+  - ##### Always measure (per use case)
   <!-- .element: class="fragment" -->
 
 ----
