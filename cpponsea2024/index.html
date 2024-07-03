@@ -205,7 +205,7 @@ static_assert(
 
 ----
 
-##### P2996 / Meta-Programming (https://godbolt.org/z/43Yf8G8xz)
+##### P2996 / ~~Template~~ Meta-Programming - https://godbolt.org/z/43Yf8G8xz
 
 ```cpp
 template<size_t N, class... Ts>
@@ -250,7 +250,7 @@ using at = Ts...[N];
 
 ----
 
-##### P2996 + ranges / Meta-Programming (https://godbolt.org/z/Y7edbe63c)
+##### P2996 + ranges / ~~Template~~ Meta-Programming - https://godbolt.org/z/Y7edbe63c
 
 ```cpp
 template<class...> struct type_list{ };
@@ -259,9 +259,14 @@ template<class...> struct type_list{ };
 
 ```cpp
 template<class... Ts>
-using reverse_drop_t = typename [:
+using reverse_drop_t =
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  typename [:
+```
+<!-- .element: class="fragment" data-fragment-index="5" -->
 
 ```cpp
     meta::substitute(^type_list,
@@ -286,9 +291,9 @@ using reverse_drop_t = typename [:
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
-:];
+  :];
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="5" -->
 
 ---
 
@@ -666,7 +671,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-  native_simd<T> lhs{value}; // broadcast
+  native_simd<T> lhs{to_underlying(value)}; // broadcast
   native_simd<T> rhs{&keys}
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
@@ -1175,7 +1180,7 @@ constexpr auto unsafe$enum_to_string(E value) -> string_view {
 ---
 
 ```cpp
-lookup: /*minimal*/
+lookup: /*minimal, no keys*/
   .quad "red"
   .quad "green"
   .quad "blue"
@@ -1217,118 +1222,6 @@ and     ecx, 248
 
 ----
 
-#### What about 'Flag' enum?
-
-```cpp
-enum class permissions : uint8_t {
-  read     = (1 << 0), // 0b001
-  write    = (1 << 1), // 0b010
-  execute  = (1 << 2), // 0b100
-  // --------------------------
-  //               mask - 0b111
-  //  lookup table size - pow(2, 3) - all bits required!
-};
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### enum_to_string - 'Flag' enum - https://godbolt.org/z/MMd9K6xz4
-
-```cpp
-template<class E>
-concept FlagEnum = is_enum_v<E> and [] {
-  for (const auto& [enumeration, _] : enumerators<E>)) {
-    if (not has_single_bit(to_underlying(enumeration))) {
-      return false;
-    }
-  }
-  return true;
-}();
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-enum class f1 : uint8_t { a = 0b00, b = 0b01, c = 0b10, };
-enum class f2 : uint8_t { a = 0b00, b = 0b01, c = 0b11, };
-
-static_assert(    FlagEnum<f1>);
-static_assert(not FlagEnum<f2>);
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### enum_to_string - 'Flag' enum - https://godbolt.org/z/MMd9K6xz4
-
-```cpp
-constexpr auto unsafe$enum_to_string(FlagEnum auto value) {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  static constexpr auto lookup = [] {
-    array<string_view, enumerators<E>.size()> lookup{};
-    for (auto i = 0u; const auto& [_, name] : enumerators<E>) {
-      lookup[i++] = name;
-    }
-    return lookup;
-  }();
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  [[assume(has_single_bit(to_underlying(value))]];
-  return lookup[countr_zero(to_underlying(value))];
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
-// countr_zero - count the number of trailing zero bits
-0b000000100
-        ^21 = 2
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-----
-
-#### enum_to_string - 'Flag' enum - https://godbolt.org/z/4cc8MabjG
-
-```cpp
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-<pre><code class="fragment" data-trim data-noescape data-fragment-index="1" data-line-numbers="2,3,4">
-[1] [2] [3]  [4] [5] [6]  Instructions:
- 2   2  0.50              tzcnt eax, edi
- 1   1  0.33              lea rcx, [rip + lookup]
- 1   5  0.33  *           mov rax, qword ptr [rcx + 8 * rax]
- 1   5  0.50          U   ret
-</code></pre>
-
----
-
-```cpp
-lookup: /*minimal*/
-  .quad "red"
-  .quad "green"
-  .quad "blue"
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
------
-
 #### enum_to_string (there is no sliver bullet)
 
 ```cpp
@@ -1352,12 +1245,6 @@ template<class E>
 constexpr auto enum_to_string(E value) -> string_view;
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-template<class E> requires is_flag_enum_v<E>
-constexpr auto enum_to_string(E value) -> string_view;
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
 ...
@@ -1757,8 +1644,8 @@ enum uri { ftp = 0, file = 1, http = 2, ws = 3, wss = 4, };
 // shift
 static_assert(
   (sizeof(u32) * CHAR_BIT) - countr_zero(max(&enumerators<E>::second))
-  ==
-  29 // 4 * 8 - 3
+  ==                      // countr_zero - count the number of trailing zero bits
+  29
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -1944,7 +1831,7 @@ no lookup table (stored directly in a register)
 - ##### Compile-time reflection will impact how C++ is written
 <!-- .element: class="fragment" -->
 
-- ##### Compile-time information in + low-level control = performance
+- ##### Compile-time information + low-level control = performance
 <!-- .element: class="fragment" -->
 
 - ##### There is no sliver bullet if it comes to the performance just trade-offs
