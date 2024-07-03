@@ -105,7 +105,7 @@
 - ##### C++20
 <!-- .element: class="fragment" -->
 
-  - ##### https://github.com/boost-ext
+  - ##### https://github.com/boost-ext (not boost libraries)
   <!-- .element: class="fragment" -->
 
 ----
@@ -319,7 +319,7 @@ static_assert(typeid(reverse_drop_t<int, float, short>) ==
 - #### LLVM Machine Code Analyzer - https://llvm.org/llvm-mca.html
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-- #### Instruction Tables - https://www.agner.org/optimize/instruction_tables.pdf
+- #### perf: Linux profiling with performance counters - https://perf.wiki.kernel.org
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
@@ -1059,11 +1059,6 @@ consteval auto mask() {
   );
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  #pragma omp parallel for // not possible at consteval
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
   for (auto i = 0u; i < mask.size(); ++i) {
