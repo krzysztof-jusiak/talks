@@ -1700,11 +1700,10 @@ constexpr auto unsafe$enum_to_string(string_view str) -> E {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  constexpr auto size  = sizeof(T) * CHAR_BIT;
-  constexpr auto clz   = countr_zero(max(&enumerators<E>::second));
-  constexpr auto nbits = size - clz;
-  constexpr auto shift = size - nbits;       // 29
-  constexpr auto mask  = (1u << nbits) - 1u; // 0b111
+  constexpr auto nbits = /*number of required bits 
+                           to represent all values*/;  // 3
+  constexpr auto shift = sizeof(T) * CHAR_BIT - nbits; // 29
+  constexpr auto mask  = (1u << nbits) - 1u;           // 0b111
   constexpr auto [magic, lut] = magic_lut(mask, shift, MaxAttempts);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
