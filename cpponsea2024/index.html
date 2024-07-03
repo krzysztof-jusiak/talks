@@ -694,7 +694,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 ---
 
 ```cpp
-aligned_array<E, size> keys{};
+aligned_array<T, size> keys{};
 aligned_array<string_view, size> values{};
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
@@ -1644,8 +1644,8 @@ enum uri { ftp = 0, file = 1, http = 2, ws = 3, wss = 4, };
 // shift
 static_assert(
   (sizeof(u32) * CHAR_BIT) - countr_zero(max(&enumerators<E>::second))
-  ==                      // countr_zero - count the number of trailing zero bits
-  29
+  ==                      // countr_zero - count the number of trailing
+  29                      //               zero bits
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
