@@ -905,26 +905,21 @@ enum class http_status_code : uint32_t {
 <br />
 <!-- .element: class="fragment" data-fragment-index="1" style="float:left" -->
 
----
+```cpp
+template<class E> requires is_enum_v<E>
+constexpr auto enum_to_string(E value) -> string_view {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-// Syntax likely to change!
-consteval void gen_cases(auto& builder, auto cases) {
-  for (auto e : constants(cases)) {
-    append_case(builder, make_decl_ref_expr(e)); // case N:
-    append_return(builder, name_of(e));          //   return "...";
+  switch(value) {
+    default : return {};
+    %gen_cases(^E); // Code Reckons - syntax likely to change!
   }
-}
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-template<class E> requires is_enum_v<E>
-constexpr auto enum_to_string(E value) -> strig_view {
-  switch(value) {
-    default : return {};
-    %gen_cases(^E); // Code Reckons
-  }
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
