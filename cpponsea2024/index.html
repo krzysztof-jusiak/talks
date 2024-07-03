@@ -133,21 +133,21 @@ namespace std::meta {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  // ...
+  using info = /*type-erased AST node*/;
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
   // #member-queries
   consteval auto enumerators_of(info) -> vector<info>;
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
   // #name and location
   consteval auto name_of(info) -> string_view;
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
   // ...
@@ -159,13 +159,6 @@ namespace std::meta {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
-using info = /*type-erased AST node*/;
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
@@ -269,7 +262,7 @@ using reverse_drop_t =
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
 ```cpp
-    meta::substitute(^type_list,
+    meta::substitute(^type_list, // substitute(info, range auto)->info;
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -676,7 +669,7 @@ constexpr auto enum_to_string(E value) -> string_view {
 
 ```cpp
   native_simd<T> lhs{to_underlying(value)}; // broadcast
-  native_simd<T> rhs{&keys}
+  native_simd<T> rhs{&keys, vector_aligned};
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
@@ -781,7 +774,7 @@ switch (value) { // sparsity = optimize_for_size() ? 2 : 8
   case 2:  return found();
   case 3:  return found();
   case 7:  return found();
-} // prune = end - begin > 5
+} // prune = range <= 5
 ```
 <!-- .element: class="fragment" -->
 
@@ -1124,9 +1117,9 @@ lookup:
 
 ```cpp
 assert(
-  value == "red"sv or
-  value == "green"sv or
-  value == "blue"sv
+  value == color::red or
+  value == color::green or
+  value == color::blue
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
