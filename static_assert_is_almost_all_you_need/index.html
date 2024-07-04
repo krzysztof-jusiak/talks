@@ -67,18 +67,16 @@ constexpr auto sum(auto... args) {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-static_assert(1 == sum(1));
-static_assert(3 == sum(1, 2));
-static_assert(6 == sum(1, 2, 3));
+/*constexpr*/ auto sum(auto... args) { // g++ -fimplicit-constexpr
+  return (args + ...);
+}
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
----
-
 ```cpp
-auto sum(auto... args) { // g++ -fimplicit-constexpr
-  return (args + ...);
-}
+static_assert(1 == sum(1));
+static_assert(3 == sum(1, 2));
+static_assert(6 == sum(1, 2, 3));
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -131,7 +129,7 @@ constexpr auto ub(auto value) {
   return *i = value;
 };
 
-static_assert(42 == ub(42)); // error: non-constant condition
+static_assert(ub(42)); // error: non-constant condition
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -216,7 +214,7 @@ static_assert(consteval {
 #### Level 42 - UT2 - https://github.com/boost-ext/ut2
 
 ```cpp
-"compile_time and run_time"_test = [] /*constexpr*/ {
+"compile_time and run_time"_test = [] { // constexpr
   std::vector<int> v(5);
   expect(v.size() == 3_i);  // error: static_assert("[FAILED]")
                             // test.cpp:7: note:"compile_ti..."_test
