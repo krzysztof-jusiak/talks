@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>static assert is almost all you need!</title>
+    <title>static_assert is almost all you need!</title>
 
     <link rel="stylesheet" href="reveal.js/css/reveal.css">
     <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
@@ -49,7 +49,7 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-## static assert is almost all you need!
+## static_assert is almost all you need!
 
 ---
 
@@ -143,7 +143,7 @@ static_assert(ub(42)); // error: non-constant condition
 ```cpp
 static_assert(consteval {
   std::vector<int> v(5);
-  static_assert(v.size() == 5); // ERROR: v is not constant expression
+  static_assert(v.size() == 5); // error: v is not constant expression
 });
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -151,7 +151,7 @@ static_assert(consteval {
 ```cpp
 static_assert(consteval {
   constexpr std::vector<int> v(5);
-  static_assert(v.size() == 5); // ERROR: non-constant condition (new)
+  static_assert(v.size() == 5); // error: non-constant condition (new)
 });
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -159,7 +159,7 @@ static_assert(consteval {
 ```cpp
 static_assert(consteval {
   std::vector<int> v(5);
-  assert(v.size() == 5); // OKAY: but doesn't work with NDEBUG
+  assert(v.size() == 5); // okay: but doesn't work with NDEBUG
 });
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -168,7 +168,7 @@ static_assert(consteval {
 auto expect = [](auto cond) { if (!cond) { void failed(); failed(); } };
 static_assert(consteval {
   std::vector<int> v(5);
-  expect(v.size() == 5); // OKAY: but doesn't show values on error
+  expect(v.size() == 5); // okay: but doesn't show values on error
 });
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -179,10 +179,6 @@ static_assert(consteval {
 ----
 
 #### Level 4
-
-```cpp
-auto expect = [](auto cond) { if (!cond) { void failed(); failed(); } };
-```
 
 ```cpp
 static_assert(consteval {
@@ -211,28 +207,28 @@ static_assert(consteval {
 
 ----
 
-#### Level 42 - UT2 - https://github.com/boost-ext/ut2
+#### Level 42 - https://github.com/boost-ext/ut2
 
 ```cpp
-"compile_time and run_time"_test = [] { // constexpr
+"compile-time and run-time"_test = [] { /*constexpr*/
   std::vector<int> v(5);
   expect(v.size() == 3_i);  // error: static_assert("[FAILED]")
-                            // test.cpp:7: note:"compile_ti..."_test
+                            // test.cpp:7: note:"compile-ti..."_test
                             // test.cpp:9: note:'expect({5, 3})'
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-"run_time only"_test = [] mutable {
+"run-time only"_test = [] mutable {
   std::vector<int> v(5);
-  expect(v.size() == 3_i); // test.cpp:7:FAILED:"run_time only": 5 == 3
+  expect(v.size() == 3_i); // test.cpp:7:FAILED:"run-time only": 5 == 3
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-"compile-time only"_test = [] consteval { // C++23
+"compile-time only"_test = [] consteval { // c++23
   std::vector<int> v(5);
   expect(v.size() == 5_i);
 };
