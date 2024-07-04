@@ -1,0 +1,376 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>static assert is almost all you need!</title>
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
+    <link rel="stylesheet" href="extensions/plugin/line-numbers/line-numbers.css">
+    <link rel="stylesheet" href="extensions/css/highlight-styles/zenburn.css">
+    <link rel="stylesheet" href="extensions/css/custom.css">
+
+    <style>
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 { text-transform: none; }
+    </style>
+
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+      function set_address(self, remote, local) {
+        if (window.location.search.match("local")) {
+          self.href = local;
+        } else {
+          self.href = remote;
+        }
+      }
+    </script>
+
+    <meta name="description" content="Compile-time reflections">
+    <meta name="author" content="Kris Jusiak">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+          <script type="text/template">
+          </script>
+          </section>
+
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$">
+          <script type="text/template">
+## static assert is almost all you need!
+
+---
+
+##### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+----
+
+#### Level 0
+
+```cpp
+constexpr auto sum(auto... args) {
+  return (args + ...);
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+static_assert(1 == sum(1));
+static_assert(3 == sum(1, 2));
+static_assert(6 == sum(1, 2, 3));
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+```cpp
+auto sum(auto... args) { // g++ -fimplicit-constexpr
+  return (args + ...);
+}
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+#### https://godbolt.org/z/jvdKP9116
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+#### Level 1
+
+```cpp
+static_assert(([] {
+  constexpr auto s1 = 1;
+  constexpr auto s2 = 2;
+  static_assert(3 == sum(s1, s2));
+  static_assert(4 == sum(s1, s2, s1));
+}(), true));
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+static_assert(consteval { // consteval blocks: https://wg21.link/P3289
+  constexpr auto s1 = 1;
+  constexpr auto s2 = 2;
+  static_assert(3 == sum(s1, s2));
+  static_assert(4 == sum(s1, s2, s1));
+});
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+#### https://godbolt.org/z/jvdKP9116
+<!-- .element: class="fragment" data-fragment-index="5" -->
+
+----
+
+#### Level 2
+
+```cpp
+constexpr auto leak(auto value) {
+  return new int(value);
+}
+
+static_assert(leak(42)); // error: non-constant condition
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+constexpr auto ub(auto value) {
+  int* i;
+  return *i = value;
+};
+
+static_assert(42 == ub(42)); // error: non-constant condition
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+#### https://godbolt.org/z/jvdKP9116
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
+#### Level 3
+
+```cpp
+static_assert(consteval {
+  std::vector<int> v(5);
+  static_assert(v.size() == 5); // ERROR: v is not constant expression
+});
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+static_assert(consteval {
+  constexpr std::vector<int> v(5);
+  static_assert(v.size() == 5); // ERROR: non-constant condition (new)
+});
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+static_assert(consteval {
+  std::vector<int> v(5);
+  assert(v.size() == 5); // OKAY: but doesn't work with NDEBUG
+});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+auto expect = [](auto cond) { if (cond) { void failed(); failed(); } };
+static_assert(consteval {
+  std::vector<int> v(5);
+  expect(v.size() == 5); // OKAY: but doesn't show values on error
+});
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+#### https://godbolt.org/z/jvdKP9116
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+#### Level 4
+
+```cpp
+static_assert(consteval {
+  std::vector<int> v(5);
+
+  expect(v.size() == 5);
+  expect(v.capacity() >= 5);
+
+  [v, section = "resizing bigger"] mutable {
+    v.resize(10);
+    expect(v.size() == 10);
+    expect(v.capacity() >= 10);
+  }();
+
+  [v, section = "resizing smaller"] mutable {
+    v.resize(0);
+    expect(v.size() == 0);
+    expect(v.capacity() >= 5);
+  }();
+});
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+#### https://godbolt.org/z/jvdKP9116
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+----
+
+#### Level 42 - UT2 - https://github.com/boost-ext/ut2
+
+```cpp
+"compile_time and run_time"_test = [] /*constexpr*/ {
+  std::vector<int> v(5);
+  expect(v.size() == 3_i);  // error: static_assert("[FAILED]")
+                            // test.cpp:7: note:"compile_ti..."_test
+                            // test.cpp:9: note:'expect({5, 3})'
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+"run_time only"_test = [] mutable {
+  std::vector<int> v(5);
+  expect(v.size() == 3_i); // test.cpp:7:FAILED:"run_time only": 5 == 3
+};
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+"compile-time only"_test = [] consteval { // C++23
+  std::vector<int> v(5);
+  expect(v.size() == 5_i);
+};
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+---
+
+```cpp
+FAILED: tests:   3 (1 passed, 2 failed, 2 compile-time)
+        asserts: 3 (1 passed, 2 failed)
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+          </script>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true },
+          { src: 'extensions/plugin/line-numbers/line-numbers.js' }
+        ]
+      });
+
+      <!--window.addEventListener("mousedown", handleClick, false);-->
+      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
+
+      function handleClick(e) {
+        if (1 >= outerHeight - innerHeight) {
+          document.querySelector( '.reveal' ).style.cursor = 'none';
+        } else {
+          document.querySelector( '.reveal' ).style.cursor = '';
+        }
+
+        e.preventDefault();
+        if(e.button === 0) Reveal.next();
+        if(e.button === 2) Reveal.prev();
+      }
+    </script>
+
+  </body>
+</html>
