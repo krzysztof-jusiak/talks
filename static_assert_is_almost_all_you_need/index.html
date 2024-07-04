@@ -167,7 +167,7 @@ static_assert(consteval {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-auto expect = [](auto cond) { if (cond) { void failed(); failed(); } };
+auto expect = [](auto cond) { if (!cond) { void failed(); failed(); } };
 static_assert(consteval {
   std::vector<int> v(5);
   expect(v.size() == 5); // OKAY: but doesn't show values on error
@@ -181,6 +181,10 @@ static_assert(consteval {
 ----
 
 #### Level 4
+
+```cpp
+auto expect = [](auto cond) { if (!cond) { void failed(); failed(); } };
+```
 
 ```cpp
 static_assert(consteval {
