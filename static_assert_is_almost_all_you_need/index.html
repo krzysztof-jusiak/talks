@@ -59,6 +59,13 @@
 
 #### Level 0
 
+### If you liked it then you should have put a test on it, Beyonce rule
+
+----
+
+
+#### Level 1
+
 ```cpp
 constexpr auto sum(auto... args) {
   return (args + ...);
@@ -85,7 +92,7 @@ static_assert(6 == sum(1, 2, 3));
 
 ----
 
-#### Level 1
+#### Level 2
 
 ```cpp
 static_assert(([] {
@@ -112,7 +119,7 @@ static_assert(consteval { // consteval blocks: https://wg21.link/P3289
 
 ----
 
-#### Level 2
+#### Level 3
 
 ```cpp
 constexpr auto leak(auto value) {
@@ -138,7 +145,7 @@ static_assert(ub(42)); // error: non-constant condition
 
 ----
 
-#### Level 3
+#### Level 4
 
 ```cpp
 static_assert(consteval {
@@ -178,7 +185,7 @@ static_assert(consteval {
 
 ----
 
-#### Level 4
+#### Level 5
 
 ```cpp
 static_assert(consteval {
