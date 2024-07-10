@@ -57,13 +57,14 @@
 
 ----
 
-#### 0.
+#### Step 0
 
-### If you liked it then you should have put a static_assert on it, Beyonce rule
+### If you liked it then you should have put a static_assert on it, Static Beyonce rule
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-#### 1.
+#### Step 1
 
 ```cpp
 constexpr auto sum(auto... args) {
@@ -91,7 +92,7 @@ static_assert(6 == sum(1, 2, 3));
 
 ----
 
-#### 2.
+#### Step 2
 
 ```cpp
 static_assert(([] {
@@ -118,7 +119,7 @@ static_assert(consteval { // consteval blocks: https://wg21.link/P3289
 
 ----
 
-#### 3.
+#### Step 3
 
 ```cpp
 constexpr auto leak(auto value) {
@@ -144,7 +145,7 @@ static_assert(ub(42)); // error: non-constant condition
 
 ----
 
-#### 4.
+#### Step 4
 
 ```cpp
 static_assert(consteval {
@@ -184,10 +185,14 @@ static_assert(consteval {
 
 ----
 
-#### 5.
+#### Step 5
 
 ```cpp
 static_assert(consteval {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
   std::vector<int> v(5);
 
   expect(v.size() == 5);
@@ -204,16 +209,20 @@ static_assert(consteval {
     expect(v.size() == 0);
     expect(v.capacity() >= 5);
   }();
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
 });
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 #### https://godbolt.org/z/jvdKP9116
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
-#### https://github.com/boost-ext/ut2
+#### Step 6 - https://github.com/boost-ext/ut2
 
 ```cpp
 "compile-time and run-time"_test = [] { /*constexpr*/
