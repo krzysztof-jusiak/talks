@@ -189,28 +189,30 @@ static_assert(consteval {
 
 ```cpp
 static_assert(consteval {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
   std::vector<int> v(5);
 
   expect(v.size() == 5);
   expect(v.capacity() >= 5);
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
+```cpp
   [v, section = "resizing bigger"] mutable {
     v.resize(10);
     expect(v.size() == 10);
     expect(v.capacity() >= 10);
   }();
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
+```cpp
   [v, section = "resizing smaller"] mutable {
     v.resize(0);
     expect(v.size() == 0);
     expect(v.capacity() >= 5);
   }();
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
 });
