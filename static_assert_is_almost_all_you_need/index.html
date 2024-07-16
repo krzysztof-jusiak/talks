@@ -220,37 +220,47 @@ static_assert(consteval {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 #### https://godbolt.org/z/jvdKP9116
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
 #### Step 6 - https://github.com/boost-ext/ut2
 
 ```cpp
-"compile-time and run-time"_test = [] { /*constexpr*/
-  std::vector<int> v(5);
-  expect(v.size() == 3_i);  // error: static_assert("[FAILED]")
-                            // test.cpp:7: note:"compile-ti..."_test
-                            // test.cpp:9: note:'expect({5, 3})'
-};
+"vector"_test = [] {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-"run-time only"_test = [] mutable {
-  std::vector<int> v(5);
-  expect(v.size() == 3_i); // test.cpp:7:FAILED:"run-time only": 5 == 3
-};
+  "compile/run-time"_test = [] /*constexpr*/ {
+    std::vector<int> v(5);
+    expect[v.size() == 3_i]; // error: static_assert("[FAILED]")
+                             // test.cpp:7: note:"compile/run-time"_test
+                             // test.cpp:9: note:'expect({5, 3})'
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  "run-time"_test         = [] mutable {
+    std::vector<int> v(5);
+    expect[v.size() == 3_i]; // test.cpp:7:FAILED:"run-time": 5 == 3
+  };
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-"compile-time only"_test = [] consteval { // c++23
-  std::vector<int> v(5);
-  expect(v.size() == 5_i);
-};
+  "compile-time"_test     = [] consteval /*C++23*/ {
+    std::vector<int> v(5);
+    expect[v.size() == 5_i];
+  };
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
