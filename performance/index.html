@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>Performance @ maystreet.com</title>
+    <title>Performance</title>
 
     <link rel="stylesheet" href="reveal.js/css/reveal.css">
     <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
@@ -32,7 +32,7 @@
       }
     </script>
 
-    <meta name="description" content="Performance @ maystreet.com">
+    <meta name="description" content="Performance">
     <meta name="author" content="Kris Jusiak">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -50,7 +50,7 @@
                    data-separator-vertical="^----+$">
           <script type="text/template">
 
-## Performance @ maystreet.com
+## Performance
 
 ----
 
@@ -68,12 +68,6 @@
 <!-- .element: class="fragment" -->
 
   - #### How to design for performance
-<!-- .element: class="fragment" -->
-
-- #### Performance @ maystreet.com
-<!-- .element: class="fragment" -->
-
-  - #### Framework / Demo / Case studies
 <!-- .element: class="fragment" -->
 
 ----
@@ -802,214 +796,6 @@ auto buy(bool warmup) {
 
 ==============================================================================
 
-### Performance @ maystreet.com
-
-----
-
-#### [https://perfomance.maystreet.com](http://dev-nyc3-perf001) (dashboard)
-
-<img src="images/dashboard.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-- #### Powered by (dev-nyc3-perf001, dev-nyc3-perf002)
-<!-- .element: class="fragment" -->
-
-----
-
-#### [https://perfomance.maystreet.com](http://dev-nyc3-perf001) (scenario)
-
-<img src="images/total_view.png" style="width: 90%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
----
-
-```
-https://performance.maystreet.com/
-  scenario=scenario_processor_manager_1_session_no_book_15m_open&
-  feed=total_view&
-  run=1.0.17500.af1e565
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### [Demo](http://dev-nyc3-perf001/scenario=scenario_processor_manager_1_session_no_book_15m_open&feed=total_view&run=1.0.17500.af1e565)
-
-- #### histogram /profile / bp stats / linux perf stats / tree stats / bp stats / config / logs / gerrit
-<!-- .element: class="fragment" -->
-
-----
-
-#### [https://perfomance.maystreet.com](http://dev-nyc3-perf001) (compare)
-
-<img src="images/compare.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-----
-
-#### [https://perfomance.maystreet.com](http://dev-nyc3-perf001) (compare)
-
-<img src="images/compare2.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-----
-
-#### [Demo](http://dev-nyc3-perf001/scenario=scenario_processor_manager_1_session_no_book_15m_open&feed=total_view&run=1.0.17500.af1e565)
-
-----
-
-#### Notifications (via slack)
-
-<img src="images/notification.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
----
-
-#### #performance - https://maystreet.slack.com/archives/C06BDK8499C
-<!-- .element: class="fragment" -->
-
-----
-
-### Implementation details
-
-----
-
-#### https://gitlab.svc.maystreet.com/performance/performance
-
----
-
-- #### Based on `mstnorm` (implemented in python and bash)
-<!-- .element: class="fragment" -->
-
-- #### Tracks `master` branch (can't build all commits)
-<!-- .element: class="fragment" -->
-
-- #### Supports running locally, custom scenarios, etc...
-<!-- .element: class="fragment" -->
-
-----
-
-#### Running scenarios locally
-
-- #### Perf machines
-
-  - #### dev-nyc3-perf001.corp.maystreet.com
-  <!-- .element: class="fragment" -->
-
-  - #### dev-nyc3-perf002.corp.maystreet.com
-  <!-- .element: class="fragment" -->
-
-- #### Local machine
-  <!-- .element: class="fragment" -->
-
-  ```
-  pyperf system tune # https://github.com/psf/pyperf
-  ```
-  <!-- .element: class="fragment" -->
-
-----
-
-#### Running scenarios locally
-
-```sh
-git clone
-  ssh://git@gitlab.svc.maystreet.com:8022/performance/performance.git
-```
-<!-- .element: class="fragment" -->
-
-```sh
-FEED=total_view \
-BIN_DIR=/data/archive/mst_tools/20231221-1.0.17702.828f625/bin \
-RESULT_DIR=results \
-scenarios/scenario_processor_manager_1_session_no_book_15m_open.sh
-```
-<!-- .element: class="fragment" -->
-
----
-
-```sh
-$./server.py --debug --results results --host localhost --port 8000
-```
-<!-- .element: class="fragment" -->
-
-----
-
-#### Running locally
-
-```sh
-$browser localhost:8000
-```
-<!-- .element: class="fragment" -->
-
-<img src="images/total_view.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-----
-
-#### Adding scenarios (requires pcap/s and config)
-
-```sh
-git clone
-  ssh://git@gitlab.svc.maystreet.com:8022/performance/performance.git
-```
-<!-- .element: class="fragment" -->
-
----
-
-```
-touch scenarios/example_scenario.sh
-```
-<!-- .element: class="fragment" -->
-
-```sh
-SCENARIO=scenario_example
-SCENARIO_DESC="Scenario example"
-CONFIG=configs/config.cfg
-PCAPS=/data/integration/performance/data/$FEED/*.pcap.gz
-run_scenario.sh
-```
-<!-- .element: class="fragment" -->
-
----
-
-#### Run and create MR # when merged perf muchine will pick it up and keep running
-<!-- .element: class="fragment" -->
-
-----
-
-#### Case studies
-
-----
-
-#### [omd_securities_standard](http://dev-nyc3-perf001/scenario=scenario_processor_manager_1_session_no_book_15m_open&feed=omd_securities_standard&run=1.0.17713.e0cf1f5) - ToString/malloc
-
-<img src="images/omg.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-----
-
-#### [total_view](http://dev-nyc3-perf001/scenario=scenario_processor_manager_1_session_no_book_15m_open&feed=total_view&run=1.0.17713.e0cf1f5) - new recovery framework
-
-<img src="images/compare2.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-----
-
-#### More bottlenecks
-
-- #### sys::watchdog
-<!-- .element: class="fragment" -->
-
-- #### sys::itoa
-<!-- .element: class="fragment" -->
-
-- #### sys::bitset
-<!-- .element: class="fragment" -->
-
-- ...
-<!-- .element: class="fragment" -->
-
-==============================================================================
-
 ### Performance
 
 ---
@@ -1025,7 +811,7 @@ run_scenario.sh
 
 ---
 
-#### https://performance.maystreet.com, https://www.intel.com, https://www.agner.org/optimize, https://wikichip.org, https://uops.info, https://godbolt.org, https://lwn.net, https://github.com/WG21-SG14/SG14
+#### https://www.intel.com, https://www.agner.org/optimize, https://wikichip.org, https://uops.info, https://godbolt.org, https://lwn.net, https://github.com/WG21-SG14/SG14
 <!-- .element: class="fragment" -->
           </script>
         </section>
