@@ -224,7 +224,20 @@ static_assert(consteval {
 
 ----
 
-#### Step 6 - https://github.com/boost-ext/ut2
+#### Step 6 - modules
+
+import 
+
+```cpp
+#if not defined(NTEST)
+static_assert(consteval {
+});
+#endif
+```
+
+----
+
+#### Step 7 - https://github.com/boost-ext/ut2
 
 ```cpp
 "vector"_test = [] {

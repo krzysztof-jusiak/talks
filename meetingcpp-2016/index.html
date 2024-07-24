@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>TDD/BDD and Dependency Injection</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/league.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+
+	<body>
+
+		<div class="reveal">
+			<div class="slides">
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$"
+                   data-notes="^Note:">
+					<script type="text/template">
+
+Meeting C++ 2016
+
+#TDD/BDD and Dependency Injection
+
+Kris Jusiak
+
+---
+
+[kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+==============================================================================
+
+##Testing
+
+> "If you liked it then you should have put a test on it", Beyonce rule
+
+-----
+
+##TDD - Test Driven Development (the when)
+
+> Unit Tests (the what)
+
+----
+
+##TDD Mantra - Red-Green-Refactor
+
+<img src="images/tdd.gif" width="40%" />
+
+> Refactor => remove duplicates!
+
+----
+
+##BDD - Behaviour Driven Development
+
+> Unit/Integration/Functional Tests (the how)
+
+Complementary with TDD
+
+==============================================================================
+
+##Mocking
+
+> Mock objects are simulated objects with expectations that mimic the behavior of the real ones
+
+----
+
+###Mocking (Example)
+
+####Interface/Mock
+```cpp
+struct interface {
+  virtual ~interface() noexcept = default;
+  virtual void foo(bool) = 0;
+};
+```
+
+```cpp
+struct interface_mock : interface {
+  void foo(bool) override { magic...; }
+};
+```
+
+####Test
+```cpp
+"should mock foo call"_test = [] {
+  // given
+  interface_mock mock;
+  // when
+  mock.foo(true); mock.foo(false);
+  // then
+  expect_call(mock, foo(true)); expect_call(mock, foo(false));
+};
+```
+
+==============================================================================
+
+##Dependency Injection
+
+> "Don't call us, we'll call you", Hollywood principle
+
+----
+
+## It's all about the construction!
+
+####No DI
+```cpp
+coffee_maker()
+  : heater(make_shared<electric_heater>()) // construct dependencies
+  , pump(make_unique<heat_pump>(heater))
+{ }
+```
+
+####DI
+```cpp
+coffee_maker(shared_ptr<iheater> heater // inject dependencies
+           , unique_ptr<ipump> pump)
+  : heater(heater)
+  , pump(move(pump))
+{ }
+```
+
+==============================================================================
+
+##Automatic mocks injector
+
+> Create and inject mocks automatically using [Boost].DI and FakeIt!
+
+----
+
+##Automatic mocks injector - Goal
+
+```cpp
+struct app {
+  app(const interface1& i1, interface2& i2);
+  void update() {
+    if (i1.foo()) {
+      i2.bar();
+    }
+  }
+};
+```
+
+```cpp
+"should update app"_test = [] {
+  // given
+  const auto injector = di::make_injector<mocks_provider>();
+
+  // when
+  When(Method(mock<interface1>, foo)).Return(true);
+  injector.create<app>().update();
+
+  // then
+  Verify(Method(mock<interface2>, bar).Times(1);
+};
+```
+
+----
+
+##Requirements
+
+----
+
+##FakeIt
+
+> A Mocking library
+
+https://github.com/eranpeer/FakeIt
+
+----
+
+##FakeIt
+
+* Not standard, depening on vtable layout
+* Supported compilers (C++11)
+  * GCC/Clang/MSVC
+
+----
+
+##FakeIt - Hello World
+
+```cpp
+struct interface {
+  virtual ~interface() noexcept = default;
+  virtual bool foo() = 0;
+};
+```
+
+```cpp
+// given
+Mock<interface> mock;
+When(Method(mock, foo)).Return(true);
+
+// when
+auto &i = mock.get();
+i.foo(true);
+
+// then
+Verify(Method(mock,foo).Using(true));
+```
+
+----
+
+##[Boost].DI
+
+> Dependency Injection Library
+
+https://github.com/boost-ext/di
+
+----
+
+##[Boost].DI
+
+* One header - 3k LOC - (boost/di.hpp) / generated
+* Neither Boost nor STL is required
+* No 'if's, 'virtual', 'exceptions' (-fno-rtti, -fno-exceptions)
+* Non-intrusive, no run-time overhead
+* Quick compilation times and short error messages
+* Supported compilers (C++14)
+  * [Clang-3.4+](https://travis-ci.org/boost-ext/di), [XCode-6.1+](https://travis-ci.org/boost-ext/di), [GCC-5.2+](https://travis-ci.org/boost-ext/di), [MSVC-2015+](https://ci.appveyor.com/project/krzysztof-jusiak/di)
+
+----
+
+##[Boost].DI - Hello World
+
+```cpp
+#include <boost/di.hpp>
+namespace di = boost::di;
+```
+
+```cpp
+struct iworld { virtual ~iworld() noexcept = default; };
+struct world : iworld {};
+struct ihello { virtual ~ihello() noexcept = default; };
+struct hello : ihello {};
+```
+
+```cpp
+struct hello_world {
+  hello_world(const ihello&, const iworld&); // DI handles order
+};                  ^              ^         // and types
+                    |              \------------\
+                    \----------------------\    |
+int main() {                               |    |
+  const auto injector = di::make_injector( |    |
+     di::bind<ihello>.to<hello>() ---------/    |
+   , di::bind<iworld>.to<world>() -------------/
+  );
+
+  auto hw = injector.create<hello_world>();
+}
+```
+
+----
+
+##[Boost].DI vs Java
+
+|    | **[Boost].DI** | **Guice** | **Dagger2** |
+| ------------------- | ------------ | ---------------- | ------------- |
+| Language    | C++14    | Java | Java |
+| Errors      | compile-time | exceptions (reflection) | compile-time (annotations) |
+| [Test - 64 unique types](http://boost-ext.github.io/di/benchmarks/index.html) | | | |
+| Compilation time    | 0.376s       |  0.570s            | 1.411s        |
+| Execution time      | 0.002s       |  0.528s            | 0.157s        |
+
+----
+
+##Mocks Provider
+
+```cpp
+template <class T>
+auto& mock() {
+  return fakeit::Mock<T>();
+}
+
+struct mocks_provider {
+  template <class T, class... TArgs>
+  auto get(TArgs&&... args) const {
+    if constexpr(std::is_polymorphic<T>{} && !is_bound<T>{}) {
+      return mock<T>();
+    } else {
+      return make_unique<T>(std::forward<TArgs>(args)...);
+    }
+  }
+};
+```
+
+==============================================================================
+
+##TDD By Example
+
+----
+
+##Use Case
+
+> Let's put coffee to the test!
+
+![coffee_maker](images/coffee_maker.png)
+
+----
+
+##Making a brew Test
+
+```cpp
+"brew should pump and heat water"_test = [] {
+  // given
+  auto cm = di::make_injector().create<coffee_maker>();
+
+  // when
+  cm.brew();
+
+  // then
+  Verify(Method(mock<iheater>, on));
+  Verify(Method(mock<ipump>, pump));
+  Verify(Method(mock<iheater>, off));
+};
+```
+
+----
+
+##Coffee Maker?
+
+####Constructor (As Usual)
+```cpp
+struct coffee_maker {                struct coffee_maker {
+  coffee_maker(iheater&, ipump&);      coffee_maker(ipump&, iheater&);
+  void brew();                         void brew();
+};                                   };
+
+struct coffee_maker {
+  coffee_maker(
+    unique_ptr<ipump>,               etc...
+    const shared_ptr<iheater>&);
+  void brew();
+};
+```
+
+###With DI constructor types and its order doesn't matter! (Easy refactor)
+
+----
+
+##Interfaces/Mocks?
+
+####Interfaces (As usual)
+```cpp
+struct iheater {
+  virtual ~iheater() noexcept = default;
+  virtual void on() = 0;
+  virtual void off() = 0;
+};
+
+struct ipump {
+  virtual ~ipump() noexcept = default;
+  virtual void pump() = 0;
+};
+```
+
+###No mocks required!
+
+==============================================================================
+
+##BDD By Example
+
+----
+
+##Feature - Player plays match-3 game
+
+![game](images/game.png)
+
+----
+
+##Scenario - Player swipe items
+
+* GIVEN
+  * Player has 1 move left
+
+* WHEN
+  * Player swipe 2 items resulting in a match-3
+
+* THEN
+  * Player has no more moves
+  * Player see updated board
+
+----
+
+###Player swipe items test (Integration/Functional Tests)
+
+```cpp
+"given player has 1 move, when player swipes then no moves"_test = [] {
+  // given
+  const auto injector = di::make_injector<mocks_provider>(
+     di::bind<>.to(config{8/*width*/, 10/*height*/, 1/*moves*/})
+   , di::bind<board::colors_t[]>.to({3,5,1,4,3,2,2,...})
+  );
+  auto game = injector.create<Game>();
+```
+
+```cpp
+  // when
+  game.start();
+
+  // then
+  Verify(Method(mock<icanvas>, show_moves).Using(1);
+  Verify(Method(mock<icanvas>, show_board).Using({3,5,1,4,3,2,2,...});
+```
+
+```cpp
+  // when
+  game.swipe({3, 5}, {3, 6}); // a winning swipe
+
+  // then
+  Verify(Method(mock<icanvas>, show_moves).Using(0);
+  Verify(Method(mock<icanvas>, show_board).Using({5,2,1,1,4,2,2,...});
+};
+```
+
+----
+
+##DI - Wiring mess
+
+####Create a game (Simplified)
+```cpp
+ Manual DI                                   | [Boost].DI
+---------------------------------------------+----------------------------------
+ StrictMock<canvas_mock> canvas;             | auto game = di::make_injector(
+ Config config{8, 10, 1};                    |   di::bind<>.to(config{8, 10, 1})
+ Board board{config, {{3,5,1,4,3,2,2, ...}}};| ).create<Game>();
+ Contoller controller{config, board};        |
+ Game game{controller, canvas};              |
+```
+<!-- .element: style="margin-left:0%; width:100%" -->
+
+----
+
+##DI - Wiring mess
+
+####Simple Refactor
+```cpp
+Board(const config&, initializer_list<int>); -> Board(initializer_list<int>, const config&);
+Game(Contoller&, const icanvas&)             -> Game(const icanvas&, unique_ptr<Contoller>);
+```
+<!-- .element: style="margin-left:-10%; width:120%" -->
+
+####Make a game
+```cpp
+ Manual DI                                            | [Boost].DI (No changes required!)
+------------------------------------------------------+----------------------------------
+ StrictMock<canvas_mock> canvas;                      |
+ Config config{8, 10, 1};                             | auto game = di::make_injector(
+ Board board{{{3,5,1,4,3,2,2, ...}}, config}; /*DIFF*/|   di::bind<>.to(config{8, 10, 1})
+ auto controller =                                    | ).create<Game>(); // same old
+   make_unique<Contoller>(board, config); /*DIFF*/    |
+ Game game{canvas, controller}; /*DIFF*/              |
+```
+<!-- .element: style="margin-left:-10%; width:120%" -->
+
+==============================================================================
+
+##Summary
+
+----
+
+###Less work is better than more work
+> * Think scale
+> * Treat testing code as production code
+
+----
+
+###Potentially non-functional changes cause tests modifications
+
+> * Tedious/Boilerplate changes
+
+----
+
+###Wiring mess
+
+> * Boilerplate code
+  * Hard to maintain
+    * Order of initializing dependencies is important
+  * Usually leads into a bad design
+    * Breaks Single Responsibly Principle as it's easier to do a workaround
+
+==============================================================================
+
+##Questions?
+
+|   |   |
+| - | - |
+| [Boost].DI | https://github.com/boost-ext/di |
+| FakeIt   | https://github.com/eranpeer/FakeIt |
+
+-
+
+> * [kris@jusiak.net](mailto:kris@jusiak.net)
+* [@krisjusiak](https://twitter.com/krisjusiak)
+* [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+==============================================================================
+
+##Bonus - Simplest test framework
+
+----
+
+###'Test Framework'
+
+####Implementation
+```cpp
+template <char...>
+struct test {
+  template <class Test>
+  auto operator=(const Test& test) { test(); return true; }
+};
+
+// GNU extension for now, maybe in C++20
+template <class T, T... Chars>
+constexpr auto operator""_test() { return test<Chars...>{}; }
+```
+
+####Usage
+```cpp
+"should be equal"_test = [] {
+  assert(0 == 0);
+};
+
+"should not be equal"_test = [] {
+  assert(!(1 == 0));
+};
+```
+					</script>
+				</section>
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: true,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>

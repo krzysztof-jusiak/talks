@@ -122,7 +122,7 @@ L1 cache reference ......................... 0.5 ns
 Branch mispredict ............................ 5 ns
 L2 cache reference ........................... 7 ns
 Mutex lock/unlock ........................... 25 ns
-Main memory reference ...................... 100 ns             
+Main memory reference ...................... 100 ns
 Send 2K bytes over 1 Gbps network ....... 20,000 ns  =  20 µs
 SSD random read ........................ 150,000 ns  = 150 µs
 Read 1 MB sequentially from memory ..... 250,000 ns  = 250 µs
@@ -912,7 +912,7 @@ https://performance.maystreet.com/
 #### Running scenarios locally
 
 ```sh
-git clone 
+git clone
   ssh://git@gitlab.svc.maystreet.com:8022/performance/performance.git
 ```
 <!-- .element: class="fragment" -->
@@ -928,7 +928,7 @@ scenarios/scenario_processor_manager_1_session_no_book_15m_open.sh
 ---
 
 ```sh
-$./server.py --debug --results results --host localhost --port 8000 
+$./server.py --debug --results results --host localhost --port 8000
 ```
 <!-- .element: class="fragment" -->
 
@@ -948,7 +948,7 @@ $browser localhost:8000
 #### Adding scenarios (requires pcap/s and config)
 
 ```sh
-git clone 
+git clone
   ssh://git@gitlab.svc.maystreet.com:8022/performance/performance.git
 ```
 <!-- .element: class="fragment" -->

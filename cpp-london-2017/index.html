@@ -1,0 +1,1360 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Boost your design with C++14 dependency injection</title>
+
+		<meta name="description" content="Boost your design with C++14 dependency injection">
+		<meta name="author" content="Kris Jusiak">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+        <link rel="stylesheet" href="css/theme/league.css" id="theme">
+
+            <!-- Code syntax highlighting -->
+        <link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+			<div class="slides">
+
+          <section data-markdown=""
+                   data-separator="^====+$"
+                   data-separator-vertical="^----+$"
+                   data-notes="^Note:">
+					<script type="text/template">
+
+C++ London Feb-2017
+
+#Boost your design with dependency injection
+
+Kris Jusiak, Quantlab
+
+---
+
+[kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+==============================================================================
+
+##Agenda
+
+* In search of the best design
+    * God object, Single responsibility, Static factories, Constructor injection
+    * Policy design, Static polymorphism, Virtual concepts (C++2X)
+    * Functional design, Type erasure, Dynamic polymorphism (Object Oriented design)
+* [Boost].DI
+    * Overview
+    * Showcase
+    * Testing
+* Summary
+
+----
+
+##Disclaimer
+
+---
+
+###We will focus on a simple example
+###but let's think large scale (medium, big team projects)
+
+* A medium team project >= 100.000 LOC
+* 5 LOC example on a slide == 500 LOC in production
+
+
+==============================================================================
+
+###Story: Print a value from a file (BDD Style)
+
+```
+Scenario 1: Value from a file is displayed
+ Given an 'input.txt' file with an integer value in it
+   And console terminal is ready
+ When the App runs
+ Then the integer value from 'input.txt' should
+      be printed on the terminal console
+```
+
+----
+
+##In search of the best design!
+
+* Loosely coupled code (easy to extend, maintain, reause)
+* Testable code (TDD, BDD)
+* ...
+      There is much more!
+
+----
+
+## KISS - ~~Keep it simple~~, STUPID (V0)
+
+```cpp
+class App { // God object - does too much!
+  void run() {
+    auto value = 0;
+    {
+      std::ifstream file{"input.txt"};
+      assert(file.good());
+      file >> value;
+    }
+    std::cout << value << '\n';
+  }
+};
+```
+
+```cpp
+int main() {
+    App{}.run();
+}
+```
+
+> We read code more often than we write it!
+
+----
+
+## God object (V0)
+
+![app](images/app0.png)
+
+* (+) Does the job?
+* (-) Tightly coupled (hard to extend/maintain)
+* (-) Hard to test (TDD/BDD)
+
+----
+
+###Composition Root
+
+> Unique location in an application where modules are composed together
+
+```cpp
+int main() {
+  App{}.run();
+}
+```
+
+* Simplifies writing integration tests
+
+----
+
+###Let's introduce some abstractions (V1)
+
+```cpp
+class Reader {
+  static constexpr auto path = "input.txt";
+  std::ifstream file{path};
+
+public:
+  auto read() {
+    auto value = 0;
+    file >> value;
+    return value;
+  }
+};
+```
+
+```cpp
+class Printer {
+  public:
+    void print(int value) {
+      std::cout << value << '\n';
+    }
+};
+```
+
+----
+
+###Let's introduce some abstractions (V1)
+
+```cpp
+class App {
+  Reader reader;
+  Printer printer;
+
+  void run() {
+    printer.print(reader.read());
+  }
+};
+```
+
+```cpp
+int main() {
+  App{}.run();
+}
+```
+
+----
+
+###Let's introduce some abstractions (V1)
+
+![app](images/app2.png)
+
+* (+/-) We can somewhat test it in isolation (can't test the App)
+* (-) Reader/Printer tightly coupled to the App
+
+----
+
+###Single responsibility principle
+
+> "A class should have only one reason to change" Uncle Bob
+
+----
+
+###Let's fix it by using static factories? (V2)
+
+```cpp
+struct ReaderFactory {
+  static auto create(std::string_view path) {
+    return std::make_unique<FileReader>(path);
+  }
+};
+```
+
+```cpp
+struct PrinterFactory {
+  static auto create() {
+    return std::make_unique<ConsolePrinter>();
+  }
+};
+```
+
+----
+
+###Let's fix it by using static factories? (V2)
+
+```cpp
+class App {
+public:
+  void run() {
+    PrinterFactory::create()->print(
+      ReaderFactory::create("input.txt")->read()
+    );
+  }
+};
+```
+
+```cpp
+int main() {
+  App{}.run();
+}
+```
+
+----
+
+###Let's fix it by using static factories? (V2)
+
+* (+) We can test it in isolation but it's hard
+* (+) Reader/Printer are still tightly coupled to the App
+* (-) Can't inject different Readers/Printers
+* (-) Can't test factories easily
+
+> Static factories MUST GO!
+
+----
+
+###Let's fix it by using constructor injection? (V3)
+
+```cpp
+class App {
+ Reader reader;
+ Printer printer;
+
+ public:
+  App(Reader&& reader, Printer&& printer)
+    : reader(std::move(reader))
+    , printer(std::move(printer))
+  { }
+
+  void run() {
+    printer.print(reader.read());
+  }
+};
+```
+
+```cpp
+int main() {
+  Reader reader;                                  // wiring
+  Printer printer;                                // wiring
+  App app{std::move(reader), std::move(printer)}; // wiring
+}
+```
+
+----
+
+###Let's fix it by using constructor injection? (V3)
+
+![app](images/app1.png)
+
+* (+) We can test it in isolation (including App) but it's hard
+* (+) Reader/Printer are not tightly coupled to the App
+* (-) Can't inject different Readers/Printers
+* (-) We introduced a wiring mess
+
+----
+
+###There you have it - Dependency Injection (DI)
+
+> "Don't call us, we'll call you", Hollywood principle
+
+####Wiring - Create and pass required dependencies
+```cpp
+Reader reader{...};   // wiring
+Printer printer{...}; // wiring
+...                   // ...
+App app{...};         // wiring
+```
+
+> Separates creation logic from business logic
+
+----
+
+###Let's fix it by using templates - Policy Design / Duck Typing (V4)
+
+```cpp
+template<class TReader, class TPrinter>
+class App {
+  TReader reader;
+  TPrinter printer;
+
+public:
+  App(TReader& reader, TPrinter& printer)
+    : reader(reader), printer(printer)
+  { }
+
+  void run() {
+    printer.print(reader.read());
+  }
+};
+```
+
+```cpp
+int main() {
+  Reader reader;                                // wiring
+  Printer printer;                              // wiring
+  App<Reader, Printer>{reader, printer}.run();  // wiring
+}
+```
+
+----
+
+###Let's fix it by using templates - Policy Design / Duck Typing (V4)
+
+* (+) We can test it in isolation (including App) but it's hard
+* (+) Reader/Printer are not tightly coupled to the App
+* (+) Can inject different Readers/Printers
+* (-) Header files only
+* (-) Slower compilation times (Point of instantiation - POI)
+* (-) Code bloat (executable size)
+* (-) Templates are contagious and give bad error messages
+
+---
+
+STL example: `std::vector`
+
+----
+
+###Template argument deduction for class templates (C++17)
+
+####C++14
+```cpp
+  App<Reader, Printer>{reader, printer}.run();
+```
+
+####C++17
+```cpp
+  App{reader, printer}.run(); // templates are still there
+                              // just deduced from parameters
+```
+
+----
+
+###Let's improve it by using static polymorphism? (V5)
+#####Curiously recurring template pattern (CRTP)
+
+```cpp
+template <class T>
+class Reader {
+  int read_impl() { return {}; } // default
+
+public:
+  int read() { return static_cast<T*>(this)->read_impl(); }
+};
+```
+
+```cpp
+class FileReader final : public Reader<FileReader> {
+  std::ifstream file;
+
+  int read_impl() {
+    auto value = 0;
+    file >> value;
+    return value;
+  }
+
+public:
+  explicit FileReader(std::string_view path) : file(path) {
+    assert(file.good());
+  }
+};
+```
+
+----
+
+###Let's improve it by using static polymorphism? (V5)
+
+```cpp
+template <class T>
+class Printer {
+  void print_impl(int) {} // default
+
+public:
+  void print(int value) {
+    static_cast<T*>(this)->print_impl(value);
+  }
+};
+```
+
+```cpp
+class ConsolePrinter final: public Printer<ConsolePrinter> {
+  void print_impl(int value) {
+    std::cout << value << '\n';
+  }
+};
+```
+
+----
+
+###Let's improve it by using static polymorphism? (V5)
+
+```cpp
+template <class TReader, class TPrinter>
+class App {
+  TReader& reader;
+  TPrinter& printer;
+
+public:
+  App(TReader& reader, TPrinter& printer)
+   : reader(reader), printer(printer)
+  {}
+
+  void run() { printer.print(reader.read()); }
+};
+```
+
+```cpp
+int main() {
+  FileReader reader{"input.txt"}; // wiring
+  ConsolePrinter printer{};       // wiring
+  App{reader, printer}.run();     // wiring
+}
+```
+
+----
+
+###Let's improve it by using static polymorphism? (V5)
+
+![app](images/app4.png)
+
+* (+) More explicit requirements / default behaviour
+* (-) Same as with Policy Design...
+
+----
+
+###Virtual Concepts to the rescue? (C++2X?)
+
+```cpp
+template <class T>
+concept bool Readable() {
+  return requires(T reader) {
+    { reader.read(std::string_view{}) } -> int;
+  }
+};
+```
+
+```cpp
+template <class T>
+concept bool Printable() {
+  return requires(T printer) {
+    { printer.print() };
+  }
+};
+```
+
+----
+
+###Virtual Concepts to the rescue? (C++2X?)
+
+```cpp
+class App {                  // no template types!
+  virtual Readable reader;   // type erasure
+  virtual Printable printer; // stack, Small Buffer Optimization?
+
+public:
+  // Same as template<Readable T1, Printable T2>
+  App(Readable reader, Printable printer)
+    : reader(reader), printer(printer) {}
+
+  void run() {
+    printer.print(reader.read());
+  }
+};
+```
+
+```cpp
+int main() {
+  Readable reader = FileReader{"input.txt"}; // wiring
+  Printable printer = ConsolePrinter();      // wiring
+  App{reader, printer}.run();                // wiring
+}
+```
+
+----
+
+###Virtual Concepts to the rescue? (C++2X?)
+
+* (+) Explicit requirements/constraints (concepts)
+* (+) Removes most problems with Policy Design!
+* (-) A bit slower compilation times
+* (-) May allocate?
+
+-
+
+| | |
+|-|-|
+|[ (SG8) Concepts lite](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3580.pdf) | Constrating templates |
+|[ (SG8) Virtual concepts](https://github.com/andyprowl/virtual-concepts/blob/master/draft/Dynamic%20Generic%20Programming%20with%20Virtual%20Concepts.pdf)  | Type-erasure |
+|[ (SG7) Static reflection](www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0194r0.pdf) | Fakes/Stubs/Mocks generation |
+
+----
+
+###No templates solution, please!
+
+> Some would argue that templates are great for libraries but not as much for the production code (KISS)
+
+----
+
+###Functional design for fun and profit? (V6)
+
+```cpp
+using fprinter = std::function<void(int)>;
+using fread    = std::function<int()>;
+```
+
+```cpp
+const auto fileReader = [](std::string_view path) {
+  return [=] {
+    auto value = 0;
+    {
+      std::ifstream file{path};
+      file >> value;
+    }
+    return value;
+  };
+};
+```
+
+```cpp
+const auto consolePrinter = [](int value) {
+  std::cout << value << '\n';
+};
+```
+
+----
+
+###Functional design for fun and profit? (V6)
+
+```cpp
+class App {
+  fprinter printer;
+  fread read;
+
+ public:
+   App(const fprinter& printer, const fread& read)
+     : printer(printer), read(read)
+   { }
+
+   void run() {
+     printer(read());
+   }
+};
+```
+
+----
+
+###Functional design for fun and profit? (V6)
+
+```cpp
+int main() {
+  App{fileReader, consolePrinter}.run();
+}
+```
+
+* (+) Powerful design
+* (-) std::function may allocate and causes code bloat
+* (-) Requires totally different approach
+
+----
+
+###Let's erase the type - Type erasure - (V7)
+
+```cpp
+BOOST_TYPE_ERASURE_MEMBER((has_read), read, 0)   // SFINAE
+BOOST_TYPE_ERASURE_MEMBER((has_print), print, 1) // SFINAE
+```
+
+```cpp
+using Reader = mpl::vector<
+  has_read<int()>
+, type_erasure::copy_constructible<>
+>;
+
+using Printer = mpl::vector<
+  has_print<void(int)>
+, type_erasure::copy_constructible<>
+>;
+```
+
+----
+
+###Let's erase the type - Type erasure - (V7)
+
+```cpp
+class FileReader final { // no inhertiance
+  std::ifstream file;
+
+public:
+  explicit FileReader(std::string_view path) : file{path} {
+    assert(file.good());
+  }
+
+  int read() {
+    auto value = 0;
+    file >> value;
+    return value;
+  }
+};
+```
+
+```cpp
+class ConsolePrinter final { // no inhertiance
+public:
+  void print(int value) { std::cout << value << '\n'; }
+};
+```
+
+----
+
+###Let's erase the type - Type erasure - (V7)
+
+```cpp
+class App {
+  type_erasure::any<Reader> reader;
+  type_erasure::any<Printer> printer;
+
+public:
+  App(type_erasure::any<Reader> reader,
+      type_erasure::any<Printer> printer)
+    : reader(reader), printer(printer)
+  { }
+
+  void run() {
+    printer.print(reader.read());
+  }
+};
+```
+
+```cpp
+int main() {
+  FileReader reader{"input.txt"}; // wiring
+  ConsolePrinter printer{};       // wiring
+  App{reader, printer}.run();     // wiring
+}
+```
+
+----
+
+###Let's erase the type - Type erasure - (V7)
+
+* (+) Inhertiance is not required
+* (+) Stack based (Small Buffer Optimization)
+* (-) Macros
+* (-) Allocations
+* (-) Slower compilation times
+
+-
+
+STL example: `std::shared_ptr deleter`
+
+----
+
+###Object oriented design with dynamic polymorphism (V8)
+
+```cpp
+class IReader {
+public:
+  virtual ~IReader() noexcept = default;
+  virtual int read() = 0;
+};
+```
+
+```cpp
+class FileReader final : public IReader {
+  std::istream& input;
+
+public:
+  explicit FileReader(std::istream&); // NOTE -> it's not a path!
+  void read() override;
+};
+```
+
+----
+
+###Object oriented design with dynamic polymorphism (V8)
+
+```cpp
+class IPrinter {
+public:
+  virtual ~IPrinter() noexcept = default;
+  virtual void print(int) = 0;
+};
+```
+
+```cpp
+class ConsolePrinter final : public IPrinter {
+  std::ostream& output;
+
+public:
+  explicit ConsolePrinter(std::ostream&);  // NOTE -> ostream
+  void print(int) override;                //         injection!
+};
+```
+
+----
+
+###Object oriented design with dynamic polymorphism (V8)
+
+```cpp
+class App {
+  IReader& reader;
+  IPrinter& printer;
+
+public:
+  App(IReader& reader, IPrinter& printer)
+    : reader(reader), printer(printer) {}
+
+  void run() {
+    printer.print(reader.read());
+  }
+};
+```
+
+```cpp
+int main() {
+  auto file = std::fstream{"input.txt"}; // wiring!
+  auto reader = FileReader{file};        // wiring!
+  auto& out = std::cout;                 // wiring!
+  auto printer = ConsolePrinter{out};    // wiring!
+  App{reader, printer}.run();            // wiring!
+}
+```
+
+----
+
+###Object oriented design with dynamic polymorphism (V8)
+
+![app](images/app3.png)
+
+* (+) Easy to test and mock (TDD/BDD)
+* (-) Performance hit due to virtual dispatch?
+* (-) We introduced even bigger wiring mess!
+
+----
+
+###Dynamic Polymorphism - performance
+####final keyword and devirtualization
+
+![final](images/final.png)
+https://godbolt.org/g/e8olYN
+
+----
+
+###Manual DI - Problems
+
+* ####Single Responsibility Principle
+  =>
+    * ####A lot of classes
+    =>
+      * ####Wiring Mess
+      =>
+        * ####Hard to maintain + Lazy programers (99%)
+        =>
+          * ####Hacks/Workarounds (~~Single Responsibility~~)
+
+-----
+
+###Solution
+
+####Simplify/Remove the wiring mess
+  ####By Automating dependency injection?
+=>
+### [[Boost].DI](https://github.com/boost-ext/di)
+
+==============================================================================
+
+###[[Boost].DI](https://github.com/boost-ext/di)
+
+* One header - 3k LOC - (boost/di.hpp) / generated
+* Neither Boost nor STL is required
+* No 'if's, 'virtual's, 'exception's (-fno-rtti, -fno-exceptions)
+* Non-intrusive (constructor parameters deduction)
+* Compile-time creation guarantee (no run-time errors)
+* Supported compilers (C++14)
+  * [Clang-3.4+](https://travis-ci.org/boost-ext/di), [XCode-6.1+](https://travis-ci.org/boost-ext/di), [GCC-5.2+](https://travis-ci.org/boost-ext/di), [MSVC-2015+](https://ci.appveyor.com/project/krzysztof-jusiak/di)
+
+> [Boost].DI is not an official Boost library, yet!
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - API
+
+#####Injector
+```cpp
+template<class... TDeps> requires boundable<TDeps...>()
+class injector {
+public:
+  explicit injector(TDeps&&...) noexcept;
+  injector(injector&&) = default;
+  injector& operator=(injector&&) = default;
+
+  template<class T> requires creatable<T>()
+  constexpr T create() const;
+};
+```
+
+#####Make injector
+```cpp
+template<class TConfig = di::config, class... TDeps>
+  requires configurable<TConfig>() && boundable<TDeps...>()
+constexpr auto make_injector(TDeps&&...) noexcept;
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Hello World
+
+```cpp
+#include <boost/di.hpp>
+namespace di = boost::di;
+```
+
+```cpp
+class App {
+ public:
+  App(const IReader&, const IPrinter&); // DI handles
+};                  ^       ^           // order and types
+                    |       \----------------------\
+                    \--------------------------\   |
+int main() {                                   |   |
+  const auto injector = di::make_injector(     |   |
+     di::bind<IReader>.to<FileReader>(), ------/   |
+     di::bind<IPrinter>.to<ConsolePrinter>() ------/
+  );
+
+  injector.create<std::unique_ptr<App>>().run();
+}
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Performance
+
+```sh
+time $CXX -std=c++14 app.cpp # 0.092s
+```
+
+#####ASM x86-64
+
+```
+push   %rbx
+mov    %rdi,%rbx
+mov    $0x8,%edi
+callq  0x4009f0 <_Znwm@plt>
+movq   $0x400e78,(%rax)
+mov    %rax,(%rbx)
+mov    %rbx,%rax
+pop    %rbx
+retq
+```
+
+#####Same as
+
+```cpp
+return make_unique<App>(...);
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Benchmarks (GCC-7/Java8)
+
+| 64 types, 1-4 ctor params, 1024 iterations | **[Boost].DI** | **Guice** | **Dagger2** |
+| --------------------- | ------------ | ---------------- | ------------- |
+| Compilation time    | 0.376s       |  0.570s            | 1.411s        |
+| Execution time      | 0.002s       |  0.528s            | 0.157s        |
+
+---
+
+| 256 types, 1-4 ctor params, 1024 iterations | **[Boost].DI** | **Guice** | **Dagger2** |
+| --------------------- | ------------ | ---------------- | ------------- |
+| Compilation time    | 0.706s       | 0.642s             | 1.903s        |
+| Execution time      | 0.002s       | 0.544s             | 0.210s        |
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Compile-time errors
+
+```cpp
+const auto injector = di::make_injector(
+// di::bind<IPrinter>.to<ConsolePrinter>(), // missing 'IPrinter' wiring
+   di::bind<IReader>.to<FileReader>()
+);
+auto app = injector.create<App>();
+```
+
+#####Full Compilation-Time Error Message
+
+```cpp
+error: 'create<App>' is deprecated: creatable constraint
+  injector.create<App>();           not satisfied
+           ^
+note 'create<App>' has been explicitly marked deprecated here
+  create
+  ^
+error: inline function 'abstract_type<IPrinter>::is_not_bound::error'
+ error(_ = "type is not bound, did you forget to add:
+           'di::bind<interface>.to<implementation>()'?");
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Let's come back to our example (V3)
+
+####Automatic Injection
+
+```cpp
+class App {
+ Reader reader;
+ Printer printer;
+
+public:
+  App(Reader&& reader, Printer&& printer)
+    : reader(std::move(reader))
+    , printer(std::move(printer))
+  {}
+
+  void run() {
+    printer.print(reader.read());
+  }
+};
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Automatic Injection
+
+#####Manual DI - Wiring mess
+```cpp
+int main() {
+  auto file = std::fstream{"input.txt"};                 // wiring
+  auto reader = Reader{file};                            // wiring
+  auto printer = Printer{std::cout};                     // wiring
+  auto app = App{std::move(reader), std::move(printer)}; // wiring
+  app.run();
+}
+```
+
+#####[Boost].DI
+```cpp
+int main() {
+  di::make_injector().create<App>().run();
+}
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Refactoring for free!
+
+####Let's change `App` constructor
+
+######Before
+```cpp
+App(Reader&& reader, Printer&& printer)
+  : reader(std::move(reader))
+  , printer(std::move(printer))
+{ }
+```
+
+######After
+```cpp
+App(Printer& printer, std::unique_ptr<Reader> reader)
+ : printer(printer)
+ , reader(std::move(reader))
+{}
+
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Refactoring for free!
+
+#####Manual DI - Wiring mess
+```cpp
+int main() {
+  auto file = std::fstream{"input.txt"};      // wiring
+  auto reader = std::make_unique<Reader>{};   // diff wiring!
+  auto printer = Printer{std::cout};          // wiring
+  auto app = App{printer, std::move(reader)}; // diff wiring!
+  app.run();
+}
+```
+
+#####[Boost].DI - No changes!
+```cpp
+int main() {
+  di::make_injector().create<App>().run(); // same as before!
+}
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Implementing features by wiring
+
+```
+Scenario 2: Value from an input file is displayed on the QtWindow
+ Given an 'input.txt' file with an integer value in it
+   And the first command line argument equals to "QtPrinter"
+ When the App runs
+ Then the integer value from 'input.txt' should
+      be printed on the QtWindow
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Implementing features by wiring
+#####Weak interface
+
+```cpp
+class QtPrinter {
+public:
+  QtPrinter(int width, int height); // weak interface
+};
+```
+
+```cpp
+QtPrinter{600, 800}; // Okay
+QtPrinter{800, 600}; // Oops
+```
+
+#####Strong interface
+
+```cpp
+class QtPrinter {
+public:
+  QtPrinter(width, height); // 'strong typedefs'
+};
+```
+
+```cpp
+QtPrinter{width{500}, height{800}}; // Okay
+QtPrinter{height{500}, width{800}}; // Compile error, YAY
+QtPrinter{500, 800};                // Compile error, YAY
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Implementing features by wiring
+#####Configuration
+```cpp
+const auto config = [](std::string_view printer) {
+  return di::make_injector(
+     di::bind<IReader>.to<FileReader>(),
+     di::bind<IPrinter>.to([&] { // we can also create using injector
+       return printer == "QtPrinter"
+         ? std::make_unique<QtPrinter>(width{1024}, height{768});
+         : std::make_unique<ConsolePrinter>();
+     })
+  );
+};
+```
+
+#####Usage
+```cpp
+int main(int argc, char** argv) {
+  config(argc == 2 ? argv[1] : nullptr).create<App>().run();
+}
+```
+
+----
+
+###Testing
+
+> "If you liked it then you should have put a test on it", Beyonce rule
+
+----
+
+## [[Boost].DI](https://github.com/boost-ext/di) - Test Driven Development (TDD)
+
+####Unit Tests
+
+```cpp
+"should print read text"_test = [] {
+  constexpr auto value = 42;
+
+  auto [sut, mocks] = make<App>(); // creates System Under Test
+                                   // and mocks
+                                   // (C++17 Structured Bindings)
+
+  InSequence sequence;
+  EXPECT_CALL(mocks<IReader>(), read()).WillOnce(Return(value));
+  EXPECT_CALL(mocks<IPrinter>(), print(value));
+
+  sut.run();
+};
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - Behaviour Driven Development (BDD)
+
+####Integration/Acceptance Tests
+
+```cpp
+"Given an input file
+ When App is running
+ Then value from input file should be printed"_test = [] {
+  mocks_t mocks;
+  {
+      std::ofstream file{"input.txt"};
+      file << 42;
+  }
+  const auto injector = di::make_injector(
+    config(), // production wiring
+    di::bind<IPrinter>.to(GMock<IPrinter>(mocks)) [di::override]
+  );
+
+  EXPECT_CALL(mocks<IPrinter>(), print(42));
+
+  injector.create<App>().run();
+};
+```
+
+----
+
+###[[Boost].DI](https://github.com/boost-ext/di) - features
+
+* Core ([Examples](http://boost-ext.github.io/di/examples))
+    * Automatic Injection, Bindings (Multiple Bindings, Dynamic Bindings), Scopes (Scope Deduction), Named Parameters (Annotations), Modules, Providers, Policies
+* Extensions ([Examples](http://boost-ext.github.io/di/extensions))
+    * Automatic Mocks injection, Smart Factories, Assisted Injection, XML Injection, Dependencies Diagram Generation, Automatic POD Serialization, ...
+
+==============================================================================
+
+###Summary
+
+----
+
+###Good practises are good practices for a reason!
+
+----
+
+###STUPID vs SOLID (Object Oriented design)
+
+<table><tr>
+ <td>
+  <table>
+    <tr><td><b>S</b></td><td>Singleton</td></tr>
+    <tr><td><b>T</b></td><td>Tight Coupling</td></tr>
+    <tr><td><b>U</b></td><td>Untestability</td></tr>
+    <tr><td><b>P</b></td><td>Premature Optimization</td></tr>
+    <tr><td><b>I</b></td><td>Indescriptive Naming</td></tr>
+    <tr><td><b>D</b></td><td>Duplication</td></tr>
+  </table>
+ </td>
+
+ <td>
+  <table>
+    <tr><td><b>S</b></td><td><b>Single Responsibility</b></td></tr>
+    <tr><td><b>O</b></td><td>Open-close</td></tr>
+    <tr><td><b>L</b></td><td>Liskov substitution</td></tr>
+    <tr><td><b>I</b></td><td>Interface segregation</td></tr>
+    <tr><td><b>D</b></td><td><b>Dependency injection</b></td></tr>
+  </table>
+ </td>
+
+ </tr>
+</table>
+> "Clean Code", Uncle Bob
+
+----
+
+###Dependency Injection
+
+* A powerful design pattern helping with producing
+  * Loosely coupled code
+  * Easy to test code (TDD/BDD)
+
+* [[Boost].DI](https://github.com/boost-ext/di)
+  * Removes/Cleanup the wiring mess (boilerplate code)
+  * Simplify refactoring (constructor parameters deduction)
+  * Make testing easier (automatic mocks injection)
+
+==============================================================================
+
+##Questions?
+
+| [Boost].DI |  |
+| ------- | ------------- |
+| Documentation | http://boost-ext.github.io/di |
+| Source Code | https://github.com/boost-ext/di |
+| Try it online! | http://boost-ext.github.io/di/try_it |
+|                | https://godbolt.org/g/dvjJFI |
+<!-- .element: style="margin-left:-13%; width:125%" -->
+
+-
+
+[kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
+
+
+					</script>
+				</section>
+
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // Turns fragments on and off globally
+        fragments: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: true,
+
+        // Hides the address bar on mobile devices
+        hideAddressBar: true,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style
+        transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Parallax background image
+        parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
+
+        // Parallax background size
+        parallaxBackgroundSize: '', // CSS syntax, e.g. "2100px 900px"
+
+        // Number of pixels to move the parallax background per slide
+        // - Calculated automatically unless specified
+        // - Set to 0 to disable movement along an axis
+        parallaxBackgroundHorizontal: null,
+        parallaxBackgroundVertical: null,
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
