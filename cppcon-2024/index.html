@@ -65,150 +65,272 @@
 
 #### Agenda
 
+- #### Motivation / Examples
+<!-- .element: class="fragment" -->
 
+- #### HOWTO
+<!-- .element: class="fragment" -->
+
+  - #### C++17/C++20
+  <!-- .element: class="fragment" -->
+
+  - #### C++26* (https://wg21.link/P2996)
+  <!-- .element: class="fragment" -->
+
+  - #### Circle
+  <!-- .element: class="fragment" -->
+
+- #### Benchmarks
+<!-- .element: class="fragment" -->
+
+- #### Summary
+<!-- .element: class="fragment" -->
+
+---
+
+###### Powered by [Compiler Explorer](https://godbolt.org)
+<!-- .element: class="fragment" -->
 
 ----
 
-Goal
+- #### Motivation / Examples
 
-  Attendies to become meta-programming gurus in 60mins with C++17 and beyond
+- design by introspection
+- pack data - reflection
+- soa - reflection
+- hardware accelerated perfect hashing - reflection
+- abi.hashing
+- hash.combine
+- generic factories - di
+- sml
+- p2300 - expression templtes
 
-Motivation - meta-programming - hook examples!
-
-    performance
-      pack data - reflection
-      soa - reflection
-      hardware accelerated perfect hashing - reflection
-
-    api / safety (easy to use hard to missuse)
-
-      sml
-        unique set
-
-    useful
-      abi.hashing
-      hash.combine
-
-    complex
-      depenency injection
-      state machine - io_uring
 ----
 
-Meta-programming - history
+### HOWTO
 
-  - C++98 <>...
-  - circle
+----
 
-Templates-less - How - C++17
+### Approches
 
-what we need?
-  type -> to id
-  id -> types
+// show 1 liner examples
 
-  mp - meta, type_of, apply, invoke
+#### - Angle bracket approach - boost.mpl
+<!-- .element: style="text-align:left" -->
 
-  stl, ranges
+#### - Fusion - boost.fusion
+<!-- .element: style="text-align:left" -->
 
-How - C++26*
+#### - Fusion with lambdas - boost.hana
+<!-- .element: style="text-align:left" -->
 
-  ^, typename [: :], subsitute
+#### - Optimized mpl - boost.mp11
+<!-- .element: style="text-align:left" -->
 
-Benchmarks
-  https://qlibs.github.io/mp
+#### - qlib/mp -
+<!-- .element: style="text-align:left" -->
 
-Summary
-  Fruther readings - libraries
+#### - P2996*
+<!-- .element: style="text-align:left" -->
 
+#### - Circle - builtins
+<!-- .element: style="text-align:left" -->
 
-Proposals
-  - pack indexing
+----
+
+### C++17/C++20
+
+- what we need?
+  - type -> to id
+  - id -> types
   - constexpr containers - https://isocpp.org/files/papers/D3372R0.html
 
+----
 
-using info = decltype(meta<void>);
+### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
 
-template<info> struct meta_info { 
+```cpp
+template<auto> struct meta_info {
   constexpr auto friend get(meta_info);
 };
+```
 
-template<class T> inline constexpr info meta = [] {
-  static constexpr auto id = info{id()};
-  struct mapping {
-    using value_type = T;
-    constexpr auto friend get(meta_type<id>) { return {}; }
-  };
-  return mapping{};
-}();
+```cpp
+template<class T> struct meta_data {
+  using value_type = T;
+  static constexpr size_t id{};
+  constexpr auto friend get(meta_info<&id>) { return meta_data{}; }
+};
+```
 
+----
+
+### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+
+```cpp
+template<class T> inline constexpr auto meta = &meta_data<T>::id;
+```
+
+```cpp
+using info = decltype(meta<void>);
+```
+
+---
+
+```cpp
+static_assert(mp::meta<int> == mp::meta<int>);
+static_assert(mp::meta<int> != mp::meta<void>);
+static_assert(std::is_same_v<decltype(mp::meta<int>), decltype(mp::meta<void>)>);
+```
+
+----
+
+### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+
+```cpp
 template<info meta>
-using type_of = typename decltype(get(meta_type<meta>{}))::value_type;
+using type_of = typename decltype(get(meta_info<meta>{}))::value_type;
+```
 
-template<template<class...> class T, concepts::range auto range>
+---
+
+```cpp
+constexpr mp::info meta = mp::meta<int>;
+mp::type_of<meta> i{}; // same as int i{};
+mp::type_of<mp::meta<bool>> b = true; // same as bool b = true;
+```
+
+----
+
+### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+
+```cpp
+template<template<class...> class T, auto range>
 using apply_t = decltype(
   []<size_t... Ns>(index_sequence<Ns...>) {
     return T<type_of<range[Ns]>...>{};
   }(make_index_sequence<range.size()>{})
 );
+```
 
-template<class Fn, class T = decltype([]{})>
-constexpr auto invoke(Fn&& fn, const info meta) {
-  constexpr auto dispatch = [&]<size_t... Ns>(index_sequence<Ns...>) {
-    return array{
-      []<info N> {
-        return +[](Fn fn) {
-          if constexpr (requires { fn.template operator()<N>(); }) {
-            return fn.template operator()<N>();
-          }
-        };
-      }.template operator()<info{Ns}>()...
-    };
-  }(make_index_sequence<meta_info<T>::type_id>{});
-  return dispatch[size_t(meta)](fn);
-}
+---
+
+----
+
+### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
 
 ```cpp
-template<concepts::range auto range>
+template<auto range>
 constexpr auto for_each(auto&& fn) {
-  [fn]<size_t... Ns>(index_sequence<Ns...>) {
+  [fn]<mp::size_t... Ns>(mp::index_sequence<Ns...>) {
     (fn.template operator()<range[Ns]>(), ...);
-  }(make_index_sequence<range.size()>{});
+  }(mp::make_index_sequence<range.size()>{});
 }
 ```
 
-Compilation times considerations
-  - index_sequneece
+---
+
+----
+
+#### nth_pack_element
 
 ```cpp
-template<class T, T...> struct integer_sequence { };
-template<size_t... Ns> using index_sequence = integer_sequence<size_t, Ns...>;
-template<size_t N> using make_index_sequence =
-#if defined(__clang__) || defined(_MSC_VER)
-  __make_integer_seq<integer_sequence, size_t, N>;
-#else
-   index_sequence<__integer_pack(N)...>;
-#endif
+template<mp::size_t N, class... Ts>
+using at_c = mp::type_of<std::array{mp::meta<Ts>...}[N]>;
+
+static_assert(std::is_same_v<int, at_c<0, int, bool, float>>);
+static_assert(std::is_same_v<bool, at_c<1, int, bool, float>>);
+static_assert(std::is_same_v<float, at_c<2, int, bool, float>>);
 ```
 
-at_c
+---
+
+##### C++26 - Generalized pack declaration and usage (https://wg21.link/P1858)
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+```cpp
+template<size_t N, class... Ts>
+using at = Ts...[N];
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
-vector - constexpr containers
+#### for_each
 
 ----
 
-switching to p2996
+### Algorithms - https://godbolt.org/z/GvzjvdPq8
+
+variant
 
 ----
 
-ways of implementiont stateful meta-programming
-
-  - < P2996: friend injection
-  - >= P2996: specialization injection
-
-implementing p2996 with p2996
+### Debugging/Testing - https://godbolt.org/z/vTfGGToa4
 
 ----
+
+### Reflection - https://godbolt.org/z/qb37G79Ya
+
+----
+
+### C++26* (https://wg21.link/P2996)
+
+
+  | mp (C++17/C++20) | P2996 (C++26*) |
+  | - | - |
+  | `meta<T>` | `^T` |
+  | `type_of<T>` | `typename [: T :]` |
+  | `for_each` | `template for` (https://wg21.link/p1306) |
+  | `apply` | `substitute` |
+  | `invoke<trait>` | `test_trait` |
+
+----
+
+### C++26* (https://wg21.link/P2996)
+
+- Implementing static reflection proposal with the static reflection proposal - https://godbolt.org/z/694e1hrbM
+
+----
+
+### Circle
+
+----
+
+### Benchmarks - https://qlibs.github.io/mp
+
+<a href="https://qlibs.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+
+----
+
+### Summary
+
+* #### Meta-programming is C++ super-power
+<!-- .element: class="fragment" -->
+
+* #### Meta-programming can be as simple as run-time programming
+<!-- .element: class="fragment" -->
+
+* #### Reflection enhances Meta-programming use-cases
+<!-- .element: class="fragment" -->
+
+----
+
+### Further readings
+
+- ##### Meta-programming library - https://github.com/qlibs/mp
+<!-- .element: style="text-align:left" -->
+
+- ##### Reflection for C++ - https://wg21.link/P2996
+<!-- .element: style="text-align:left" -->
+
+- ##### Circle Metaprogramming - Sean Baxter - CppNow 2022  - https://www.youtube.com/watch?v=15j4bkipuAg
+<!-- .element: style="text-align:left" -->
+
+- ##### Simple C++11 metaprogramming - Peter Dimov - https://www.boost.org/doc/libs/master/libs/mp11/doc/html/simple_cxx11_metaprogramming.html
+<!-- .element: style="text-align:left" -->
+
+---
 
 ##### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
           </script>
@@ -297,7 +419,7 @@ implementing p2996 with p2996
         backgroundTransition: 'none', // none/fade/slide/convex/concave/zoom
 
         // Number of slides away from the current that are visible
-        viewDistance: 3,
+        viewDistance: 1,
 
         // Parallax background image
         parallaxBackgroundImage: '', // e.g. "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'"
