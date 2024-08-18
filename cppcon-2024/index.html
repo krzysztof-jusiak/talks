@@ -71,13 +71,13 @@
 - #### HOWTO
 <!-- .element: class="fragment" -->
 
-  - #### C++17/C++20
+  - #### C++17/C++20 (https://eel.is/c++draft)
   <!-- .element: class="fragment" -->
 
   - #### C++26* (https://wg21.link/P2996)
   <!-- .element: class="fragment" -->
 
-  - #### Circle
+  - #### Circle (https://www.circle-lang.org)
   <!-- .element: class="fragment" -->
 
 - #### Benchmarks
@@ -88,22 +88,221 @@
 
 ---
 
-###### Powered by [Compiler Explorer](https://godbolt.org)
+###### Powered by [Compiler Explorer](https://godbolt.org) (clang, gcc, msvc)
 <!-- .element: class="fragment" -->
 
 ----
 
-- #### Motivation / Examples
+#### Template Meta-programming
 
-- design by introspection
-- pack data - reflection
-- soa - reflection
-- hardware accelerated perfect hashing - reflection
-- abi.hashing
-- hash.combine
-- generic factories - di
-- sml
-- p2300 - expression templtes
+> `is a technique where templates are used to generate code at compile-time based on types or values, enabling more flexible and optimized programs`
+
+----
+
+### Motivation / Examples
+
+----
+
+> Don't repeate yourself (DRY)
+
+```cpp
+constexpr auto swap(auto);
+```
+
+```cpp
+generate cases... // powered by meta-programing
+```
+
+----
+
+- Standard Template Library (STL) - https://godbolt.org/z/TKPdYPv3P
+
+```cpp
+template<class... Ts>
+class variant {
+  // ...
+
+  template<class T>
+  constexpr explicit(false) variant(T&& t) {
+    constexpr auto index = index<T, Ts...>; // powered by meta-programming
+    // ...
+  }
+
+  constexpr auto visit(auto&& fn) -> decltype(auto) {
+    return dispatch(fn); // powered by meta-programming
+ }
+
+ // ...
+};
+
+```
+
+----
+
+#### Flexibilty
+
+> generic factories
+
+```cpp
+```
+
+----
+
+#### Domain Specific Languages - https://godbolt.org/z/s9a6EW5j9
+
+> State Machine Language
+
+```cpp
+  struct Disconnected {};
+  struct Connecting {};
+  struct Connected {};
+
+  // transitions
+  sml::sm connection = sml::overload{
+    [](Disconnected, const connect&)      -> Connecting   { establish(); },
+    [](Connecting,   const established&)  -> Connected    { },
+    [](Connected,    const ping& event)                   { if (event.valid) { reset(); } },
+    [](Connected,    const timeout&)      -> Connecting   { establish(); },
+    [](Connected,    const disconnect&)   -> Disconnected { close(); },
+  };
+
+  static_assert(sizeof(connection) == 1u);
+```
+
+----
+
+#### Performance - https://godbolt.org/z/o39Kh6z7b
+
+> pack
+
+```cpp
+struct unpacked {
+  short s;
+  int i;
+  bool b;
+};
+static_assert(12 == sizeof(unpacked));
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+struct packed {
+  int i;
+  short s;
+  bool b;
+};
+static_assert(8 == sizeof(packed));
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+template<class T>
+using pack_t; // Powered by Meta-programming
+```
+
+```cpp
+static_assert(8 == sizeof(pack_t<unpacked>));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+// C++17/C++20
+static_assert(is_same_v<tuple<bool, short, int>, pack_t<unpacked>>);
+
+// P2996
+static_assert(requires(pack_t<unpacked> p) { p.i; p.s; p.b; });
+```
+
+----
+
+#### Performance - https://godbolt.org/z/Y7afn9x8r
+
+> Struct of Arrays
+
+```cpp
+template<class T>
+struct soa_vector {
+  constexpr void push_back(const T value) {
+    // Powered by Meta-programming
+  }
+
+  [[nodiscard]] constexpr auto operator[](size_t index) const {
+    // Powered by Meta-programming
+  }
+
+  // ...
+  soa_t<T> v; // Powerd by Meta-programming
+};
+```
+
+```cpp
+int main() {
+  struct vec3 { float x, y, z; };
+
+  soa_vector<vec3> v{};
+  v.push_back({.x=1, .y=2, .z=3});
+  assert(1 == v[0].x and 2 == v[0].y and 3 == v[0].z);
+}
+```
+
+----
+
+#### Hardware accelerated perfect hashing (reflection) -
+
+```cpp
+int lookup(int id) {
+  static constexpr std::array ids{
+    std::pair{54u, 91u},
+    std::pair{64u, 324u},
+    std::pair{91u, 234u},
+  };
+  return mph::lookup<ids>(id);
+}
+lookup: // g++ -DNDEBUG -std=c++20 -O3
+  imull   $1275516394, %edi, %eax
+  shrl    $23, %eax
+  movl    $24029728, %ecx
+  shrxl   %eax, %ecx, %eax
+  andl    $511, %eax
+  retq
+```
+
+```cpp
+int find(std::string_view str) {
+  static constexpr auto symbols = std::array{
+    std::pair{"AMZN"sv, 1},
+    std::pair{"AAPL"sv, 2},
+    std::pair{"GOOGL"sv, 3},
+    std::pair{"META"sv, 4},
+    std::pair{"MSFT"sv, 5},
+    std::pair{"NVDA"sv, 6},
+    std::pair{"TSLA"sv, 7},
+  };
+  return *mph::find(str);
+}
+
+find: // g++ -DNDEBUG -std=c++20 -O3 -mbmi2
+  shll    $3, %edi
+  bzhil   %edi, (%rsi), %eax
+  movl    $789, %ecx
+  pextl   %ecx, %eax, %ecx
+  leaq    find(%rip), %rdx
+  xorl    %esi, %esi
+  cmpl    (%rdx,%rcx,8), %eax
+  movzbl  4(%rdx,%rcx,8), %eax
+  cmovnel %esi, %eax
+  retq
+
+find:
+  ...
+
+```
+
+----
+
+#### ...
 
 ----
 
@@ -111,9 +310,12 @@
 
 ----
 
-### Approches
+#### Meta-programming
 
-// show 1 liner examples
+#### - The beginning...
+
+Type based
+value based
 
 #### - Angle bracket approach - boost.mpl
 <!-- .element: style="text-align:left" -->
@@ -121,127 +323,190 @@
 #### - Fusion - boost.fusion
 <!-- .element: style="text-align:left" -->
 
-#### - Fusion with lambdas - boost.hana
+constexpr-programming vs meta-programming
+
+  - immutable, functional, no varadics
+
+#### - C++14 generic lambdas - boost.hana
 <!-- .element: style="text-align:left" -->
 
-#### - Optimized mpl - boost.mp11
+```cpp
+assert(hana::reverse(hana::make_tuple('a', 1)) == hana::make_tuple(1, 'a')));
+```
+
+#### - C++11 mpl revisited - boost.mp11
+<!-- .element: style="text-align:left" -->
+```cpp
+static_assert(is_same_v<mp_reverse<mp_list<char, int>>, mp_list<int, char>>);
+```
+
+--- This talks ---
+
+#### - Value based Meta-programming
 <!-- .element: style="text-align:left" -->
 
-#### - qlib/mp -
+  #### - mp (https://github.com/mp)
+  <!-- .element: style="text-align:left" -->
+
+  #### - C++26* - Reflection for C++ - https://wg21.link/P2996
+  <!-- .element: style="text-align:left" -->
+
+#### - Langauge based Meta-programming
 <!-- .element: style="text-align:left" -->
 
-#### - P2996*
-<!-- .element: style="text-align:left" -->
-
-#### - Circle - builtins
-<!-- .element: style="text-align:left" -->
+  #### - Circle
+  <!-- .element: style="text-align:left" -->
 
 ----
 
-### C++17/C++20
+#### C++17/C++20
 
-- what we need?
-  - type -> to id
-  - id -> types
-  - constexpr containers - https://isocpp.org/files/papers/D3372R0.html
+- What we need?
+
+#### 1. Common type (enables algorithms)
+```cpp
+  std::array{???<int>, ???<void>};
+```
+
+#### 1.1 Problems
+  ```cpp
+  constexpr std::vector v = {1, 2, 3}; // error
+  ```
+
+  ```cpp
+  template<class T, size_t N>
+  struct static_vector {
+    constexpr static_vector() = default;
+    constexpr auto push_back(const T& value) { data[n++] = value; }
+    [[nodiscard]] constexpr auto operator[](size_t i) const { return data[i]; }
+    [[nodiscard]] constexpr auto size() const { return n; }
+    union { T data[N]; };
+    size_t n{};
+  };
+  ```
+
+  - inplace_vector - https://wg21.link/P0843
+  - More constexpr containers - https://wg21.link/P0784
+  - Non-transient constexpr allocation - https://wg21.link/P1974
+
+> 2. Common type to actual type (ids->templates)
+```cpp
+  auto info = ???<int>;
+  using T = ???(info); // int
+```
 
 ----
 
-### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+#### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
 
 ```cpp
-template<auto> struct meta_info {
-  constexpr auto friend get(meta_info);
-};
+template<class T>
+inline constexpr auto meta = &detail::meta<T>::id;
 ```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-template<class T> struct meta_data {
-  using value_type = T;
-  static constexpr size_t id{};
-  constexpr auto friend get(meta_info<&id>) { return meta_data{}; }
-};
+static_assert(meta<int> == meta<int>);
+static_assert(meta<int> != meta<void>);
 ```
-
-----
-
-### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
-
-```cpp
-template<class T> inline constexpr auto meta = &meta_data<T>::id;
-```
-
-```cpp
-using info = decltype(meta<void>);
-```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
 ```cpp
-static_assert(mp::meta<int> == mp::meta<int>);
-static_assert(mp::meta<int> != mp::meta<void>);
-static_assert(std::is_same_v<decltype(mp::meta<int>), decltype(mp::meta<void>)>);
+using info = decltype(meta<void>);
 ```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+static_assert(typeid(meta<int>)  == typeid(info));
+static_assert(typeid(meta<void>) == typeid(info));
+static_assert(typeid(meta<int>)  == typeid(meta<void>));
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ----
 
-### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+#### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+
+```cpp
+namespace detail {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  template<class T> struct meta {
+    using value_type = T;
+    static constexpr size_t id{};
+    constexpr auto friend get(info<&id>) { return meta{}; }
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  template<auto> struct info {
+    constexpr auto friend get(info);
+  };
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+
+```cpp
+} // namespace detail
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
 
 ```cpp
 template<info meta>
 using type_of = typename decltype(get(meta_info<meta>{}))::value_type;
 ```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
-constexpr mp::info meta = mp::meta<int>;
-mp::type_of<meta> i{}; // same as int i{};
-mp::type_of<mp::meta<bool>> b = true; // same as bool b = true;
+constexpr info meta_int = meta<int>;
+type_of<meta_int> i{}; // same as int i{};
 ```
-
-----
-
-### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-template<template<class...> class T, auto range>
-using apply_t = decltype(
-  []<size_t... Ns>(index_sequence<Ns...>) {
-    return T<type_of<range[Ns]>...>{};
-  }(make_index_sequence<range.size()>{})
-);
+type_of<meta<bool>> b = true; // same as bool b = true;
 ```
-
----
-
-----
-
-### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-template<auto range>
-constexpr auto for_each(auto&& fn) {
-  [fn]<mp::size_t... Ns>(mp::index_sequence<Ns...>) {
-    (fn.template operator()<range[Ns]>(), ...);
-  }(mp::make_index_sequence<range.size()>{});
-}
+template<size_t N, class... Ts>
+using at =
 ```
-
----
-
-----
-
-#### nth_pack_element
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-template<mp::size_t N, class... Ts>
-using at_c = mp::type_of<std::array{mp::meta<Ts>...}[N]>;
-
-static_assert(std::is_same_v<int, at_c<0, int, bool, float>>);
-static_assert(std::is_same_v<bool, at_c<1, int, bool, float>>);
-static_assert(std::is_same_v<float, at_c<2, int, bool, float>>);
+  type_of<
 ```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+    array{meta<Ts>...}[N]
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```
+  >;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+
+```cpp
+static_assert(std::is_same_v<int, at<0, int, bool, float>>);
+static_assert(std::is_same_v<bool, at<1, int, bool, float>>);
+static_assert(std::is_same_v<float, at<2, int, bool, float>>);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
 
 ---
 
@@ -254,50 +519,389 @@ using at = Ts...[N];
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
-----
-
-#### for_each
 
 ----
 
-### Algorithms - https://godbolt.org/z/GvzjvdPq8
+#### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
 
-variant
+```cpp
+template<template<class...> class T, ranges::range auto range>
+using apply_t =
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  decltype(
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    []<size_t... Ns>(index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+      return declval<T<type_of<range[Ns]>...>>();
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+    }(make_index_sequence<range.size()>{})
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  );
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-### Debugging/Testing - https://godbolt.org/z/vTfGGToa4
+// tests
 
 ----
 
-### Reflection - https://godbolt.org/z/qb37G79Ya
+#### C++17/C++20 - https://godbolt.org/z/acenYn9Ez
+
+```cpp
+template<ranges::range auto range>
+constexpr auto for_each(auto&& fn) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  [fn]<size_t... Ns>(index_sequence<Ns...>) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    (fn.template operator()<range[Ns]>(), ...);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  }(make_index_sequence<range.size()>{});
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+##### Expansion statements* (https://wg21.link/P1306)
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+template for (constexpr auto r : range) {
+  // ... // can return but can't break
+}
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
-### C++26* (https://wg21.link/P2996)
-
-
-  | mp (C++17/C++20) | P2996 (C++26*) |
-  | - | - |
-  | `meta<T>` | `^T` |
-  | `type_of<T>` | `typename [: T :]` |
-  | `for_each` | `template for` (https://wg21.link/p1306) |
-  | `apply` | `substitute` |
-  | `invoke<trait>` | `test_trait` |
+// tests
+// point of compilation time performance via fusion
 
 ----
 
-### C++26* (https://wg21.link/P2996)
+#### invoke
+
+```cpp
+template<class Fn, class T = decltype([]{})>
+constexpr auto invoke(Fn&& fn, info meta) {
+  constexpr auto dispatch = [fn]<size_t... Ns>(index_sequence<Ns...>) {
+    return array{&Fn::template operator()<Ns>...};
+  }(make_index_sequence<distance(meta<void>, meta<T>)>{});
+  return dispatch[distance(meta<void>, meta)](fn);
+}
+```
+
+// tests
+
+[]<info meta>
+
+----
+
+#### STL/ranges - https://godbolt.org/z/GvzjvdPq8
+
+----
+
+```cpp
+template<class... Ts>
+struct example {
+  apply_t<std::variant,
+      std::array{meta<Ts>...}
+    | std::views::drop(1)
+    | std::views::reverse
+    | std::views::filter([](auto m) { return invoke<std::is_integral>(m); })
+    | std::views::transform([](auto m) { return invoke<std::add_const>(m); })
+    | std::views::take(2)
+    | std::ranges::to<vector<info>>()
+  > v;
+};
+```
+
+```cpp
+static_assert(
+  typeid(std::variant<const int, const short>)
+  ==
+  typeid(example<double, void, const short, int>::v)
+);
+```
+
+// TODO based insdie variant variant
+
+----
+
+#### Debugging/Testing - https://godbolt.org/z/vTfGGToa4
+
+```cpp
+constexpr auto reverse(ranges::range auto v) {
+  std::reverse(v.begin(), v.end());
+  return v;
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  static_assert(         static_assert(
+    std::array{2, 1}       std::array{meta<float>, meta<int>}
+    ==                     ==
+    reverse(1, 2)          reverse(std::array{meta<int>, meta<float>)
+  );                     );
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+int main() {
+  assert((               assert((
+    std::array{2, 1}       std::array{meta<float>, meta<int>}
+    ==                     ==
+    reverse(1, 2)          reverse(std::array{meta<int>, meta<float>})
+  ));                    ));
+}
+```
+<!-- .element: class="fragment" data-fragment-index="2"  -->
+
+----
+
+#### Reflection - https://github.com/qlibs/reflect - https://godbolt.org/z/qb37G79Ya
+
+```cpp
+struct foo {
+  int a;
+  bool b;
+  float c;
+};
+```
+<!-- .element: class="fragment" data-fragment-index="0"  -->
+
+```cpp
+constexpr foo f{.a = 42, .b = true, .c = 3.2f};
+```
+<!-- .element: class="fragment" data-fragment-index="1"  -->
+
+```cpp
+constexpr vector<info> v =
+    members(f)
+  | std::views::filter([&](auto meta) {
+      return member_name(meta, f) != "b"; }
+    )
+  | std::views::reverse
+  ;
+```
+<!-- .element: class="fragment" data-fragment-index="2"  -->
+
+```cpp
+static_assert(std::tuple{3.2f, 42} == to<std::tuple, v>(f));
+```
+<!-- .element: class="fragment" data-fragment-index="3"  -->
+
+----
+
+```cpp
+template<class T, class TField, auto N> struct reflect_info {
+  using value_type = T;
+  using field_type = TField;
+  static constexpr auto index = N;
+};
+```
+
+```cpp
+template<class T>
+[[nodiscard]] constexpr auto members([[maybe_unused]] T&& t) {
+  return []<auto... Ns>(mp::utility::index_sequence<Ns...>) {
+    return mp::array{mp::meta<reflect_info<T, decltype(reflect::get<Ns>(static_cast<T&&>(t))), Ns>>...};
+  }(mp::utility::make_index_sequence<reflect::size<T>()>{});
+}
+```
+
+```cpp
+template<template<class...> class T, auto V>
+[[nodiscard]] constexpr auto to(auto&& t) {
+  return [&]<auto... Ns>(mp::utility::index_sequence<Ns...>) {
+    return T{reflect::get<mp::type_of<V[Ns]>::index>(t)...};
+  }(mp::utility::make_index_sequence<V.size()>{});
+}
+```
+
+----
+
+#### C++26* (https://wg21.link/P2996)
+
+> Reflection for C++
+
+  - ##### Value (consteval) based
+
+----
+
+#### C++26* (https://wg21.link/P2996)
+
+```cpp
+[:   // splicer (unreflexpr)
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  ^T // lift    (reflexpr)
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+:]
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+---
+
+```cpp
+static_assert(
+  typeid(^T) == typeid(meta::info)
+);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+static_assert(
+  typeid(typename[:^int:]) == typeid(int)
+);
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+#### C++26* (https://wg21.link/P2996)
+
+<img src="images/cmp.png" style="width: 70%; background:none; border:none; box-shadow:none;" />
+
+----
+
+#### C++26* (https://wg21.link/P2996)
+
+```cpp
+// P2996
+template<size_t N, class... Ts>
+using at = typename [: array{^Ts...}[N] :];
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+// C++17/C++20
+template<size_t N, class... Ts>
+using at = type_of<array{meta<Ts>...}[N]>;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+---
+
+```cpp
+static_assert(typeid(int)   == typeid(at<0, int, float, short>));
+static_assert(typeid(float) == typeid(at<1, int, float, short>));
+static_assert(typeid(short) == typeid(at<2, int, float, short>));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++26* (https://wg21.link/P2996)
+
+```cpp
+namespace std::meta {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  using info = /*type-erased AST node*/;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  // #member-queries
+  consteval auto enumerators_of(info) -> vector<info>;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  // #name and location
+  consteval auto name_of(info) -> string_view;
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+  // ...
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 - Implementing static reflection proposal with the static reflection proposal - https://godbolt.org/z/694e1hrbM
 
 ----
 
-### Circle
+#### Circle - https://www.circle-lang.org - https://circle.godbolt.org/z/sqsaKvqar
+
+- Meta-programming model
+  - langauge feature
+  - member packs
+  - reflection
+
+```cpp
+template<class...> struct list{};
+
+template<class... Ts> auto rotate = list<Ts.rotate(1)...>{};
+
+static_assert(typeid(rotate<int, double, float>) ==  typeid(list<double, float, int>));
+```
 
 ----
 
-### Benchmarks - https://qlibs.github.io/mp
+#### Circle - https://www.circle-lang.org - https://circle.godbolt.org/z/TdPYzxMc1
+
+```cpp
+template<class... Ts>
+struct example {
+   // circle
+   std::variant<Ts...[-2::-1]...> circle; // python slicing
+};
+
+static_assert(std::is_same_v<decltype(example<int, double, float>{}.circle), std::variant<double, int>>);
+```
+
+----
+
+### Benchmarks
+
+----
+
+#### Compilation-times benchmark - https://qlibs.github.io/mp
 
 <a href="https://qlibs.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
@@ -305,10 +909,10 @@ variant
 
 ### Summary
 
-* #### Meta-programming is C++ super-power
+* #### Meta-programming can enhance performance, flexibility, ...
 <!-- .element: class="fragment" -->
 
-* #### Meta-programming can be as simple as run-time programming
+* #### Meta-programming doesn't have to be different than run-time programming
 <!-- .element: class="fragment" -->
 
 * #### Reflection enhances Meta-programming use-cases
