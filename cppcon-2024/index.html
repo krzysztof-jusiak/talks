@@ -92,8 +92,8 @@
 
 > ###### `is a technique where templates are used to generate code at compile-time` <hr />
 ```cpp
-vector<T>
-variant<Ts...>
+std::vector<T>
+std::variant<Ts...>
 template<class InputIt, class T>
 T accumulate(InputIt first, InputIt last, T init);
 ...
@@ -103,8 +103,6 @@ T accumulate(InputIt first, InputIt last, T init);
 ----
 
 ### Motivation / Examples
-
-<!-- .slide: data-background="black" -->
 
 ----
 
@@ -138,12 +136,10 @@ class variant {
 ---
 
 ```cpp
-template<class T, class... Ts>
-constexpr decltype(auto) get(const tuple<Ts...>& t); // Powered by TMP
+template<class T>  decltype(auto) get(auto&& t); // Powered by TMP
+template<size_t N> decltype(auto) get(auto&& t); // Powered by TMP
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
-
-<!-- .slide: data-background="black" -->
 
 ----
 
@@ -175,8 +171,6 @@ for_each<bool, char, int>(
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-<!-- .slide: data-background="black" -->
-
 ----
 
 #### Flexibilty - generic factories -
@@ -198,19 +192,17 @@ make<T>(42, 77, []<integral>) { return 42; });
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-<!-- .slide: data-background="black" -->
-
 ----
 
 #### API - Domain Specific Languages - https://godbolt.org/z/s9a6EW5j9
 
 ```cpp
 sm connection = overload{ // Powered by TMP
- [](Disconnected, connect&&)    -> Connecting  { establish(); },
- [](Connecting,   established&&)-> Connected   { },
- [](auto,         ping&& e)                    { if(e.valid) reset(); },
- [](auto,         timeout&&)    -> Connecting  { establish(); },
- [](auto,         disconnect&&) -> Disconnected{ close(); },
+ [](Disconnected, connect)    -> Connecting   { establish(); },
+ [](Connecting,   established)-> Connected    { },
+ [](auto,         ping e)                     { if(e.valid) reset(); },
+ [](auto,         timeout)    -> Connecting   { establish(); },
+ [](auto,         disconnect) -> Disconnected { close(); },
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -228,13 +220,14 @@ connection.process_event(connect{}); // Disconnected -> Connecting
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-static_assert(not [](auto&& event) {
-  return requires { connection.process_event(event{}); }
+// Substitution failure is not an error (SFINAE) friendly
+static_assert(not [](const auto& event) {
+  return requires {
+    connection.process_event(event); // Powered by TMP
+  };
 }(unknown{}));
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
-
-<!-- .slide: data-background="black" -->
 
 ----
 
@@ -272,7 +265,6 @@ static_assert(requires(pack_t<unpacked> p) { p.i; p.s; p.b; });
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
-<!-- .slide: data-background="black" -->
 ----
 
 #### Performance - https://godbolt.org/z/Y7afn9x8r
@@ -298,8 +290,6 @@ int main() {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
-<!-- .slide: data-background="black" -->
 
 ----
 
@@ -357,123 +347,128 @@ find:
 
 ```
 
-<!-- .slide: data-background="black" -->
-
 ----
 
 ## ...
 
-<!-- .slide: data-background="black" -->
+----
+
+### HOWTO
+
+---
+
+### Template Metaprogramming (TMP)
 
 ----
 
-### HOWTO Template Metaprogramming (TMP)
+#### Template Metaprogramming*
+
+  #### Type based TMP
+    - boost.mpl -> boost.mp11, ...
+
+  #### Heterogeneous based TMP
+    - boost.fusion -> boost.hana
+
+  #### Value based TMP
+  <!-- .element: style="text-align:left" -->
+    - this talk - mp, P2996
+
+  #### Language feature
+  <!-- .element: style="text-align:left" -->
+    - this talk - circle
+
+---
+
+  #### Computations
+
+    - constexpr/consteval
+
+> *Code generation not discussed
 
 ----
 
-#### Template Metaprogramming
+#### Value based TMP - Goals
 
-- C++98
-  - Type based (immutable, functional, no varadics...)
-    ```cpp
-    vector<T>
-    ```
+#### [ ] Supports any style of programming and existing practices
+<!-- .element: class="fragment" style="text-align:left" -->
 
-    ```cpp
-      template <unsigned N>
-      struct factorial {
-        static constexpr unsigned value = N * factorial<N - 1>::value;
-      };
-    ```
+#### [ ] Supports STL and/or any libraries, algorithms, etc.
+<!-- .element: class="fragment" style="text-align:left" -->
 
-    - boost.mpl
-    ```cpp
-    template<class T, class vector> class vector;
-    ```
+#### [ ] Makes testing, debugging, code coverage same as at run-time
+<!-- .element: class="fragment" style="text-align:left" -->
 
-- C++11
-  constexpr - computations
+#### [ ] Reasonable error messages and fast compilation times
+<!-- .element: class="fragment" style="text-align:left" -->
 
-  ```cpp
-  constexpr unsigned factorial(unsigned n) {
-    return n == 0 ? 1 : n * factorial(n - 1);
-  }
-  ```
+----
 
-  type based - boost.mp11 (precursor - boost.mpl)
-  ```cpp
-  static_assert(is_same_v<mp_reverse<mp_list<char, int>>, mp_list<int, char>>);
-  ```
+// from implementation perspective
 
-- type_traits (introspection)
-
-- C++14 - generic lambdas - boost.hana (precursor - boost.fusion)
 ```cpp
-assert(hana::reverse(hana::make_tuple('a', 1)) == hana::make_tuple(1, 'a')));
-using type = decltype(hana::reverse(hana::make_tuple('a', 1)));
-```
-<!-- .element: style="text-align:left" -->
-
-- C++17 - fold exprssions, etc...
-- C++20 - contsexpr vector
-- C++26 - reflection...
-
---- This talk ---
-
-#### - Value based template metaprogramming
-<!-- .element: style="text-align:left" -->
-
-  #### - C++17/C++20 - mp (https://github.com/mp)
-  <!-- .element: style="text-align:left" -->
-
-  #### - C++26* - Reflection for C++ - https://wg21.link/P2996
-  <!-- .element: style="text-align:left" -->
-
-#### - Langauge based template metaprogramming
-<!-- .element: style="text-align:left" -->
-
-  #### - Circle (https://www.circle-lang.org)
-  <!-- .element: style="text-align:left" -->
-
-----
-
-#### Value based TMP
-
-#### Single type (arrays, vectors instead of tuples)
-```cpp
-  array{???int, ???void};
+1. constexpr auto meta_function(const auto& v) {
+2.   vector<???> r;
+3.
+4.   for (const auto& e : v) {
+5.     if (is_const(e)) { // i wanna be able to use type_traits
+6.       r.push_back([]<T> { return ??
+7.     }
+8.   }
+1.
+1.   std::reverse(r.begin(), r.end());
+1.
+1.   return std::views::(r)
+1.     | filter ()
+1.     | take(2);
+1. }
 ```
 
-#### constexpr contrainters
-  ```cpp
-  constexpr vector v = {1, 2, 3}; // error
-  ```
+---
 
-  ```cpp
-  template<class T, size_t N>
-  struct static_vector {
-    constexpr static_vector() = default;
-    constexpr auto push_back(const T& value) { data[n++] = value; }
-    [[nodiscard]] constexpr auto operator[](size_t i) const { return data[i]; }
-    [[nodiscard]] constexpr auto size() const { return n; }
-    union { T data[N]; };
-    size_t n{};
-  };
-  ```
-
-  - inplace_vector - https://wg21.link/P0843
-  - More constexpr containers - https://wg21.link/P0784
-  - Non-transient constexpr allocation - https://wg21.link/P1974
-
-> Values to Types
 ```cpp
-  auto info = ???int;
-  using T = ???info; // int
+static_assert(type_list<const int, double, float>,
+           ???meta_function(vector{int, double, float}));
+```
+
+----
+
+#### Value based TMP - How?
+
+
+```cpp
+constexpr vector v = {1, 2, 3}; // error
+constexpr auto fn() {
+  vector v{1, 2, 3}; // okay
+  return v;          // error (allocation)
+}
+constexpr auto fn() {
+  array v{1, 2, 3};  // okay
+  return v;          // okay
+}
+constexpr auto fn() {
+  inplace_vector v{1, 2, 3};  // okay
+  return v;          // okay
+}
+```
+
+- inplace_vector - https://wg21.link/P0843
+- More constexpr containers - https://wg21.link/P0784
+- Non-transient constexpr allocation - https://wg21.link/P1974
+
+```cpp
+10. constexpr vector<???> v = meta_function(...);
+11. using type = !!!(variant, v); // variant<Ts...>
 ```
 
 ----
 
 #### Value based TMP - https://godbolt.org/z/acenYn9Ez
+
+```cpp
+1. vector<???>
+```
+
+---
 
 ```cpp
 template<class T>
@@ -501,7 +496,9 @@ static_assert(typeid(meta<int>)  == typeid(meta<void>));
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
-<!-- .slide: data-background="#003332" -->
+```cpp
+vector<info> {meta<int>, meta<void>}; // ✔️
+```
 
 ----
 
@@ -534,8 +531,6 @@ namespace detail {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-<!-- .slide: data-background="#003332" -->
-
 ----
 
 #### Value based TMP - https://godbolt.org/z/acenYn9Ez
@@ -558,8 +553,6 @@ type_of<meta_int> i{}; // same as int i{};
 type_of<meta<bool>> b = true; // same as bool b = true;
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
-
-<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -588,8 +581,6 @@ template<size_t N, class... Ts>
 using at = Ts...[N];
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
-
-<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -636,8 +627,6 @@ static_assert(
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
-<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -695,8 +684,6 @@ constexpr auto reverse_and_drop() {
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
-<!-- .slide: data-background="#003332" -->
-
 ----
 
 #### Problem
@@ -708,8 +695,6 @@ consteval fn() {
   if (type_of<v[0]>) // error
 }
 ```
-
-<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -753,8 +738,6 @@ static_assert(
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
-
-<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -832,69 +815,6 @@ int main() {
     ==
     reverse(array{meta<int>, meta<float>})
   ));
-}
-```
-<!-- .element: class="fragment" data-fragment-index="2"  -->
-
-----
-
-#### Reflection - https://godbolt.org/z/qb37G79Ya
-
-```cpp
-constexpr auto filter(const auto& f) -> vector<info> {
-  return
-    members(f)
-  | views::filter([&](auto meta) {
-      return member_name(meta, f) != "b";
-    })
-  ;
-}
-```
-<!-- .element: class="fragment" data-fragment-index="2"  -->
-
-```cpp
-int main() {
-  struct foo {
-    int a;
-    bool b;
-    float c;
-  };
-  foo f{.a = 42, .b = true, .c = 3.2f};
-  assert(tuple{3.2f, 42} == to<tuple, v>(f));
-}
-```
-<!-- .element: class="fragment" data-fragment-index="3"  -->
-
-----
-
-#### Reflection - https://github.com/qlibs/reflect
-
-```cpp
-template<class T, class TField, auto N>
-struct reflect_info {
-  using value_type = T;
-  using field_type = TField;
-  static constexpr auto index = N;
-};
-```
-<!-- .element: class="fragment" data-fragment-index="0"  -->
-
-```cpp
-template<class T>
-[[nodiscard]] constexpr auto members(T&& t) {
-  return []<size_t... Ns>(index_sequence<Ns...>) {
-    return array{meta<reflect_info<T, , Ns>>...};
-  }(make_index_sequence<reflect::size<T>()>{});
-}
-```
-<!-- .element: class="fragment" data-fragment-index="1"  -->
-
-```cpp
-template<template<class...> class T, auto v>
-[[nodiscard]] constexpr auto to(auto&& t) {
-  return [&]<size_t... Ns>(index_sequence<Ns...>) {
-    return T{get<type_of<v[Ns]>::index>(t)...};
-  }(make_index_sequence<v.size()>{});
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="2"  -->
@@ -1177,9 +1097,6 @@ static_assert(
           { src: 'extensions/plugin/line-numbers/line-numbers.js' }
         ]
       });
-
-      <!--window.addEventListener("mousedown", handleClick, false);-->
-      <!--window.addEventListener("contextmenu", function(e) { e.preventDefault(); }, false);-->
 
       function handleClick(e) {
         if (1 >= outerHeight - innerHeight) {
