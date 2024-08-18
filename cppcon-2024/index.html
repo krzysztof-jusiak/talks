@@ -104,6 +104,8 @@ T accumulate(InputIt first, InputIt last, T init);
 
 ### Motivation / Examples
 
+<!-- .slide: data-background="black" -->
+
 ----
 
 #### Standard Template Library (STL) - https://godbolt.org/z/TKPdYPv3P
@@ -141,6 +143,8 @@ constexpr decltype(auto) get(const tuple<Ts...>& t); // Powered by TMP
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
+<!-- .slide: data-background="black" -->
+
 ----
 
 #### Don't repeat yourself (DRY) -
@@ -171,8 +175,9 @@ for_each<bool, char, int>(
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
-----
+<!-- .slide: data-background="black" -->
 
+----
 
 #### Flexibilty - generic factories -
 
@@ -192,6 +197,8 @@ make<T>(42, 77);
 make<T>(42, 77, []<integral>) { return 42; });
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+<!-- .slide: data-background="black" -->
 
 ----
 
@@ -226,6 +233,8 @@ static_assert(not [](auto&& event) {
 }(unknown{}));
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
+
+<!-- .slide: data-background="black" -->
 
 ----
 
@@ -263,6 +272,7 @@ static_assert(requires(pack_t<unpacked> p) { p.i; p.s; p.b; });
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
+<!-- .slide: data-background="black" -->
 ----
 
 #### Performance - https://godbolt.org/z/Y7afn9x8r
@@ -288,6 +298,8 @@ int main() {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+<!-- .slide: data-background="black" -->
 
 ----
 
@@ -345,9 +357,13 @@ find:
 
 ```
 
+<!-- .slide: data-background="black" -->
+
 ----
 
 ## ...
+
+<!-- .slide: data-background="black" -->
 
 ----
 
@@ -485,6 +501,8 @@ static_assert(typeid(meta<int>)  == typeid(meta<void>));
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
+<!-- .slide: data-background="#003332" -->
+
 ----
 
 #### Value based TMP - https://godbolt.org/z/acenYn9Ez
@@ -516,6 +534,8 @@ namespace detail {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
+<!-- .slide: data-background="#003332" -->
+
 ----
 
 #### Value based TMP - https://godbolt.org/z/acenYn9Ez
@@ -538,6 +558,8 @@ type_of<meta_int> i{}; // same as int i{};
 type_of<meta<bool>> b = true; // same as bool b = true;
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -566,6 +588,8 @@ template<size_t N, class... Ts>
 using at = Ts...[N];
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
+
+<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -612,6 +636,8 @@ static_assert(
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -669,6 +695,8 @@ constexpr auto reverse_and_drop() {
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
+<!-- .slide: data-background="#003332" -->
+
 ----
 
 #### Problem
@@ -680,6 +708,8 @@ consteval fn() {
   if (type_of<v[0]>) // error
 }
 ```
+
+<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -723,6 +753,8 @@ static_assert(
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+<!-- .slide: data-background="#003332" -->
 
 ----
 
@@ -835,7 +867,7 @@ int main() {
 
 ----
 
-#### Reflection - https://github.com/qlibs/reflect - https://godbolt.org/z/qb37G79Ya
+#### Reflection - https://github.com/qlibs/reflect
 
 ```cpp
 template<class T, class TField, auto N>
@@ -849,7 +881,7 @@ struct reflect_info {
 
 ```cpp
 template<class T>
-[[nodiscard]] constexpr auto members([[maybe_unused]] T&& t) {
+[[nodiscard]] constexpr auto members(T&& t) {
   return []<size_t... Ns>(index_sequence<Ns...>) {
     return array{meta<reflect_info<T, , Ns>>...};
   }(make_index_sequence<reflect::size<T>()>{});
