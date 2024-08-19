@@ -83,7 +83,7 @@
 
 ---
 
-###### Powered by [Compiler Explorer](https://godbolt.org) (clang, gcc, msvc)
+###### Powered by [Compiler Explorer](https://godbolt.org)
 <!-- .element: class="fragment" -->
 
 ----
@@ -361,49 +361,29 @@ find:
 
 ----
 
-#### Template Metaprogramming*
+#### Template Metaprogramming
 
-  #### Type based TMP
-    - boost.mpl -> boost.mp11, ...
+#### - Type based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
-  #### Heterogeneous based TMP
-    - boost.fusion -> boost.hana
+#### - Heterogeneous based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
-  #### Value based TMP
-  <!-- .element: style="text-align:left" -->
-    - this talk - mp, P2996
-
-  #### Language feature
-  <!-- .element: style="text-align:left" -->
-    - this talk - circle
+#### - Value based TMP ([mp](https://github.com/qlibs/mp), [P2996](https://wg21.link/P2996), ...)*
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+  
+#### - Language feature based TMP ([circle-lang](https://www.circle-lang.org))*
+<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
 ---
 
-  #### Computations
+#### \* This talk
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:center" -->
 
-    - constexpr/consteval
-
-> *Code generation not discussed
-
-----
-
-#### Value based TMP - Goals
-
-#### [ ] Supports any style of programming and existing practices
-<!-- .element: class="fragment" style="text-align:left" -->
-
-#### [ ] Supports STL and/or any libraries, algorithms, etc.
-<!-- .element: class="fragment" style="text-align:left" -->
-
-#### [ ] Makes testing, debugging, code coverage same as at run-time
-<!-- .element: class="fragment" style="text-align:left" -->
-
-#### [ ] Reasonable error messages and fast compilation times
-<!-- .element: class="fragment" style="text-align:left" -->
+#### \* Disclaimer: constexpr/consteval
+<!-- .element: class="fragment" data-fragment-index="5" style="text-align:center" -->
 
 ----
-
-// from implementation perspective
 
 ```cpp
 1. constexpr auto meta_function(const auto& v) {
@@ -423,6 +403,10 @@ find:
 1. }
 ```
 
+// do testing
+// show error message
+// show different styles
+
 ---
 
 ```cpp
@@ -432,8 +416,18 @@ static_assert(type_list<const int, double, float>,
 
 ----
 
-#### Value based TMP - How?
+### Let's make it happen with C++17
 
+#### [clang, gcc, msvc](https://godbolt.org/z/6asb6K4EK) / [zero dependencies](https://godbolt.org/z/6asb6K4EK)
+<!-- .element: class="fragment" -->
+
+----
+
+#### Value based TMP - https://godbolt.org/z/acenYn9Ez
+
+```cpp
+1. vector<???>
+```
 
 ```cpp
 constexpr vector v = {1, 2, 3}; // error
@@ -458,14 +452,6 @@ constexpr auto fn() {
 ```cpp
 10. constexpr vector<???> v = meta_function(...);
 11. using type = !!!(variant, v); // variant<Ts...>
-```
-
-----
-
-#### Value based TMP - https://godbolt.org/z/acenYn9Ez
-
-```cpp
-1. vector<???>
 ```
 
 ---
@@ -893,20 +879,31 @@ static_assert(typeid(short) == typeid(at<2, int, float, short>));
 
 ----
 
-### Circle - https://www.circle-lang.org
+### Circle-lang - https://www.circle-lang.org
 
 ##### Metaprogramming model - language feature, member packs, reflection, ...
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-#### Circle - https://circle.godbolt.org/z/sqsaKvqar
+#### Circle-lang - https://circle.godbolt.org/z/sqsaKvqar
 
+// at example
+
+// slicing example
+
+// rotate
+
+// reflection
+
+// ranges
 
 ```cpp
-template<class...>
-struct type_list{};
+template<class...> struct type_list{};
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
+```cpp
 template<class... Ts>
 auto rotate = type_list<Ts.rotate(1)...>{};
 ```
@@ -923,7 +920,7 @@ static_assert(
 
 ----
 
-#### Circle - https://circle.godbolt.org/z/TdPYzxMc1
+#### Circle-lang - https://circle.godbolt.org/z/TdPYzxMc1
 
 ```cpp
 template<class... Ts>
@@ -956,7 +953,7 @@ static_assert(
 
 ### Summary
 
-* #### Metaprogramming can enhance performance, flexibility, ...
+* #### Metaprogramming is C++ superpower and can enhance performance, flexibility, ...
 <!-- .element: class="fragment" -->
 
 * #### Metaprogramming doesn't have to be different than run-time programming
@@ -975,7 +972,7 @@ static_assert(
 - ##### Reflection for C++ - https://wg21.link/P2996
 <!-- .element: style="text-align:left" -->
 
-- ##### Circle Metaprogramming - Sean Baxter - CppNow 2022  - https://www.youtube.com/watch?v=15j4bkipuAg
+- ##### Circle-lang Metaprogramming - Sean Baxter - CppNow 2022  - https://www.youtube.com/watch?v=15j4bkipuAg
 <!-- .element: style="text-align:left" -->
 
 - ##### Simple C++11 metaprogramming - Peter Dimov - https://www.boost.org/doc/libs/master/libs/mp11/doc/html/simple_cxx11_metaprogramming.html
