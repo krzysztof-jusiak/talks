@@ -422,6 +422,26 @@ static_assert(type_list<const int, double, float>,
 #### - informative error messages
 
 ```cpp
+contexpr auto sum(auto... args) { return (args + ...); }
+"sum"_test = [] {
+  static_assert(sum() == 6);
+};
+```
+
+```cpp
+"vector"_test = [] {
+  std::vector<int> v;
+  static_assert(v.empty()); // error
+
+  constexpr std::vector<int> v; // error
+  static_assert(v.empty());
+
+  std::vector<int> v; // error
+  assert(v.empty()); // okay
+};
+```
+
+```cpp
 constexpr void expect(bool cond) {
   if consteval {
     if (not cond) {
@@ -432,9 +452,12 @@ constexpr void expect(bool cond) {
   }
 }
 
-auto fn() {
-  expect(not cond());
+auto meta_function() {
+  std::vector<info> v;
+  expect(v.empty());
 }
+
+// show error message
 
 ```
 
