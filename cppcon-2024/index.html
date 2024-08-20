@@ -70,13 +70,14 @@
   - #### Examples
 <!-- .element: class="fragment" -->
 
-- #### HOWTO
+- #### Template Metaprogramming (TMP)
 <!-- .element: class="fragment" -->
-  - #### Template Metaprogramming (TMP)
+
+  - #### HOWTO
   <!-- .element: class="fragment" -->
 
-- #### Benchmarks
-<!-- .element: class="fragment" -->
+  - #### Benchmarks
+  <!-- .element: class="fragment" -->
 
 - #### Summary
 <!-- .element: class="fragment" -->
@@ -90,7 +91,7 @@
 
 #### Template Metaprogramming
 
-> ###### `is a technique where templates are used to generate code at compile-time` <hr />
+> ###### `is a technique to generate code at compile-time` <hr />
 ```cpp
 std::vector<T>
 std::variant<Ts...>
@@ -98,6 +99,9 @@ template<class InputIt, class T>
 T accumulate(InputIt first, InputIt last, T init);
 ...
 ```
+<!-- .element: class="fragment" -->
+
+##### <C++ superpower>
 <!-- .element: class="fragment" -->
 
 ----
@@ -176,21 +180,23 @@ for_each<bool, char, int>(
 #### Flexibilty - generic factories -
 
 ```cpp
-template<class T>
-[[nodiscard]] constexpr auto make(auto... args) {
-  return di::create<T>(di::overload{
-  });
-}
+struct foo {
+  constexpr foo(std::unique_ptr<bar>);
+};
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-make<T>();
-make<T>(42);
-make<T>(42, 77);
-make<T>(42, 77, []<integral>) { return 42; });
+auto f = make<foo>(42); // Powered by TMP
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+auto f = make<foo>(overload{ // Powered by TMP
+  []<std::integral> { return 42; },
+});
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -221,7 +227,7 @@ connection.process_event(connect{}); // Disconnected -> Connecting
 
 ```cpp
 // Substitution failure is not an error (SFINAE) friendly
-static_assert(not [](const auto& event) {
+static_assert(not [&](const auto& event) {
   return requires {
     connection.process_event(event); // Powered by TMP
   };
@@ -235,9 +241,9 @@ static_assert(not [](const auto& event) {
 
 ```cpp
 struct unpacked {
-  short s; // 2 bytes
-  int i;   // 4 bytes
-  bool b;  // 1 bytes
+  short s; // size: 2 bytes, alignment:
+  int i;   // size: 4 bytes, alignment:
+  bool b;  // size: 1 bytes, alignment:
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -285,8 +291,17 @@ int main() {
   struct vec3 { float x, y, z; };
 
   soa_vector<vec3> v{};
+  // soa_vector<vec3> {
+  //   vector<float> x;
+  //   vector<float> y;
+  //   vector<float> z;
+  //   void push_back(vec3 v);
+  // };
+
   v.push_back({.x=1, .y=2, .z=3});
-  assert(1 == v[0].x and 2 == v[0].y and 3 == v[0].z);
+  assert(1 == v[0].x and
+         2 == v[0].y and
+         3 == v[0].z);
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -353,15 +368,7 @@ find:
 
 ----
 
-### HOWTO
-
----
-
 ### Template Metaprogramming (TMP)
-
-----
-
-#### Template Metaprogramming
 
 #### - Type based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
@@ -369,56 +376,70 @@ find:
 #### - Heterogeneous based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
-#### - Value based TMP ([mp](https://github.com/qlibs/mp), [P2996](https://wg21.link/P2996), ...)*
+#### - Value based TMP ([mp](https://github.com/qlibs/mp), [P2996](https://wg21.link/P2996), ...) *
 <!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
-  
-#### - Language feature based TMP ([circle-lang](https://www.circle-lang.org))*
+
+#### - Language feature based TMP ([circle-lang](https://www.circle-lang.org)) *
 <!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
 ---
 
-#### \* This talk
-<!-- .element: class="fragment" data-fragment-index="3" style="text-align:center" -->
-
-#### \* Disclaimer: constexpr/consteval
+#### Disclaimer: constexpr/consteval, code generation, ...
 <!-- .element: class="fragment" data-fragment-index="5" style="text-align:center" -->
 
 ----
 
+#### Value based TMP - pseudo code
+
 ```cpp
-1. constexpr auto meta_function(const auto& v) {
-2.   vector<???> r;
+1. constexpr auto meta_function(const ranges::range auto& v) {
+2.   std::vector<???> r; // STL containeres
 3.
 4.   for (const auto& e : v) {
-5.     if (is_const(e)) { // i wanna be able to use type_traits
-6.       r.push_back([]<T> { return ??
+5.     if (not std::is_const_v<???e???>) { // existing utilities (concepts, type_traits)
+6.       r.push_back(???const e????);
 7.     }
 8.   }
 1.
-1.   std::reverse(r.begin(), r.end());
+1.   std::reverse(r.begin(), r.end()); // STL algorithms
 1.
-1.   return std::views::(r)
+1.   return std::views::(r) // ranges
 1.     | filter ()
 1.     | take(2);
 1. }
 ```
+----
 
-// do testing
-// show error message
-// show different styles
+#### Value based TMP - pseudo code
 
----
+#### - fast-compilation
 
 ```cpp
 static_assert(type_list<const int, double, float>,
            ???meta_function(vector{int, double, float}));
 ```
 
+#### - informative error messages
+
+```cpp
+```
+
+#### - testing, debugging, code coverage
+
+```cpp
+"meta_function"_test = [] {
+  expect(meta_function(vector{1, 2, 3}});
+};
+```
+
 ----
 
 ### Let's make it happen with C++17
 
-#### [clang, gcc, msvc](https://godbolt.org/z/6asb6K4EK) / [zero dependencies](https://godbolt.org/z/6asb6K4EK)
+#### ([clang, gcc, msvc](https://godbolt.org/z/6asb6K4EK) / [zero dependencies](https://godbolt.org/z/6asb6K4EK))
+<!-- .element: class="fragment" -->
+
+<img src="images/hmm.png" style="width: 10%; background:none; border:none; box-shadow:none;" />
 <!-- .element: class="fragment" -->
 
 ----
@@ -609,7 +630,7 @@ using apply_t =
 static_assert(
   typeid(variant<int>)
   ==
-  typeid(apply_t<variant, [] { return vector{meta<int>}; }>)
+  typeid(apply_t<variant, vector{meta<int>}>)
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -688,7 +709,7 @@ consteval fn() {
 
 ```cpp
 template<class Fn, class T = decltype([]{})>
-constexpr auto invoke(Fn&& fn, info meta) {
+constexpr auto invoke(Fn&& fn, info m) {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -702,7 +723,7 @@ constexpr auto invoke(Fn&& fn, info meta) {
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  return dispatch[distance(meta<void>, meta)](fn);
+  return dispatch[distance(meta<void>, m)](fn);
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -722,6 +743,36 @@ static_assert(
     meta<const int>
   )
 );
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### invoke
+
+```cpp
+template<template<class...> class T, class... Ts>
+[[nodiscard]] constexpr auto invoke(info m) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  return invoke([]<info meta> {
+    return T<type_of<meta>, Ts...>::value;
+  }, m);
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+static_assert(invoke<std::is_const>(meta<const int>));
+static_assert(not invoke<std::is_reference>(meta<void*>));
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -817,6 +868,38 @@ int main() {
 #### C++26* - https://wg21.link/P2996
 
 ```cpp
+namespace meta {
+  using info = decltype(^::); // ~type-erased AST node
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  // ...
+  consteval auto members_of(info) -> vector<info>;
+  consteval auto enumerators_of(info) -> vector<info>;
+  // ...
+  consteval auto identifier_of(info) -> string_view;
+  // ...
+  consteval auto offset_of(info) -> member_offsets;
+  consteval auto size_of(info) -> size_t;
+  // ...
+  consteval auto is_public(info) -> bool;
+  consteval auto is_protected(info) -> bool;
+  consteval auto is_private(info) -> bool;
+  // ...
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### C++26* - https://wg21.link/P2996
+
+```cpp
 [:   // splicer
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -840,11 +923,6 @@ static_assert(^int == ^void);
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ```cpp
-using info = decltype(^::);
-```
-<!-- .element: class="fragment" data-fragment-index="5" -->
-
-```cpp
 static_assert(typeid(^int)  == typeid(info));
 static_assert(typeid(^void) == typeid(info));
 static_assert(typeid(^int)  == typeid(^void));
@@ -855,9 +933,12 @@ static_assert(typeid(^int)  == typeid(^void));
 
 #### C++26* - https://wg21.link/P2996
 
+<img src="images/cmp.png" style="width: 25%; background:none; border:none; box-shadow:none;" />
+
 ```cpp
 template<size_t N, class... Ts>
-using at = typename [: array{^Ts...}[N] :];
+using at = 
+  typename [: array{^Ts...}[N] :]; // type_of<array{meta<Ts>...}[N]>
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -875,6 +956,7 @@ static_assert(typeid(short) == typeid(at<2, int, float, short>));
 #### C++26* - https://wg21.link/P2996
 
 ```cpp
+// ranges
 ```
 
 ----
