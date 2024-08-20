@@ -73,7 +73,7 @@
 - #### Template Metaprogramming (TMP)
 <!-- .element: class="fragment" -->
 
-  - #### HOWTO
+  - #### Approches / Implementation
   <!-- .element: class="fragment" -->
 
   - #### Benchmarks
@@ -368,24 +368,34 @@ find:
 
 ----
 
-### Template Metaprogramming (TMP)
+## Template Metaprogramming (TMP)
 
-#### - Type based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
+----
+
+#### Template Metaprogramming (TMP)
+
+---
+
+##### - Type based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
-#### - Heterogeneous based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
+##### - Heterogeneous based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
-#### - Value based TMP ([mp](https://github.com/qlibs/mp), [P2996](https://wg21.link/P2996), ...) *
+##### - Value based TMP (this talk -> [mp](https://github.com/qlibs/mp), [P2996](https://wg21.link/P2996), ...)
 <!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
 
-#### - Language feature based TMP ([circle-lang](https://www.circle-lang.org)) *
+##### - Language feature based TMP (this talk -> [circle-lang](https://www.circle-lang.org), [zig-lang](https://ziglang.org/), ...)
 <!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
 ---
 
-#### Disclaimer: constexpr/consteval, code generation, ...
+##### Disclaimer: constexpr/consteval, code generation, ...
 <!-- .element: class="fragment" data-fragment-index="5" style="text-align:center" -->
+
+----
+
+### Value based TMP
 
 ----
 
@@ -442,16 +452,23 @@ contexpr auto sum(auto... args) { return (args + ...); }
 ```
 
 ```cpp
-constexpr void expect(bool cond) {
+constexpr void expect(auto cond)
+ requires requires { bool(cond); } {
   if consteval {
     if (not cond) {
       void failed(); failed(); // not constexpr
     }
   } else {
-    assert(cond);
+    #ifndef NDEBUG
+      if (not cond) {
+        std::breakpoint(); // trap
+      }
+    #endif
   }
 }
+```
 
+```cpp
 auto meta_function() {
   std::vector<info> v;
   expect(v.empty());
@@ -471,12 +488,9 @@ auto meta_function() {
 
 ----
 
-### Let's make it happen with C++17
+### Value based TMP - let's make it happen with C++17?
 
-#### ([clang, gcc, msvc](https://godbolt.org/z/6asb6K4EK) / [zero dependencies](https://godbolt.org/z/6asb6K4EK))
-<!-- .element: class="fragment" -->
-
-<img src="images/hmm.png" style="width: 10%; background:none; border:none; box-shadow:none;" />
+#### [clang, gcc, msvc](https://godbolt.org/z/6asb6K4EK) / [no dependencies](https://godbolt.org/z/6asb6K4EK)
 <!-- .element: class="fragment" -->
 
 ----
@@ -774,9 +788,7 @@ constexpr auto invoke(Fn&& fn, info m) {
 ```cpp
 static_assert(
   invoke(
-    []<info m> {
-      return is_const_v<type_of<m>>;
-    },
+    []<info m> { return is_const_v<type_of<m>>; },
     meta<const int>
   )
 );
@@ -998,9 +1010,15 @@ static_assert(typeid(short) == typeid(at<2, int, float, short>));
 
 ----
 
+## Language based TMP
+
+----
+
 ### Circle-lang - https://www.circle-lang.org
 
-##### Metaprogramming model - language feature, member packs, reflection, ...
+---
+
+##### Disclaimer: Member packs, reflection, ...
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -1040,6 +1058,8 @@ static_assert(
 ----
 
 #### Circle-lang - https://circle.godbolt.org/z/TdPYzxMc1
+
+// cricle classic @keyword
 
 ```cpp
 template<class... Ts>
