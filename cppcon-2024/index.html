@@ -422,6 +422,20 @@ static_assert(type_list<const int, double, float>,
 #### - informative error messages
 
 ```cpp
+constexpr void expect(bool cond) {
+  if consteval {
+    if (not cond) {
+      void failed(); failed(); // not constexpr
+    }
+  } else {
+    assert(cond);
+  }
+}
+
+auto fn() {
+  expect(not cond());
+}
+
 ```
 
 #### - testing, debugging, code coverage
@@ -937,7 +951,7 @@ static_assert(typeid(^int)  == typeid(^void));
 
 ```cpp
 template<size_t N, class... Ts>
-using at = 
+using at =
   typename [: array{^Ts...}[N] :]; // type_of<array{meta<Ts>...}[N]>
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
