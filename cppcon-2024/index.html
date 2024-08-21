@@ -150,28 +150,21 @@ template<size_t N> decltype(auto) get(auto&& t); // Powered by TMP
 #### Don't repeat yourself (DRY) -
 
 ```cpp
-// that needs to change
-template<class TMsg>
-constexpr auto log(const TMsg&);
+constexpr auto fn(std::integral auto);
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
-for_each<bool, char, int>(
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  []<class T> {
-    test(log(T{}));
-  }
+using integral_types = list<bool, char, char8_t, char16_t, char32_t, wchar_t, short, int, long, long long>;
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
-```
-);
+```cpp
+for_each<integral_types>([]<class TIntegral> {
+  static_assert(requires(TIntegral integral) { fn(integral); });
+});
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -308,58 +301,49 @@ int main() {
 
 ----
 
-#### Performace -
+#### Performace - Hardware accelerated perfect hashing (reflection) -
 
-Hardware accelerated perfect hashing (reflection) -
 ```cpp
 static constexpr array ids{
-  pair{54u, 91u},
-  pair{64u, 324u},
-  pair{91u, 234u},
 };
 
 lookup<ids>(id); // Powered by TMP
 lookup:
-  imull   $1275516394, %edi, %eax
-  shrl    $23, %eax
-  movl    $24029728, %ecx
-  shrxl   %eax, %ecx, %eax
-  andl    $511, %eax
-  retq
 ```
 
 ---
 
-ftp", "file", "http", "https", "ws", "wss
+- https://godbolt.org/z/KcP157nYf
 
 ```cpp
-static constexpr auto symbols = array{
-  pair{"AMZN"sv, 1},
-  pair{"AAPL"sv, 2},
-  pair{"GOOGL"sv, 3},
-  pair{"META"sv, 4},
-  pair{"MSFT"sv, 5},
-  pair{"NVDA"sv, 6},
-  pair{"TSLA"sv, 7},
-};
-  return *mph::find(str);
-}
+  static constexpr std::array protocols{
+    std::pair{"ftp"sv,  1},
+    std::pair{"file"sv, 2},
+    std::pair{"http"sv, 3},
+    std::pair{"ws"sv,   5},
+    std::pair{"wss"sv,  6},
+  };
 
-find: // g++ -DNDEBUG -std=c++20 -O3 -mbmi2
-  shll    $3, %edi
-  bzhil   %edi, (%rsi), %eax
-  movl    $789, %ecx
-  pextl   %ecx, %eax, %ecx
-  leaq    find(%rip), %rdx
-  xorl    %esi, %esi
-  cmpl    (%rdx,%rcx,8), %eax
-  movzbl  4(%rdx,%rcx,8), %eax
-  cmovnel %esi, %eax
-  retq
+  auto lookup = mph::lookup<protocols>;
+  static_assert(1 == lookup("ftp"));
+  static_assert(2 == lookup("file"));
+  static_assert(3 == lookup("http"));
+  static_assert(5 == lookup("ws"));
+  static_assert(6 == lookup("wss"));
 
-find:
-  ...
+  return lookup(str);
+```
 
+```cpp
+minimal(std::basic_string_view<char, std::char_traits<char> >):
+        sall    $3, %edi
+        bzhi    %edi, (%rsi), %edi
+        imull   $385596323, %edi, %edi
+        movl    $358, %eax
+        shrl    $29, %edi
+        shrx    %edi, %eax, %eax
+        andl    $7, %eax
+        ret
 ```
 
 ----
@@ -1092,7 +1076,7 @@ static_assert(
 
 ### Summary
 
-* #### Metaprogramming is C++ superpower and can enhance performance, flexibility, ...
+* #### Metaprogramming is C++ superpower and can be used to enhance performance, design, ...
 <!-- .element: class="fragment" -->
 
 * #### Metaprogramming doesn't have to be different than run-time programming
