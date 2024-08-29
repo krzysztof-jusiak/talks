@@ -119,25 +119,25 @@ objdump -d optimized.o
 
 ```cpp
 0000000000000000 <_Z8baselinei>:                // starts at 0x00
-   0:	f3 0f 1e fa          	endbr64 
+   0:	f3 0f 1e fa          	endbr64
    4:	b8 01 00 00 00       	mov    $0x1,%eax
-   9:	c3                   	retq   
+   9:	c3                   	retq
 
 000000000000000a <_Z2ubi>:                      // starts at 0x0a
-   a:	f3 0f 1e fa          	endbr64 
+   a:	f3 0f 1e fa          	endbr64
    e:	b8 01 00 00 00       	mov    $0x1,%eax
-  13:	c3                   	retq   
+  13:	c3                   	retq
 
 0000000000000014 <_Z2oki>:                      // starts at 0x14
-  14:	f3 0f 1e fa          	endbr64 
+  14:	f3 0f 1e fa          	endbr64
   18:	89 f8                	mov    %edi,%eax
   1a:	f7 d0                	not    %eax
   1c:	c1 e8 1f             	shr    $0x1f,%eax
-  1f:	c3                   	retq   
+  1f:	c3                   	retq
 
 0000000000000020 <_Z3endv>:                     // starts at 0x20
-  20:	f3 0f 1e fa          	endbr64 
-  24:	c3                   	retq   
+  20:	f3 0f 1e fa          	endbr64
+  24:	c3                   	retq
 ```
 <!-- .element: class="fragment" -->
 
@@ -169,7 +169,7 @@ ok fun size       = 0x20 - 0x14 = 0x0c // bigger than ub size
  * @param fopt invocable optimized version
  * @param fbaseline invocable baseline to compare against fopt
  *
- * @return true if size of instructions of fopt <= size 
+ * @return true if size of instructions of fopt <= size
  *              of instructions of fbaseline
  */
 auto optimized(std::invocable auto fopt,
@@ -202,7 +202,7 @@ auto optimized(std::invocable auto fopt,
     struct test {
       __attribute__((optimize("align-functions=1")))
       [[gnu::no_reorder]] static auto given(Ts... ts) {
-        return decltype(fopt){}(ts...); 
+        return decltype(fopt){}(ts...);
       }
 
       __attribute__((optimize("align-functions=1")))
@@ -268,8 +268,8 @@ int main() {
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
-                [](const char* str) { 
-                  return ctre::match<"A">(str); 
+                [](const char* str) {
+                  return ctre::match<"A">(str);
                 },
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->

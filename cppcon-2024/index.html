@@ -49,17 +49,17 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-<a href="https://cppcon.org/"><img src="images/logo.png" style="width: 35%; background:none; border:none; box-shadow:none;" /></a>
+<!-- .element: data-background-image="images/title_card.png"  data-background-size="100%"  -->
 
----
-
-## Template-less Metaprogramming
-
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
+<br />&nbsp;
 <img src="images/qr.png" style="width: 15%; background:none; border:none; box-shadow:none;" />
-
----
-
-##### [kris@jusiak.net](mailto:kris@jusiak.net) | [@krisjusiak](https://twitter.com/krisjusiak) | [linkedin.com/in/kris-jusiak](https://www.linkedin.com/in/kris-jusiak)
 
 ----
 
@@ -89,33 +89,40 @@
 
 ----
 
-#### Template Metaprogramming
-
-> ###### `is a technique to generate code at compile-time` <hr />
-```cpp
-std::vector<T>
-std::variant<Ts...>
-template<class InputIt, class T>
-T accumulate(InputIt first, InputIt last, T init);
-...
+#### Template Metaprogramming (TMP)
+> ```cpp
+template<class... Ts>
+using meta_fn = this_talk<Ts...>; // types
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:center" -->
 
-##### <C++ superpower>
-<!-- .element: class="fragment" -->
+#### Compile-time computations
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:center" -->
+> ```cpp
+constexpr auto used_in_this_talk(
+  std::integral auto... vs); // values
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:center" -->
+
+#### Code generation
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:center" -->
+> ```cpp
+$ gperf keywords.txt >
+  deprecated_after_this_talk.cpp // files
+```
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:center" -->
 
 ----
 
 ### Motivation / Examples
 
----
-
-### Metaprogramming - "Better features make better libraries!" Sean Baxter
+> ##### `"Better Metaprogramming features make better libraries!"`
+> ###### `Sean Baxter `
 <!-- .element: class="fragment" -->
 
 ----
 
-#### Standard Template Library (STL) - https://godbolt.org/z/TKPdYPv3P
+#### [Examples] Standard Template Library (STL) - https://godbolt.org/z/TKPdYPv3P
 
 ```cpp
 template<class... Ts>
@@ -127,118 +134,32 @@ class variant {
   template<class T>
   constexpr variant(T&& t)
    : index{find_index<T, Ts...>} // Powered by TMP
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+   , // ...
+  { }
 
-```cpp
   // ...
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-  constexpr auto visit(auto&& fn)
-    -> decltype(dispatch(fn)); // Powered by TMP
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-## ...
-<!-- .element: class="fragment" data-fragment-index="4" -->
+----
+
+```cpp
+template<class... Ts>
+tuple
+```
 
 ----
 
-#### Don't repeat yourself (DRY) -
-
-```cpp
-constexpr auto fn(std::integral auto);
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
-using integral_types = list<bool, char, char8_t, char16_t, char32_t, wchar_t, short, int, long, long long>;
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-for_each<integral_types>([]<class TIntegral> {
-  static_assert(requires(TIntegral integral) { fn(integral); });
-});
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+### Standard Template Library (STL) doesn't have Standard Template Metaprogramming library
 
 ----
 
-#### Flexibilty - generic factories - https://godbolt.org/z/xrzsYG1bj
-
-```cpp
-struct record {
-  constexpr record(std::string_view name, database auto& db, );
-};
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-auto f = make<example>("mp", 42, make<data>(overload{
-
-});
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-auto f = make<foo>(overload{ // Powered by TMP
-  [](std::integral auto&& t) { return 42; },
-  [](std::integral auto&& t) requires name == "foo" { return 42; },
-  [](std::same_as<int> auto&& t) requires parent == bar { return 42; },
-});
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-----
-
-#### API - Domain Specific Languages - https://godbolt.org/z/s9a6EW5j9
-
-```cpp
-sm connection = overload{ // Powered by TMP
- [](Disconnected, connect)    -> Connecting   { establish(); },
- [](Connecting,   established)-> Connected    { },
- [](auto,         ping e)                     { if(e.valid) reset(); },
- [](auto,         timeout)    -> Connecting   { establish(); },
- [](auto,         disconnect) -> Disconnected { close(); },
-};
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-static_assert(sizeof(connection) == 1u); // Powered by TMP
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-connection.process_event(connect{}); // Disconnected -> Connecting
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-// Substitution failure is not an error (SFINAE) friendly
-static_assert(not [&](const auto& event) {
-  return requires {
-    connection.process_event(event); // Powered by TMP
-  };
-}(unknown{}));
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-----
-
-#### Performance - https://godbolt.org/z/o39Kh6z7b
+#### [Examples/Future] Performance - https://godbolt.org/z/o39Kh6z7b
 
 ```cpp
 struct unpacked {
@@ -258,7 +179,7 @@ static_assert(12u == sizeof(unpacked));
 
 ```cpp
 template<class T>
-using pack_t = pack<T>; // Powered by TMP
+using pack_t = /*...*/; // Powered by TMP
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -268,77 +189,63 @@ static_assert(8u == sizeof(pack_t<unpacked>));
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-static_assert(requires(pack_t<unpacked> p) { p.i; p.s; p.b; });
+static_assert(
+  requires(pack_t<unpacked> p) {
+    p.s;
+    p.i;
+    p.b;
+  }
+);
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
-#### Performance - https://godbolt.org/z/Y7afn9x8r
+#### [Examples] Performance - https://godbolt.org/z/Y7afn9x8r
 
 ```cpp
-template<class T>
-struct soa_vector { // Struct of Arrays
-  constexpr void push_back(T&& value);      // Powered by TMP
-  constexpr auto& operator[](size_t index); // Powered by TMP
-  // ...
-  soa_storage<T> storage{};                 // Powered by TMP
-};
+template<class T>  // Struct of Arrays
+struct soa_vector; // Powered by TMP
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 int main() {
   struct vec3 { float x, y, z; };
-
-  soa_vector<vec3> v{};
-  // soa_vector<vec3> {
-  //   vector<float> x;
-  //   vector<float> y;
-  //   vector<float> z;
-  //   void push_back(vec3 v);
-  // };
-
   v.push_back({.x=1, .y=2, .z=3});
-  assert(1 == v[0].x and
-         2 == v[0].y and
-         3 == v[0].z);
+  assert(1 == v[0].x and 2 == v[0].y and 3 == v[0].z);
 }
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+    vector<vec3> // {x, y, z},       {x, y, z},       {x, y, z}...
+soa_vector<vec3> // {x, x, x}, ... | {y, y, y}, ... | {z, z, z}, ...
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
-##### [Performace] - Policies - https://godbolt.org/z/qnhPdfTqG
+#### [Examples/Future] Performance - https://godbolt.org/z/qnhPdfTqG
 
 ```cpp
-constexpr std::array protocols{
-  std::pair{"ftp"sv,  3},
-  std::pair{"file"sv, 4},
-  std::pair{"http"sv, 4},
-  std::pair{"ws"sv,   2},
-  std::pair{"wss"sv,  3},
-};
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-int main(int argc, const char** argv) {
-  return lookup<protocols, magic_lut>(argv[1]); // Powered by TMP
+template<class T>
+auto enum_to_string(std::string_view protocol) {
+  return lookup<protocols, magic_lut>(protocol); // Powered by TMP
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-int main(int argc, const char** argv) {
-  return lookup<protocols, pext>(argv[1]);      // Powered by TMP
+auto string_to_enum(std::string_view protocol) {
+  return lookup<protocols, pext>(protocol);      // Powered by TMP
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
-##### [Performace] - Policies - https://godbolt.org/z/qnhPdfTqG
+#### [Examples] - Policies - https://godbolt.org/z/qnhPdfTqG
 
 ```cpp
 [1]: #uOps   [2]: Latency  [3]: RThroughput
@@ -349,8 +256,7 @@ int main(int argc, const char** argv) {
 ```cpp
 // lookup<protocols, magic_lut>
 [1]  [2]  [3]  [4]  [5]  [6]  Instructions:
- 1    1   0.50                shl   edi, 3
- 2    6   0.50  *             bzhi  eax, dword ptr [rsi], edi
+ 2    5   0.50  *             bzhi  eax, dword ptr [rsi], edi
  1    3   1.00                imul  eax, eax, 1950122620
  1    1   0.50                shr   eax, 29
  1    1   0.25                mov   ecx, 196
@@ -362,12 +268,12 @@ int main(int argc, const char** argv) {
 ```cpp
 // lookup<protocols, pext>
 [1]  [2]  [3]  [4]  [5]  [6]  Instructions:
- 1    1   0.50                shl   edi, 3
  2    5   0.50  *             bzhi  eax, dword ptr [rsi], edi
  1    1   0.50                mov   ecx, 65795
  1    3   1.00                pext  eax, eax, ecx
  1    1   0.33                lea   rcx, [rip + lookup]
  1    5   0.33  *             mov   eax, dword ptr [rcx + 4*rax]
+
                               lookup:
                                 .long 4 0 3 0 0 0 4 2 0 0 0 0 0 0 0 3
 ```
@@ -375,15 +281,37 @@ int main(int argc, const char** argv) {
 
 ----
 
+#### [Examples] Domain Specific Languages (DSL) / API - https://godbolt.org/z/s9a6EW5j9
+
+```cpp
+struct Disconnected { }; struct Connecting   { };
+struct Connected    { }; struct Disconnected { };
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+sm connection = overload{
+ [](Disconnected, connect&&)    -> Connecting   { establish(); },
+ [](Connecting,   established&&)-> Connected    { },
+ [](auto,         ping&& e)                     { if (not e) reset(); },
+ [](Connecting,   auto&&)       -> Connecting   { establish(); },
+ [](auto,         disconnect&&) -> Disconnected { close(); },
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+static_assert(sizeof(connection) == 1u); // Powered by TMP
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+----
+
 ### and much more...
 
 ----
 
-## Template Metaprogramming (TMP)
-
-----
-
-#### Template Metaprogramming (TMP)
+#### [History] Template Metaprogramming
 
 ---
 
@@ -393,16 +321,13 @@ int main(int argc, const char** argv) {
 ##### - Heterogeneous based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
-##### - Value based TMP (this talk -> [mp](https://github.com/qlibs/mp), [P2996](https://wg21.link/P2996), ...)
+##### - Value based TMP (this_talk -> [mp](https://github.com/qlibs/mp), [https://wg21.link/P2996](https://wg21.link/P2996), ...)
 <!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
-
-##### - Language based TMP (this talk -> [circle-lang](https://www.circle-lang.org), [zig-lang](https://ziglang.org/), ...)
-<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
 ---
 
-##### Disclaimer: constexpr/consteval, code generation, ...
-<!-- .element: class="fragment" data-fragment-index="5" style="text-align:center" -->
+##### - Language based TMP (this_talk -> [circle-lang](https://www.circle-lang.org), [zig-lang](https://ziglang.org/), ...)
+<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
 ----
 
@@ -1104,119 +1029,106 @@ int main() {
 
 ----
 
-#### C++26* - https://wg21.link/P2996
-
-> Reflection for C++
-<!-- .element: class="fragment" -->
-
-----
-
-#### C++26* - https://wg21.link/P2996
-
-```cpp
-namespace meta {
-  using info = decltype(^::); // ~type-erased AST node
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  // ...
-  consteval auto members_of(info) -> vector<info>;
-  consteval auto enumerators_of(info) -> vector<info>;
-  // ...
-  consteval auto identifier_of(info) -> string_view;
-  // ...
-  consteval auto offset_of(info) -> member_offsets;
-  consteval auto size_of(info) -> size_t;
-  // ...
-  consteval auto is_public(info) -> bool;
-  consteval auto is_protected(info) -> bool;
-  consteval auto is_private(info) -> bool;
-  // ...
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
-
-#### C++26* - https://wg21.link/P2996
-
-```cpp
-[:   // splicer
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-  ^T // lift
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-:]
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+### Reflecton for C++26* - https://wg21.link/P2996
 
 ---
+
+##### 2 new operators
+<!-- .element: class="fragment" style="text-align:left" -->
+##### Value based Metaprogramming
+<!-- .element: class="fragment" style="text-align:left" -->
+##### Meta functions for Reflection
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+#### Reflecton for C++26* - https://wg21.link/P2996
+
+```cpp
+^T // lift
+```
+<!-- .element: class="fragment" -->
 
 ```cpp
 static_assert(^int == ^int);
 static_assert(^int == ^void);
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" -->
 
 ```cpp
 static_assert(typeid(^int)  == typeid(info));
 static_assert(typeid(^void) == typeid(info));
-static_assert(typeid(^int)  == typeid(^void));
 ```
-<!-- .element: class="fragment" data-fragment-index="6" -->
+<!-- .element: class="fragment" -->
+
+```cpp
+using info = decltype(^::); // ~type-erased AST node
+```
+<!-- .element: class="fragment" -->
+
+---
+
+```cpp
+[: info :] //  splicer
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+typename [: ^int :] i = 42; // int i = 42;
+```
+<!-- .element: class="fragment" -->
+
+```cpp
+static_assert(typeid([: ^int :]) == typeid(int));
+```
+<!-- .element: class="fragment" -->
 
 ----
 
-#### Metaprogrammig - mp vs https://wg21.link/P2996
+#### Reflecton for C++26* - https://wg21.link/P2996
 
 ```cpp
- mp (C++17)    | P2996 (C++26*)
+ this_talk_so_far (C++17)    | P2996 (C++26*)
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
- info          | info
+ info                        | info
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
- meta<T>       | ^T
+ meta<T>                     | ^T // lift
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 ```cpp
- type_of<T>    | typename [: T :]
+ type_of<T>                  | typename [: T :] // splicer
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 ```cpp
- apply         | substitute
+ apply                       | substitute
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 ```cpp
- invoke        | reflect_invoke, test_trait, extract
+ invoke                      | reflect_invoke, test_trait, extract
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 
-##### Disclaimer: reflection meta-functions
+---
+
+```cpp
+ not_in_this_talk_but        | members_of, enumerators_of,
+ possible (C++20*)           | identifier_of, is_public, ...
+```
 <!-- .element: class="fragment" data-fragment-index="6" -->
 
-<!--```cpp-->
- <!--for_each      | template for (https://wg21.link/p1306)-->
-<!--```-->
-<!--[> .element: class="fragment" data-fragment-index="6" <]-->
-
 ----
+
+#### Reflecton for C++26* - https://wg21.link/P2996
+
+// find_index, pack, soa
 
 ```cpp
 template<size_t N, class... Ts>
@@ -1252,18 +1164,17 @@ static_assert(typeid(short) == typeid(at<2, int, float, short>));
 
 ---
 
-##### Disclaimer: Member packs, reflection, slicing, borrow-checker ...
-<!-- .element: class="fragment" data-fragment-index="0" -->
+##### Member packs
+<!-- .element: class="fragment" style="text-align:left" -->
 
-----
+##### Meta functions
+<!-- .element: class="fragment" style="text-align:left" -->
 
-#### Circle-lang - slicing ([python based](https://www.linkedin.com/pulse/what-slicing-python-constantinos-pigiotis/))
+##### Reflection
+<!-- .element: class="fragment" style="text-align:left" -->
 
-<img src="images/slicing1.png" style="width: 40%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-<img src="images/slicing2.png" style="width: 58.7%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" data-fragment-index="1" -->
+##### ...
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
@@ -1398,6 +1309,8 @@ static_assert(3u == find_index<void, float, short, int>());
 
 type based
 
+// manual
+
   ```cpp
   mp11
   ```
@@ -1422,10 +1335,9 @@ language based
   circle
   ```
 
-
 ----
 
-### Benchmarks
+### Compilation-times Benchmarks
 
 ----
 
@@ -1439,12 +1351,20 @@ circle > mp11/mp > p2996
 
 #### Compilation-times benchmark - https://qlibs.github.io/mp
 
-<a href="https://qlibs.github.io/mp"><img src="images/bench.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+<a href="https://qlibs.github.io/mp"><img src="images/bench.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>
+
+* #### Language based Metaprogramming is the fastest (https://www.circle-lang.org)
+<!-- .element: class="fragment" -->
+
+* #### Value based Metaprogramming can be as fast as type based Metaprogramming
+<!-- .element: class="fragment" -->
+
+* #### Value based Metaprogramming with STL/Ranges is significantly slower than with raw primitives
+<!-- .element: class="fragment" -->
 
 ----
 
 ### Summary
-
 
 * #### Better metaprogramming features make better libraries
 <!-- .element: class="fragment" -->
@@ -1455,17 +1375,20 @@ circle > mp11/mp > p2996
 * #### Metaprogramming doesn't have to be different than run-time programming (value-based TMP)
 <!-- .element: class="fragment" -->
 
-* #### Reflection enhances metaprogramming use-cases (https://wg21.link/P2996)
+* #### Reflection enhances Metaprogramming use-cases (https://wg21.link/P2996)
 <!-- .element: class="fragment" -->
 
 ----
 
 ### Further readings
 
-- ##### Metaprogramming library - https://github.com/qlibs/mp
+- ##### C++17 Metaprogramming library - https://github.com/qlibs/mp
 <!-- .element: style="text-align:left" -->
 
-- ##### Reflection for C++ - https://wg21.link/P2996
+- ##### C++20 Reflection library - https://github.com/qlibs/reflect
+<!-- .element: style="text-align:left" -->
+
+- ##### Reflection for C++26* - https://wg21.link/P2996
 <!-- .element: style="text-align:left" -->
 
 - ##### Circle-lang Metaprogramming - Sean Baxter - CppNow 2022 - https://www.youtube.com/watch?v=15j4bkipuAg
