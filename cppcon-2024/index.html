@@ -108,7 +108,7 @@ constexpr auto used_in_this_talk(
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:center" -->
 > ```cpp
 $ gperf keywords.txt >
-  deprecated_after_this_talk.cpp // files
+  not_used_after_this_talk.cpp // files
 ```
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:center" -->
 
@@ -331,11 +331,14 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 
 ----
 
-### Value based TMP by Example
+### Value based TMP
+
+#### By Example
+<!-- .element: class="fragment" -->
 
 ----
 
-# Example #1 (reduce)
+#### Value based TMP - find_index
 
 ```cpp
 template<class T, class... Ts>
@@ -343,44 +346,172 @@ constexpr auto find_index() -> std::size_t;
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
-----
-
 ```cpp
-static_assert(0u == find_index<int, int, float, short>());
-static_assert(1u == find_index<int, float, int, short>());
-static_assert(2u == find_index<int, float, short, int>());
+static_assert(0u == find_index<int,  int,   float, short>());
+static_assert(1u == find_index<int,  float, int,   short>());
+static_assert(2u == find_index<int,  float, short, int>());
 static_assert(3u == find_index<void, float, short, int>());
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
-# Example #1 (reduce) - pseudo code
+#### Value based TMP - find_index (pseudo code)
 
 ```cpp
 template<class T, class... Ts>
 constexpr auto find_index() -> std::size_t {
-``
+```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  std::array<???, sizeof...(Ts)> ts{???<Ts>...};
+  std::array ts{???<Ts>...};
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  for (auto i = 0u; i < ts.size(); ++i) {
+  for (auto i = 0u; i < ts.size(); ++i) { // Keep It Simple
     if (ts[i] == ???<T>) {
       return i;
     }
   }
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ```cpp
   return ts.size();
 ```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### Value based TMP - ???
+<!-- .element: style="text-align:left" -->
+
+```cpp
+std::array ts{???<int>, ???<void>};
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+```cpp
+static_assert(???<int>) == ???<int>));
+static_assert(???<int>) != ???<void>));
+static_assert(typeid(???<int>) == typeid(???<void>));
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### Let's replace ??? with meta
+<!-- .element: class="fragment" style="text-align:left" -->
+
+```cpp
+std::array ts{meta<int>, meta<void>};
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+```cpp
+static_assert(meta<int>) == meta<int>));
+static_assert(meta<int>) != meta<void>));
+static_assert(typeid(meta<int>) == typeid(meta<void>));
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+#### Value based TMP - meta
+<!-- .element: style="text-align:left" -->
+
+```cpp
+template<class T> struct type {
+  static constexpr std::size_t id{};
+};
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+```cpp
+template<class T>
+inline constexpr auto meta = &type<T>::id;
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+---
+
+```cpp
+static_assert(meta<int>) == meta<int>));                // ✔️
+static_assert(meta<int>) != meta<void>));               // ✔️
+static_assert(typeid(meta<int>) == typeid(meta<void>)); // ✔️
+```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+std::array ts{meta<int>, meta<void>};                   // ✔️
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+#### Value based TMP - find_index - https://godbolt.org/z/acenYn9Ez
+
+```cpp
+template<class T, class... Ts>
+constexpr auto find_index() -> std::size_t {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  std::array ts{meta<Ts>...};
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  for (auto i = 0u; i < ts.size(); ++i) {
+    if (ts[i] == meta<T>) {
+      return i;
+    }
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+  return ts.size();
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+static_assert(0u == find_index<int,  int,   float, short>()); // ✔️
+static_assert(1u == find_index<int,  float, int,   short>()); // ✔️
+static_assert(2u == find_index<int,  float, short, int>());   // ✔️
+static_assert(3u == find_index<void, float, short, int>());   // ✔️
+```
+<!-- .element: class="fragment" data-fragment-index="4" -->
+
+----
+
+#### Value based TMP - find_index - template-less refactor
+
+```cpp
+constexpr auto find_index(auto t, const range auto& v) -> std::size_t {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  for (auto i = 0u; i < v.size(); ++i) {
+    if (v[i] == t) {
+      return i;
+    }
+  }
+  return v.size();
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
 }
@@ -388,6 +519,106 @@ constexpr auto find_index() -> std::size_t {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
+
+```cpp
+static_assert(0u == find_index(
+  meta<int>, std::array{meta<int>, meta<float>, meta<short>}
+); // ✔️
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+static_assert(2u == find_index(
+  42, std::array{1, 2, 42, 3}
+); // ✔️
+```
+<!-- .element: class="fragment" data-fragment-index="3" -->
+
+----
+
+#### Value based TMP - find_index - no raw loops refactor
+
+```cpp
+constexpr auto find_index(auto t, const range auto& v) -> std::size_t {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  if (auto found = std::find(v, t); found) {
+    return std::distance(v.begin(), found);
+  }
+  return v.size();
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+---
+
+```cpp
+static_assert(0u == find_index(
+  meta<int>, std::array{meta<int>, meta<float>, meta<short>}
+); // ✔️
+
+static_assert(3u == find_index(
+  meta<void>, std::array{meta<int>, meta<float>, meta<short>}
+); // ✔️
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+-----
+
+#### Value based TMP - pack
+
+```cpp
+struct unpacked { short s; int i; bool b; };
+static_assert(12u == sizeof(unpacked));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+template<class T>
+using pack_t = pack<T>;
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+static_assert(8u == sizeof(pack_t<unpacked>));
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+
+----
+
+
+```cpp
+using info = decltype(meta<void>);
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+template<class T> struct type {
+  using value_type = T;
+  static constexpr size_t id{};
+  constexpr auto friend get(info<&id>) { return meta{}; }
+};
+```cpp
+template<auto> struct info {
+  constexpr auto friend get(info);
+};
+```
+
+
+
+
+
+
+
+
+
+
 
 ??? -> meta<T>:info
 
@@ -612,8 +843,6 @@ auto meta_function() {
 
 ---
 
-#### Let's make it happen with C++17 ([clang, gcc, msvc](https://godbolt.org/z/6asb6K4EK) / [no dependencies](https://godbolt.org/z/6asb6K4EK))
-<!-- .element: class="fragment" -->
 
 ----
 
@@ -649,69 +878,6 @@ constexpr auto fn() {
 ```
 
 ---
-
-```cpp
-template<class T>
-inline constexpr auto meta = &detail::meta<T>::id;
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-static_assert(meta<int> == meta<int>);
-static_assert(meta<int> != meta<void>);
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
----
-
-```cpp
-using info = decltype(meta<void>);
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-static_assert(typeid(meta<int>)  == typeid(info));
-static_assert(typeid(meta<void>) == typeid(info));
-static_assert(typeid(meta<int>)  == typeid(meta<void>));
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-
-```cpp
-vector<info> {meta<int>, meta<void>}; // ✔️
-```
-
-----
-
-#### Value based TMP - https://godbolt.org/z/acenYn9Ez
-
-```cpp
-namespace detail {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  template<class T> struct meta {
-    using value_type = T;
-    static constexpr size_t id{};
-    constexpr auto friend get(info<&id>) { return meta{}; }
-  };
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  template<auto> struct info {
-    constexpr auto friend get(info);
-  };
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-
-```cpp
-} // namespace detail
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-----
 
 #### Value based TMP - https://godbolt.org/z/acenYn9Ez
 
@@ -1029,7 +1195,14 @@ int main() {
 
 ----
 
-### Reflecton for C++26* - https://wg21.link/P2996
+### https://godbolt.org/z/E77EK5je9
+
+##### C++17, 100 LOC, [clang, gcc, msvc](https://godbolt.org/z/6asb6K4EK) / [no dependencies](https://godbolt.org/z/6asb6K4EK)
+<!-- .element: class="fragment" -->
+
+----
+
+### Reflection for C++26* - https://wg21.link/P2996
 
 ---
 
@@ -1042,7 +1215,7 @@ int main() {
 
 ----
 
-#### Reflecton for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/P2996
 
 ```cpp
 ^T // lift
@@ -1051,25 +1224,19 @@ int main() {
 
 ```cpp
 static_assert(^int == ^int);
-static_assert(^int == ^void);
+static_assert(^int != ^void);
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-static_assert(typeid(^int)  == typeid(info));
-static_assert(typeid(^void) == typeid(info));
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-using info = decltype(^::); // ~type-erased AST node
+static_assert(typeid(^int) == typeid(^void));
 ```
 <!-- .element: class="fragment" -->
 
 ---
 
 ```cpp
-[: info :] //  splicer
+[: info :] // splicer
 ```
 <!-- .element: class="fragment" -->
 
@@ -1085,26 +1252,21 @@ static_assert(typeid([: ^int :]) == typeid(int));
 
 ----
 
-#### Reflecton for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/P2996
 
 ```cpp
- this_talk_so_far (C++17)    | P2996 (C++26*)
+ this_talk (C++17)           | P2996 (C++26*)
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
- info                        | info
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
- meta<T>                     | ^T // lift
+ meta<T>                     | ^T // lift (reflexpr)
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 ```cpp
- type_of<T>                  | typename [: T :] // splicer
+ type_of<T>                  | typename [: T :] // splicer (unreflexpr)
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 ```cpp
@@ -1119,14 +1281,14 @@ static_assert(typeid([: ^int :]) == typeid(int));
 ---
 
 ```cpp
- not_in_this_talk_but        | members_of, enumerators_of,
- possible (C++20*)           | identifier_of, is_public, ...
+ not_this_talk_but_possible* | members_of, enumerators_of, bases_of,
+ (C++20)                     | identifier_of, is_private, ...
 ```
 <!-- .element: class="fragment" data-fragment-index="6" -->
 
 ----
 
-#### Reflecton for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/P2996
 
 // find_index, pack, soa
 
@@ -1149,6 +1311,11 @@ static_assert(typeid(short) == typeid(at<2, int, float, short>));
 ----
 
 #### C++26* - https://wg21.link/P2996
+
+```cpp
+using info = decltype(^::); // ~type-erased AST node
+```
+<!-- .element: class="fragment" -->
 
 ```cpp
 // ranges
@@ -1341,11 +1508,7 @@ language based
 
 ----
 
-Do some screenshots
-
-showing circle vs p2996 vs mp vs mp11
-
-circle > mp11/mp > p2996
+screenshots
 
 ----
 
@@ -1356,7 +1519,7 @@ circle > mp11/mp > p2996
 * #### Language based Metaprogramming is the fastest (https://www.circle-lang.org)
 <!-- .element: class="fragment" -->
 
-* #### Value based Metaprogramming can be as fast as type based Metaprogramming
+* #### Value based Metaprogramming can be as fast as Type based Metaprogramming
 <!-- .element: class="fragment" -->
 
 * #### Value based Metaprogramming with STL/Ranges is significantly slower than with raw primitives
@@ -1372,10 +1535,10 @@ circle > mp11/mp > p2996
 * #### Metaprogramming is C++ superpower and can be used to enhance design, performance, ...
 <!-- .element: class="fragment" -->
 
-* #### Metaprogramming doesn't have to be different than run-time programming (value-based TMP)
+* #### Metaprogramming doesn't have to be different than run-time programming (Value based TMP)
 <!-- .element: class="fragment" -->
 
-* #### Reflection enhances Metaprogramming use-cases (https://wg21.link/P2996)
+* #### Reflection enhances Metaprogramming use cases
 <!-- .element: class="fragment" -->
 
 ----
