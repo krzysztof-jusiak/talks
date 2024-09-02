@@ -304,9 +304,6 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
-##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [circle-lang](https://www.circle-lang.org)*
-<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
-
 ##### - Heterogeneous based TMP
 <!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
@@ -318,6 +315,12 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 
 ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [mp*](https://github.com/qlibs/mp), [https://wg21.link/P2996*](https://wg21.link/P2996)
 <!-- .element: class="fragment" data-fragment-index="7" style="text-align:left" -->
+
+##### - Circle meta model
+<!-- .element: class="fragment" data-fragment-index="8" style="text-align:left" -->
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [circle-lang](https://www.circle-lang.org)*
+<!-- .element: class="fragment" data-fragment-index="9" style="text-align:left" -->
 
 ---
 
@@ -897,37 +900,35 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 
 ```cpp
   auto&& r = v
-   | std::views::filter([](auto m) {
-       return invoke<std::is_constructible, T>(m); }
-     )
-```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
-
-```cpp
-   | std::views::transform([](auto m) {
-       return invoke<std::remove_cvref>(m); }
-     )
-```
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
-
-```cpp
+   | std::views::filter([](auto m) { return is_construcitble<T>(m); })
+   | std::views::transform([](auto m) { return remove_cvref(m); })
    | std::ranges::to<std::vector>()
    ;
 ```
-<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
   std::ranges::sort(r);
   auto&& u = std::ranges::unique(r);
   r.erase(u.begin(), u.end());
 ```
-<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 ```cpp
   return r;
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+---
+
+```cpp
+template<class T> constexpr auto is_constructible(info m) {
+  return invoke<std::is_constructible, T>(m);
+}
+// ...
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ----
 
@@ -1053,15 +1054,9 @@ int main() {
 
 ```cpp
   test([] {
-    expect(std::vector{meta<int>} == variant_for<foo>(v));
-  });
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
-```cpp
-  test([] {
-```
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 ```cpp
     std::vector<info> v;
@@ -1077,7 +1072,7 @@ int main() {
 
 
 ```cpp
-    expect(1u == r.size()); 
+    expect(1u == r.size());
     expect(meta<float> == r[0]); // error: expect(eq<float, int>)
 ```
 <!-- .element: class="fragment" data-fragment-index="5" style="text-align:left" -->
@@ -1181,7 +1176,7 @@ static_assert(typeid([: ^int :]) == typeid(int));
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 ```cpp
- invoke                      | reflect_invoke, test_trait, extract
+ invoke                      | reflect_invoke, extract, test_trait
 ```
 <!-- .element: class="fragment" data-fragment-index="6" -->
 
@@ -1246,9 +1241,67 @@ static_assert(
 
 ----
 
-#### C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/P2996
 
-// variant_for_t
+```cpp
+constexpr auto variant_for(auto t, const std::ranges::range auto& v)
+  -> std::ranges::range auto {
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+  auto&& r = v
+         | std::views::filter([](auto m) {
+             return std::meta::test_trait(
+               ^std::constructible_from, {t, m}
+             );
+           })
+         | std::views::transform(std::meta::type_remove_cvref)
+         | std::ranges::to<std::vector>()
+         ;
+```
+<!-- .element: class="fragment" data-fragment-index="1" -->
+
+```cpp
+  std::sort(r.begin(), r.end(), [](auto lhs, auto rhs) {
+    return identifier_of(lhs) < identifier_of(rhs);
+  });
+  auto u = std::ranges::unique(r);
+  r.erase(u.begin(), u.end());
+
+  return r;
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" -->
+
+----
+
+#### Reflection for C++26* - https://wg21.link/P2996
+
+```cpp
+template<class T, class... Ts>
+using variant_for_t =
+  typename [:
+    std::meta::substitute(
+      ^std::variant, fn(^T, std::vector{^Ts...})
+    )
+  :];
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+---
+
+```cpp
+static_assert(std::is_same_v<
+  std::variant<int, bar>,
+  variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
+>);
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ----
 
@@ -1300,7 +1353,7 @@ static_assert(1u == find_index<int,  float, int, short>());
 static_assert(2u == find_index<int,  float, short, int>());
 static_assert(3u == find_index<void, float, short, int>());
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1323,7 +1376,7 @@ static_assert(
   std::is_same_v<float, tuple_element<2, int, bool, float>::type>
 );
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1331,7 +1384,9 @@ static_assert(
 
 ```cpp
 template<class T, class... Ts>
-using variant_for_t =
+using variant_for_t = std::variant<
+  if std::is_constructible_v<T, Ts> => Ts.remove_cvref...[:].unique...
+>;
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -1343,7 +1398,7 @@ static_assert(std::is_same_v<
   variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
 >);
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ----
 
