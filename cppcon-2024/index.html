@@ -274,8 +274,9 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 
 ----
 
-# ...
-### https://github.com/boostorg
+## ...
+
+### More Template Metaprogramming examples - https://github.com/boostorg
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
@@ -302,12 +303,8 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 
 ### Value based TMP
 
-##### By Example
+#### By Example
 <!-- .element: class="fragment" -->
-
-----
-
-### Let's start simple...
 
 ----
 
@@ -360,6 +357,9 @@ constexpr auto find_index() -> std::size_t {
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+##### ??? - not a valid syntax!
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -427,7 +427,7 @@ std::array ts{meta<int>, meta<void>};                   // ✔️
 
 ----
 
-#### Value based TMP - find_index - https://godbolt.org/z/acenYn9Ez
+#### Value based TMP - find_index
 
 ```cpp
 template<class T, class... Ts>
@@ -682,48 +682,293 @@ struct tuple_element<I, std::tuple<Ts...>> {
 
 ----
 
-
-### Let's make it a bit more interesting...
-
-----
-
-#### Value based TMP -
+#### Value based TMP - variant_for_t
 
 ```cpp
-constexpr auto meta_fn(const ranges::range auto& v) {
-  std::vector<???> r; // STL containers
-
-  for (const auto& e : v) {
-    if (not std::is_const_v<e>) {
-      r.push_back(std::pair{e, e});
-    }
-  }
-
-  std::rotate(r.begin(), r.end()); // STL algorithms
-
-  return std::views::(r) // ranges
-    | filter ()
-    | take(2);
-}
+template<class T, class... Ts>
+using variant_for_t; // std::variant with unique raw types
+                     // for which T is constructible with Ts
 ```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ---
 
 ```cpp
-static_assert();
+struct bar { };
+struct foo {
+  foo(int) { }
+  foo(bar) { }
+};
 ```
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+
+```cpp
+static_assert(std::is_same_v<
+  std::variant<int, bar>, // because of `foo(int) and foo(bar)`
+  variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
+>);
+```
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
 
 ----
+
+#### Value based TMP - variant_for (pseudo code)
+<!-- .element: style="text-align:left" -->
+
+```cpp
+template<class T, class... Ts>
+constexpr auto variant_for() {
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+```cpp
+  std::vector<???> r;
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+```cpp
+  for (auto v : {???<Ts>...}) {
+   if (???<std::is_constructible, T>(v)) {
+      r.push_back(???<std::remove_cvref>(v));
+    }
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+
+```cpp
+  std::sort(r.begin(), r.end());
+  r.erase(std::unique(r.begin(), r.end()), r.end());
+```
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+
+```cpp
+  return r;
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+----
+
+#### Value based TMP - info
+<!-- .element: style="text-align:left" -->
+
+```cpp
+std::vector<???> // ?
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
+
+---
 
 ```cpp
 using info = decltype(meta<void>);
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-#### Value based TMP - https://godbolt.org/z/acenYn9Ez
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
-template<template<class...> class T, ranges::range auto range>
+static_assert(typeid(info) == typeid(meta<int>));
+static_assert(typeid(info) == typeid(meta<float>));
+```
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+
+---
+
+```cpp
+std::vector<info> // ✔️
+```
+<!-- .element: class="fragment" data-fragment-index="3" style="float:left" -->
+
+----
+
+#### Value based TMP - invoke
+<!-- .element: style="text-align:left" -->
+
+```cpp
+???<std::is_constructible, T>(info) // std::is_constructible_v<T, type_of<info>>
+???<std::remove_cvref>(info)        // std::remove_cvref<type_of<info>>
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+---
+
+```cpp
+template<class Fn, class T = decltype([]{})>
+constexpr auto invoke(Fn&& fn, info m) {
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+```cpp
+  constexpr auto dispatch =
+    [fn]<std::size_t... Ns>(std::index_sequence<Ns...>) {
+      return std::array{
+        [](Fn&& fn) { return fn.template operator<Ns>(); }...
+      };
+    }(make_index_sequence<std::distance(meta<void>, meta<T>)>{});
+```
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+
+```cpp
+  return dispatch[std::distance(meta<void>, m)](fn);
+```
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+----
+
+#### Value based TMP - invoke
+<!-- .element: style="text-align:left" -->
+
+```cpp
+template<template<class...> class T, class... Ts>
+constexpr auto invoke(Fn&& fn, info m) {
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+```cpp
+  return invoke([]<info meta> {
+    using type = type_of<meta>;
+    if constexpr (requires { T<Ts..., type>::value; }) {
+      return T<Ts..., type>::value; // bool
+    } else {
+      return meta<typename T<Ts..., type>::type>; // type
+    }
+  }, m);
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+---
+
+```cpp
+static_assert(
+  invoke<std::is_constructible, foo>(meta<int>)) and
+  typeid(int) == typeid(invoke<std::remove_cvref>(meta<const int&>))
+); // ✔️
+```
+<!-- .element: class="fragment" data-fragment-index="2" -->
+
+-----
+
+#### Value based TMP - variant_for
+<!-- .element: style="text-align:left" -->
+
+```cpp
+template<class T> constexpr auto variant_for(const std::ranges::range& v)
+  -> std::ranges::range auto {
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+```cpp
+  std::vector<info> r;
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+```cpp
+  for (auto e : v) {
+   if (invoke<std::is_constructible, T>(e)) {
+      r.push_back(invoke<std::remove_cvref>(e));
+    }
+  }
+```
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+
+```cpp
+  std::sort(r.begin(), r.end());
+  r.erase(std::unique(r.begin(), r.end()), r.end());
+```
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+
+```cpp
+  return r;
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+```cpp
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+---
+
+```cpp
+static_assert(
+  mp::vector{meta<int>, meta<bar>} == variant_for<foo>(
+    meta<const int&>, meta<int&&>, meta<std::string_view>, meta<bar>, meta<void>
+));
+```
+<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
+
+----
+
+#### Value based TMP - variant_for - std::ranges rafactor (C++20)
+<!-- .element: style="text-align:left" -->
+
+```cpp
+template<class T>
+constexpr auto variant_for(const std::ranges::range& auto v)
+  -> std::ranges::range auto {
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+```cpp
+  auto&& r = v
+   | std::views::filter([](auto m) {
+       return invoke<std::is_constructible, T>(m); }
+     )
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+```cpp
+   | std::views::transform([](auto m) {
+       return invoke<std::remove_cvref>(m); }
+     )
+```
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+
+```cpp
+   | std::ranges::to<std::vector>();
+```
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+
+```cpp
+  std::ranges::sort(r);
+  auto&& u = std::ranges::unique(r);
+  r.erase(u.begin(), u.end());
+```
+<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
+
+```cpp
+  return r;
+}
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+----
+
+#### Value based TMP - apply_t
+<!-- .element: style="text-align:left" -->
+
+```cpp
+template<class T, class... Ts>
+using variant_for_t; // variant_for<T>(range) -> range
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+---
+
+```cpp
+template<template<class...> class T, std::ranges::range auto range>
 using apply_t =
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -734,7 +979,7 @@ using apply_t =
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-    []<size_t... Ns>(index_sequence<Ns...>) {
+    []<std::size_t... Ns>(std::index_sequence<Ns...>) {
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -744,7 +989,7 @@ using apply_t =
 <!-- .element: class="fragment" data-fragment-index="3" -->
 
 ```cpp
-    }(make_index_sequence<range.size()>{})
+    }(std::make_index_sequence<range.size()>{})
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 
@@ -757,167 +1002,68 @@ using apply_t =
 
 ```cpp
 static_assert(
-  typeid(variant<int>)
-  ==
-  typeid(apply_t<variant, vector{meta<int>}>)
+  typeid(variant<int, bar>) ==
+  typeid(apply_t<variant, std::array{meta<int>, meta<bar>}>)
 );
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="4" -->
 
 ----
 
-
-filter to introduce invoke and ranges
-
-
-COVERAGE - we need testig at compile time and run-time! show ut technique
-
-----
-
-----
-
-#### Value based TMP - pseudo code
-
-#### - fast-compilation
+#### Value based TMP - variant_for_t
+<!-- .element: style="text-align:left" -->
 
 ```cpp
-static_assert(type_list<const int, double, float>,
-           ???meta_function(vector{int, double, float}));
+template<class T, class... Ts>
+using variant_for_t =
+  apply_t<std::variant, variant_for<T>(std::array{meta<Ts>...)>;
 ```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
-#### - informative error messages
+---
 
 ```cpp
-contexpr auto sum(auto... args) { return (args + ...); }
-"sum"_test = [] {
-  static_assert(sum() == 6);
+struct bar { };
+struct foo {
+  foo(int) { }
+  foo(bar) { }
 };
+
+static_assert(std::is_same_v<
+  std::variant<int, bar>,
+  variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
+>); // ✔️
 ```
-
-```cpp
-"vector"_test = [] {
-  std::vector<int> v;
-  static_assert(v.empty()); // error
-
-  constexpr std::vector<int> v; // error
-  static_assert(v.empty());
-
-  std::vector<int> v; // error
-  assert(v.empty()); // okay
-};
-```
-
-```cpp
-constexpr void expect(auto cond)
- requires requires { bool(cond); } {
-  if consteval {
-    if (not cond) {
-      void failed(); failed(); // not constexpr
-    }
-  } else {
-    #ifndef NDEBUG
-      if (not cond) {
-        std::breakpoint(); // trap
-      }
-    #endif
-  }
-}
-```
-
-```cpp
-auto meta_function() {
-  std::vector<info> v;
-  expect(v.empty());
-}
-
-// show error message
-#### - testing, debugging, code coverage
-
----
-
-#### invoke
-
-```cpp
-template<class Fn, class T = decltype([]{})>
-constexpr auto invoke(Fn&& fn, info m) {
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-```cpp
-  constexpr auto dispatch = [fn]<std::size_t... Ns>(std::index_sequence<Ns...>) {
-    return std::array{
-      [](Fn&& fn) { return fn.template operator<Ns>(); }...
-    };
-  }(make_index_sequence<std::distance(meta<void>, meta<T>)>{});
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
-
-```cpp
-  return dispatch[std::distance(meta<void>, m)](fn);
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-
-```cpp
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
-static_assert(
-  invoke(
-    []<info m> { return is_const_v<type_of<m>>; },
-    meta<const int>
-  )
-);
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 ----
 
-#### invoke
+#### Value based TMP - Testing/Debugging/Coverage/Errors
 
 ```cpp
-template<template<class...> class T, class... Ts>
-[[nodiscard]] constexpr auto invoke(info m) {
+constexpr void expect(auto cond) requires requires { bool(cond); } {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ```cpp
-  return invoke([]<info meta> {
-    return T<type_of<meta>, Ts...>::value;
-  }, m);
+  if (not cond) std::breakpoint();
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
----
-
-```cpp
-static_assert(invoke<std::is_const>(meta<const int>));
-static_assert(not invoke<std::is_reference>(meta<void*>));
-```
-<!-- .element: class="fragment" data-fragment-index="0" -->
-
-
-```cpp
-```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ----
 
-### https://godbolt.org/z/E77EK5je9
+## https://godbolt.org/z/E77EK5je9
 
-```cpp
-C++17 (~100 LOC) - ✔️         easy testing     - ✔️
-clang, gcc, msvc - ✔️         easy debugging   - ✔️
-no dependencies  - ✔️         coverage support - ✔️
-'normal' C++     - ✔️         improved errors  - ✔️
-```
+#### 100 LOC / C++17 / no dependencies (gcc, clang, msvc)
+<!-- .element: class="fragment" -->
+
+#### https://github.com/qlibs/mp
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -1062,14 +1208,7 @@ static_assert(
 
 #### C++26* - https://wg21.link/P2996
 
-```cpp
-
-```
-<!-- .element: class="fragment" -->
-
-```cpp
-// ranges
-```
+// soa
 
 ----
 
