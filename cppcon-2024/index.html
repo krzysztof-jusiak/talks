@@ -175,7 +175,7 @@ struct unpacked {
 
 ```cpp
 /*
- * https://eel.is/c++draft/basic.align#def:alignment
+ * https://eel.is/c++draft/basic.align
  */
 static_assert(12u == sizeof(unpacked));
 ```
@@ -863,8 +863,8 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 ```cpp
-  std::sort(r.begin(), r.end());
-  r.erase(std::unique(r.begin(), r.end()), r.end());
+  std::ranges::sort(r);
+  r.erase(std::ranges::unique(r), r.end());
 ```
 <!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
 
@@ -900,8 +900,8 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 
 ```cpp
   auto&& r = v
-   | std::views::filter([](auto m) { return is_construcitble<T>(m); })
-   | std::views::transform([](auto m) { return remove_cvref(m); })
+   | std::views::filter(is_constructible<T>)
+   | std::views::transform(remove_cvref)
    | std::ranges::to<std::vector>()
    ;
 ```
@@ -909,8 +909,7 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 
 ```cpp
   std::ranges::sort(r);
-  auto&& u = std::ranges::unique(r);
-  r.erase(u.begin(), u.end());
+  r.erase(std::ranges::unique(r), r.end());
 ```
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
@@ -923,9 +922,9 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 ---
 
 ```cpp
-template<class T> constexpr auto is_constructible(info m) {
+template<class T> constexpr auto is_constructible = [](auto m) {
   return invoke<std::is_constructible, T>(m);
-}
+};
 // ...
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
@@ -1080,13 +1079,13 @@ int main() {
 ```cpp
   });
 ```
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ----
 
@@ -1251,23 +1250,21 @@ constexpr auto variant_for(auto t, const std::ranges::range auto& v)
 
 ```cpp
   auto&& r = v
-         | std::views::filter([](auto m) {
-             return std::meta::test_trait(
-               ^std::constructible_from, {t, m}
-             );
-           })
-         | std::views::transform(std::meta::type_remove_cvref)
-         | std::ranges::to<std::vector>()
-         ;
+   | std::views::filter([](auto m) {
+       return std::meta::test_trait(^std::constructible_from, {t, m});
+     })
+   | std::views::transform(std::meta::type_remove_cvref)
+   | std::ranges::to<std::vector>()
+   ;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
 ```cpp
-  std::sort(r.begin(), r.end(), [](auto lhs, auto rhs) {
-    return identifier_of(lhs) < identifier_of(rhs);
+  std::ranges::sort(r, [](auto lhs, auto rhs) {
+    return std::meta::identifier_of(lhs) <
+           std::meta::identifier_of(rhs);
   });
-  auto u = std::ranges::unique(r);
-  r.erase(u.begin(), u.end());
+  r.erase(std::ranges::unique(r), r.end());
 
   return r;
 ```
@@ -1402,21 +1399,37 @@ static_assert(std::is_same_v<
 
 ----
 
-### Compilation-times Benchmarks
+### Compilation-times benchmarks
+
+#### https://qlibs.github.io/mp
+<!-- .element: class="fragment" -->
 
 ----
 
-#### Compilation-times benchmark - https://qlibs.github.io/mp
+#### [at] - https://github.com/bloomberg/clang-p2996
 
-<a href="https://qlibs.github.io/mp"><img src="images/bench.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>
+<a href="https://qlibs.github.io/mp"><img src="images/at.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
 
-* #### Language based Metaprogramming is the fastest (https://www.circle-lang.org)
+----
+
+#### [at] - https://gcc.gnu.org/gcc-13
+
+<a href="https://qlibs.github.io/mp"><img src="images/at_gcc.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+
+----
+
+#### [at] - https://www.circle-lang.org/linux/build_214.tgz
+
+<a href="https://qlibs.github.io/mp"><img src="images/circle.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+
+----
+
+* #### Circle meta model is the fastest to compile - https://www.circle-lang.org
+
+* #### Value based Metaprogramming can be as fast as Type based Metaprogramming to compile
 <!-- .element: class="fragment" -->
 
-* #### Value based Metaprogramming can be as fast as Type based Metaprogramming
-<!-- .element: class="fragment" -->
-
-* #### Value based Metaprogramming with STL/Ranges is significantly slower than with the raw primitives
+* #### Value based Metaprogramming with STL is significantly slower to compile than with the raw primitives
 <!-- .element: class="fragment" -->
 
 ----
