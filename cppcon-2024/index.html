@@ -809,7 +809,7 @@ constexpr auto invoke(Fn fn, info m) {
 ```cpp
   constexpr auto dispatch =
     [fn]<std::size_t... Ns>(std::index_sequence<Ns...>) {
-      return std::array{&Fn::template operator<Ns>...};
+      return std::array{&Fn::template operator<meta<void> + Ns>...};
     }(make_index_sequence<std::distance(meta<void>, meta<T>)>{});
 
   return dispatch[std::distance(meta<void>, m)](fn);
