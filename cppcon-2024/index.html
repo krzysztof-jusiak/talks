@@ -313,13 +313,13 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 ##### - Value based TMP
 <!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
 
-##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [mp*](https://github.com/qlibs/mp), [https://wg21.link/P2996*](https://wg21.link/P2996)
+##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [mp](https://github.com/qlibs/mp)\*, [https://wg21.link/P2996](https://wg21.link/P2996)\*
 <!-- .element: class="fragment" data-fragment-index="7" style="text-align:left" -->
 
 ##### - Circle meta model
 <!-- .element: class="fragment" data-fragment-index="8" style="text-align:left" -->
 
-##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [circle-lang](https://www.circle-lang.org)*
+##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [circle-lang](https://www.circle-lang.org)\*
 <!-- .element: class="fragment" data-fragment-index="9" style="text-align:left" -->
 
 ---
@@ -414,8 +414,8 @@ inline constexpr auto meta = &type<T>::id;
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
-static_assert(meta<int>) == meta<int>));
-static_assert(meta<int>) != meta<void>));
+static_assert(meta<int> == meta<int>);
+static_assert(meta<int> != meta<void>);
 static_assert(typeid(meta<int>) == typeid(meta<void>));
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -626,8 +626,7 @@ using type_of = typename decltype(get(info<meta>{}))::value_type;
 <!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
 
 ```cpp
-type_of<meta<int>> b = true; // bool b = true;
-type_of<meta<int>> i = 42;   // int i = 42;
+type_of<meta<int>> i = 42; // int i = 42;
 ```
 <!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
@@ -1122,10 +1121,6 @@ int main() {
 ```cpp
 static_assert(^int == ^int);
 static_assert(^int != ^void);
-```
-<!-- .element: class="fragment" -->
-
-```cpp
 static_assert(typeid(^int) == typeid(^void));
 ```
 <!-- .element: class="fragment" -->
