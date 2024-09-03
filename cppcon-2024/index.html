@@ -1382,7 +1382,7 @@ static_assert(
 ```cpp
 template<class T, class... Ts>
 using variant_for_t = std::variant<
-  if std::is_constructible_v<T, Ts> => Ts.remove_cvref...[:].unique...
+  (if std::is_constructible_v<T, Ts> => Ts.remove_cvref...).unique...
 >;
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
