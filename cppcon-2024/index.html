@@ -1156,7 +1156,8 @@ static_assert(typeid([: ^int :]) == typeid(int));
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 ```cpp
- using info = meta<void>     | using info = decltype(^::)
+ using info =                | using info = 
+  decltype(meta<void>)       |  decltype(^::)
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 ```cpp
