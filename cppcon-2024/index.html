@@ -560,9 +560,8 @@ struct tuple_element; // TODO
 
 ```cpp
 static_assert(
-  std::is_same_v<int,   tuple_element<0, int, bool, float>::type> and
-  std::is_same_v<bool,  tuple_element<1, int, bool, float>::type> and
-  std::is_same_v<float, tuple_element<2, int, bool, float>::type>
+ std::is_same_v<int, tuple_element<0, std::tuple<int, bool>>::type> and
+ std::is_same_v<bool,tuple_element<1, std::tuple<int, bool>>::type> and
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -648,7 +647,7 @@ struct tuple_element<I, std::tuple<Ts...>> {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  using type = type_of<std::array{meta<Ts>...}[N]>
+  using type = type_of<std::array{meta<Ts>...}[I]>;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -659,9 +658,8 @@ struct tuple_element<I, std::tuple<Ts...>> {
 
 ```cpp
 static_assert(
-  std::is_same_v<int,   tuple_element<0, int, bool, float>::type> and
-  std::is_same_v<bool,  tuple_element<1, int, bool, float>::type> and
-  std::is_same_v<float, tuple_element<2, int, bool, float>::type>
+ std::is_same_v<int, tuple_element<0, std::tuple<int, bool>>::type> and
+ std::is_same_v<bool,tuple_element<1, std::tuple<int, bool>>::type> and
 ); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
@@ -1088,7 +1086,7 @@ int main() {
 
 ----
 
-## 🪄 - https://godbolt.org/z/E77EK5je9
+## 🪄 - https://godbolt.org/z/efexGo676
 
 #### 100 LOC / C++17 / gcc, clang, msvc / no dependencies
 <!-- .element: class="fragment" -->
@@ -1217,7 +1215,7 @@ static_assert(
 ```cpp
 template<std::size_t I, class... Ts>
 struct tuple_element<I, std::tuple<Ts...>> {
-  using type = typename [: array{^Ts...}[N] :];
+  using type = typename [: array{^Ts...}[I] :];
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -1226,9 +1224,8 @@ struct tuple_element<I, std::tuple<Ts...>> {
 
 ```cpp
 static_assert(
-  std::is_same_v<int,   tuple_element<0, int, bool, float>::type> and
-  std::is_same_v<bool,  tuple_element<1, int, bool, float>::type> and
-  std::is_same_v<float, tuple_element<2, int, bool, float>::type>
+ std::is_same_v<int, tuple_element<0, std::tuple<int, bool>>::type> and
+ std::is_same_v<bool,tuple_element<1, std::tuple<int, bool>>::type> and
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1364,9 +1361,8 @@ struct tuple_element<I, std::tuple<Ts...>> {
 
 ```cpp
 static_assert(
-  std::is_same_v<int,   tuple_element<0, int, bool, float>::type> and
-  std::is_same_v<bool,  tuple_element<1, int, bool, float>::type> and
-  std::is_same_v<float, tuple_element<2, int, bool, float>::type>
+ std::is_same_v<int, tuple_element<0, std::tuple<int, bool>>::type> and
+ std::is_same_v<bool,tuple_element<1, std::tuple<int, bool>>::type> and
 );
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1458,7 +1454,7 @@ static_assert(std::is_same_v<
 
 ### Further readings
 
-- ##### C++17 Metaprogramming library - https://github.com/qlibs/mp
+- ##### C++20 Metaprogramming library - https://github.com/qlibs/mp
 <!-- .element: style="text-align:left" -->
 
 - ##### C++20 Reflection library - https://github.com/qlibs/reflect
