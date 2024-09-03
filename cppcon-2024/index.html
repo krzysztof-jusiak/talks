@@ -474,18 +474,18 @@ static_assert(3u == find_index<void, float, short, int>());   // ✔️
 #### Value based TMP - find_index - template-less refactor
 
 ```cpp
-constexpr auto find_index(auto t, const std::ranges::range auto& v)
+constexpr auto find_index(auto t, const std::ranges::range auto& ts)
   -> std::size_t {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  for (auto i = 0u; i < v.size(); ++i) {
-    if (v[i] == t) {
+  for (auto i = 0u; i < ts.size(); ++i) {
+    if (ts[i] == t) {
       return i;
     }
   }
-  return v.size();
+  return ts.size();
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -515,16 +515,16 @@ static_assert(2u == find_index(
 #### Value based TMP - find_index - no raw loops refactor
 
 ```cpp
-constexpr auto find_index(auto t, const std::ranges::range auto& v)
+constexpr auto find_index(auto t, const std::ranges::range auto& ts)
   -> std::size_t {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  if (const auto found = std::ranges::find(v, t); found) {
-    return std::distance(v.begin(), found);
+  if (const auto found = std::ranges::find(ts, t); found) {
+    return std::distance(ts.begin(), found);
   }
-  return v.size();
+  return ts.size();
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -672,7 +672,7 @@ static_assert(
 ```cpp
 template<std::size_t I, class... Ts>
 struct tuple_element<I, std::tuple<Ts...>> {
-  using type = Ts...[I];
+  using type = Ts...[I]; // __type_pack_element
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
@@ -683,7 +683,7 @@ struct tuple_element<I, std::tuple<Ts...>> {
 
 ```cpp
 /**
- * Returns std::variant with unique types without qualifiers
+ * Alias for std::variant with unique types without qualifiers
  * for which T type is constructible with a single Ts type
  *
  * @tparam T type
@@ -720,7 +720,7 @@ static_assert(std::is_same_v<
 
 ```cpp
 template<class T>
-constexpr auto variant_for(const std::ranges::range& v)
+constexpr auto variant_for(const std::ranges::range& ts)
   -> std::ranges::range auto {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
@@ -731,9 +731,9 @@ constexpr auto variant_for(const std::ranges::range& v)
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
-  for (auto e : v) {
-    if (🪄<std::is_constructible, T>(e)) {
-      r.push_back(🪄<std::remove_cvref>(e));
+  for (auto t : ts) {
+    if (🪄<std::is_constructible, T>(t)) {
+      r.push_back(🪄<std::remove_cvref>(t));
     }
   }
 ```
@@ -748,7 +748,7 @@ constexpr auto variant_for(const std::ranges::range& v)
 ```cpp
   return r;
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
 ```cpp
 }
@@ -773,8 +773,8 @@ using info = decltype(meta<void>);
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
-static_assert(typeid(info) == typeid(meta<int>));
-static_assert(typeid(info) == typeid(meta<float>));
+static_assert(typeid(meta<int>)   == typeid(info));
+static_assert(typeid(meta<float>) == typeid(info));
 ```
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
@@ -840,7 +840,7 @@ static_assert(meta<int> == invoke<std::remove_cvref>(meta<int&>)); // ✔️
 
 ```cpp
 template<class T>
-constexpr auto variant_for(const std::ranges::range auto& v)
+constexpr auto variant_for(const std::ranges::range auto& ts)
   -> std::ranges::range auto {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
@@ -851,9 +851,9 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
-  for (auto e : v) {
-    if (invoke<std::is_constructible, T>(e)) {
-      r.push_back(invoke<std::remove_cvref>(e));
+  for (auto t : ts) {
+    if (invoke<std::is_constructible, T>(t)) {
+      r.push_back(invoke<std::remove_cvref>(t));
     }
   }
 ```
@@ -868,7 +868,7 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 ```cpp
   return r;
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
 ```cpp
 }
@@ -878,10 +878,9 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 ---
 
 ```cpp
-static_assert(std::vector{meta<int>} ==
-  variant_for<foo>(meta<int&>, meta<void>));
+static_assert(std::vector{meta<int>} == variant_for<foo>(meta<int&>));
 ```
-<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="5" style="text-align:left" -->
 
 ----
 
@@ -890,13 +889,13 @@ static_assert(std::vector{meta<int>} ==
 
 ```cpp
 template<class T>
-constexpr auto variant_for(const std::ranges::range auto& v)
+constexpr auto variant_for(const std::ranges::range auto& ts)
   -> std::ranges::range auto {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ```cpp
-  auto&& r = v
+  auto&& r = ts
    | std::views::filter(is_constructible<T>)
    | std::views::transform(remove_cvref)
    | std::ranges::to<std::vector>()
@@ -912,6 +911,10 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 
 ```cpp
   return r;
+```
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+
+```cpp
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
@@ -919,8 +922,8 @@ constexpr auto variant_for(const std::ranges::range auto& v)
 ---
 
 ```cpp
-template<class T> constexpr auto is_constructible = [](auto m) {
-  return invoke<std::is_constructible, T>(m);
+template<class T> constexpr auto is_constructible = [](auto t) {
+  return invoke<std::is_constructible, T>(t);
 };
 // ...
 ```
@@ -1187,12 +1190,12 @@ static_assert(typeid([: ^int :]) == typeid(int));
 
 
 ```cpp
-constexpr auto find_index(auto t, const std::ranges::range auto& v)
+constexpr auto find_index(auto t, const std::ranges::range auto& ts)
   -> std::size_t {
-  if (const auto found = std::ranges::find(v, t); found) {
+  if (const auto found = std::ranges::find(ts, t); found) {
     return std::distance(v.begin(), found);
   }
-  return v.size();
+  return ts.size();
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -1236,13 +1239,13 @@ static_assert(
 #### Reflection for C++26* - https://wg21.link/P2996
 
 ```cpp
-constexpr auto variant_for(auto t, const std::ranges::range auto& v)
+constexpr auto variant_for(auto t, const std::ranges::range auto& ts)
   -> std::ranges::range auto {
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  auto&& r = v
+  auto&& r = ts
    | std::views::filter([](auto m) {
        return std::meta::test_trait(^std::constructible_from, {t, m});
      })
@@ -1302,7 +1305,7 @@ static_assert(std::is_same_v<
 ##### Member packs - https://wg21.link/P1858
 <!-- .element: class="fragment" style="text-align:left" -->
 
-##### Meta functions
+##### Circle meta model (Metaprogramming)
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ##### Reflection
@@ -1429,10 +1432,10 @@ static_assert(std::is_same_v<
 
 * #### Circle meta model is the fastest to compile - https://www.circle-lang.org
 
-* #### Value based Metaprogramming can be as fast as Type based Metaprogramming to compile
+* #### Value based Metaprogramming can be, as fast, to compile as Type based Metaprogramming
 <!-- .element: class="fragment" -->
 
-* #### Value based Metaprogramming with STL is significantly slower to compile than with the raw primitives
+* #### Value based Metaprogramming with STL is significantly slower to compile than with the raw primitives!
 <!-- .element: class="fragment" -->
 
 ----
