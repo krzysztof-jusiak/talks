@@ -1329,11 +1329,7 @@ constexpr auto find_index() {
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
-  // ??: constexpr conditional
-  return T == Ts...
-    ?? int...
-     : sizeof...(Ts)
-  ;
+  return T == Ts... ?? int... : sizeof...(Ts);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
@@ -1351,6 +1347,11 @@ static_assert(2u == find_index<int,  float, short, int>());
 static_assert(3u == find_index<void, float, short, int>());
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
+
+---
+
+##### ??: constexpr conditional - https://github.com/seanbaxter/circle/blob/master/conditional/README.md
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ----
 
@@ -1375,6 +1376,11 @@ static_assert(
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
 
+---
+
+##### Comprehension - https://github.com/seanbaxter/circle/blob/master/comprehension/README.md
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
 ----
 
 #### Circle-lang - https://www.circle-lang.org
@@ -1396,6 +1402,11 @@ static_assert(std::is_same_v<
 >);
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+---
+
+##### Imperative arguments - https://github.com/seanbaxter/circle/blob/master/imperative/README.md
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ----
 
