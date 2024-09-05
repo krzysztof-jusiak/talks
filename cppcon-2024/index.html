@@ -298,29 +298,26 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 
 ---
 
-##### - Type based TMP
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+##### - [C++](https://eel.is/c++draft/)
+  <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
-##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Type based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
+  <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
-##### - Heterogeneous based TMP
-<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
+  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Heterogeneous based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
+  <!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
-##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana)
-<!-- .element: class="fragment" data-fragment-index="5" style="text-align:left" -->
+  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Value based TMP ([mp](https://github.com/qlibs/mp)\*, [https://wg21.link/P2996](https://wg21.link/P2996)\*)
+  <!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
 
-##### - Value based TMP
-<!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
-
-##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [mp](https://github.com/qlibs/mp)\*, [https://wg21.link/P2996](https://wg21.link/P2996)\*
-<!-- .element: class="fragment" data-fragment-index="7" style="text-align:left" -->
-
-##### - Circle meta model
+##### &nbsp;&nbsp;&nbsp;&nbsp; - [Circle-lang](https://www.circle-lang.org) (Circle meta model\*)
 <!-- .element: class="fragment" data-fragment-index="8" style="text-align:left" -->
 
-##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - [circle-lang](https://www.circle-lang.org)\*
+##### - [Zig-lang](https://ziglang.org) (comptime)
 <!-- .element: class="fragment" data-fragment-index="9" style="text-align:left" -->
+
+##### - ...
+<!-- .element: class="fragment" data-fragment-index="10" style="text-align:left" -->
 
 ---
 
@@ -1445,13 +1442,13 @@ static_assert(std::is_same_v<
 * #### Better Metaprogramming features make better libraries!
 <!-- .element: class="fragment" -->
 
-* #### Metaprogramming is C++'s superpower!
-<!-- .element: class="fragment" -->
-
 * #### TMP doesn't have to be different than run-time programming (Value based TMP)
 <!-- .element: class="fragment" -->
 
 * #### Reflection further enhances Metaprogramming use cases
+<!-- .element: class="fragment" -->
+
+* #### Constexpr parameters together with reflection code generation will make new techniques possible - https://ziglang.org (comptime)
 <!-- .element: class="fragment" -->
 
 ----
@@ -1467,13 +1464,13 @@ static_assert(std::is_same_v<
 - ##### Reflection for C++26* - https://wg21.link/P2996
 <!-- .element: style="text-align:left" -->
 
+- ##### Implementing P2996 Metaprogramming model with P2996 - https://godbolt.org/z/694e1hrbM
+
 - ##### Circle-lang Metaprogramming - Sean Baxter - CppNow 2022 - https://www.youtube.com/watch?v=15j4bkipuAg
 <!-- .element: style="text-align:left" -->
 
-- ##### Simple C++11 Metaprogramming - Peter Dimov - https://www.boost.org/doc/libs/master/libs/mp11/doc/html/simple_cxx11_metaprogramming.html
+- ##### Zig-lang comptime - https://ziglang.org/documentation/master/#comptime
 <!-- .element: style="text-align:left" -->
-
-- ##### Implementing P2996 Metaprogramming model with P2996 - https://godbolt.org/z/694e1hrbM
 
 ---
 
