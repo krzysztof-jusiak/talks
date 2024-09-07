@@ -301,13 +301,13 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 ##### - [C++](https://eel.is/c++draft/)
   <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
-  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Type based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
+  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Type-based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
   <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
-  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Heterogeneous based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
+  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Heterogeneous-based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
   <!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
-  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Value based TMP ([mp](https://github.com/qlibs/mp)\*, [https://wg21.link/P2996](https://wg21.link/P2996)\*)
+  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Value-based TMP ([mp](https://github.com/qlibs/mp)\*, [https://wg21.link/P2996](https://wg21.link/P2996)\*)
   <!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
 
 ##### &nbsp;&nbsp;&nbsp;&nbsp; - [Circle-lang](https://www.circle-lang.org) (Circle meta model\*)
@@ -326,11 +326,11 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 
 ----
 
-### [By Example] Value based TMP
+### [By Example] Value-based TMP
 
 ----
 
-#### Value based TMP - find_index
+#### Value-based TMP - find_index
 
 ```cpp
 template<class T, class... Ts>
@@ -350,7 +350,7 @@ static_assert(3u == find_index<void, float, short, int>());
 
 ----
 
-#### Value based TMP - find_index (pseudo code)
+#### Value-based TMP - find_index (pseudo code)
 
 ```cpp
 template<class T, class... Ts>
@@ -387,7 +387,7 @@ constexpr auto find_index() -> std::size_t {
 
 ----
 
-#### Value based TMP - 🪄
+#### Value-based TMP - 🪄
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -426,7 +426,7 @@ std::array ts{meta<int>, meta<void>}; // ✔️
 
 ----
 
-#### Value based TMP - find_index
+#### Value-based TMP - find_index
 
 ```cpp
 template<class T, class... Ts>
@@ -468,7 +468,7 @@ static_assert(3u == find_index<void, float, short, int>());   // ✔️
 
 ----
 
-#### Value based TMP - find_index - template-less refactor
+#### Value-based TMP - find_index - template-less refactor
 
 ```cpp
 constexpr auto find_index(auto t, const std::ranges::range auto& ts)
@@ -509,7 +509,7 @@ static_assert(2u == find_index(
 
 ----
 
-#### Value based TMP - find_index - no raw loops refactor
+#### Value-based TMP - find_index - no raw loops refactor
 
 ```cpp
 constexpr auto find_index(auto t, const std::ranges::range auto& ts)
@@ -545,7 +545,7 @@ static_assert(3u == find_index(
 
 -----
 
-#### Value based TMP - tuple_element
+#### Value-based TMP - tuple_element
 
 ```cpp
 template<std::size_t I, class... Ts>
@@ -565,7 +565,7 @@ static_assert(
 
 ----
 
-#### Value based TMP - tuple_element (pseudo code)
+#### Value-based TMP - tuple_element (pseudo code)
 
 ```cpp
 template<std::size_t I, class... Ts>
@@ -583,7 +583,7 @@ struct tuple_element<I, std::tuple<Ts...>> {
 
 ----
 
-#### Value based TMP - 🪄
+#### Value-based TMP - 🪄
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -635,7 +635,7 @@ type_of<std::array{meta<Ts>...}[I]> // ✔️
 
 ----
 
-#### Value based TMP - tuple_element
+#### Value-based TMP - tuple_element
 
 ```cpp
 template<std::size_t I, class... Ts>
@@ -676,7 +676,7 @@ struct tuple_element<I, std::tuple<Ts...>> {
 
 ----
 
-#### Value based TMP - variant_for_t
+#### Value-based TMP - variant_for_t
 
 ```cpp
 /**
@@ -712,7 +712,7 @@ static_assert(std::is_same_v<
 
 ----
 
-#### Value based TMP - variant_for (pseudo code)
+#### Value-based TMP - variant_for (pseudo code)
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -754,7 +754,7 @@ constexpr auto variant_for(const std::ranges::range& ts)
 
 ----
 
-#### Value based TMP - 🪄
+#### Value-based TMP - 🪄
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -784,7 +784,7 @@ std::vector<info> // ✔️
 
 ----
 
-#### Value based TMP - 🪄
+#### Value-based TMP - 🪄
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -832,7 +832,7 @@ static_assert(meta<int> == invoke<std::remove_cvref>(meta<int&>)); // ✔️
 
 -----
 
-#### Value based TMP - variant_for
+#### Value-based TMP - variant_for
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -881,7 +881,7 @@ static_assert(std::vector{meta<int>} == variant_for<foo>(meta<int&>));
 
 ----
 
-#### Value based TMP - variant_for - std::ranges rafactor (C++20)
+#### Value-based TMP - variant_for - std::ranges rafactor (C++20)
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -928,7 +928,7 @@ template<class T> constexpr auto is_constructible = [](auto t) {
 
 ----
 
-#### Value based TMP - variant_for_t (pseudo code)
+#### Value-based TMP - variant_for_t (pseudo code)
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -950,7 +950,7 @@ static_assert(std::is_same_v<
 
 ----
 
-#### Value based TMP - 🪄
+#### Value-based TMP - 🪄
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -992,7 +992,7 @@ apply_t<std::variant, variant_for<T>(std::array{meta<Ts>...})> // ✔️
 
 ----
 
-#### Value based TMP - variant_for_t
+#### Value-based TMP - variant_for_t
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -1020,7 +1020,7 @@ static_assert(std::is_same_v<
 
 ----
 
-#### Value based TMP - testing/debugging/coverage/errors
+#### Value-based TMP - testing/debugging/coverage/errors
 
 ```cpp
 constexpr void expect(std::convertible_to<bool> auto cond) {
@@ -1041,7 +1041,7 @@ constexpr auto test(auto fn) {
 
 ----
 
-#### Value based TMP - testing/debugging/coverage/errors
+#### Value-based TMP - testing/debugging/coverage/errors
 
 ```cpp
 int main() {
@@ -1102,7 +1102,7 @@ int main() {
 
 ##### New operators
 <!-- .element: class="fragment" style="text-align:left" -->
-##### Value based Metaprogramming
+##### Value-based Metaprogramming
 <!-- .element: class="fragment" style="text-align:left" -->
 ##### Meta functions for Reflection
 <!-- .element: class="fragment" style="text-align:left" -->
@@ -1430,13 +1430,13 @@ static_assert(std::is_same_v<
 * #### Circle meta model is the fastest to compile - https://www.circle-lang.org
 <!-- .element: class="fragment" -->
 
-* #### Value based Metaprogramming can compile almost as fast* as Type based Metaprogramming
+* #### Value-based Metaprogramming can compile almost as fast* as Type-based Metaprogramming
 <!-- .element: class="fragment" -->
 
-* #### Value based Metaprogramming with STL is significantly slower to compile than with the raw primitives! (may require compiler builtins)
+* #### Value-based Metaprogramming with STL is significantly slower to compile than with the raw primitives! (may require compiler builtins)
 <!-- .element: class="fragment" -->
 
-* #### Value based Metaprogramming can - potentially - support parallel execution (std::execution)
+* #### Value-based Metaprogramming can - potentially - support parallel execution (std::execution)
 <!-- .element: class="fragment" -->
 
 ----
@@ -1446,7 +1446,7 @@ static_assert(std::is_same_v<
 * #### Better Metaprogramming features make better libraries!
 <!-- .element: class="fragment" -->
 
-* #### TMP doesn't have to be different than run-time programming (Value based TMP)
+* #### TMP doesn't have to be different than run-time programming (Value-based TMP)
 <!-- .element: class="fragment" -->
 
 * #### Reflection further enhances Metaprogramming use cases
