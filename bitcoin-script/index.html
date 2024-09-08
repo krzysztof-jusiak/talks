@@ -83,22 +83,365 @@
 
 ----
 
+#### Bitcoin Script - Basic information
+
 - Designed for verifying transactions in the network
+<!-- .element: class="fragment" -->
+
+    - Every transaction has an associated script, and every node in the network, upon receiving a transaction, executes the Script in their own local machine
+     <!-- .element: class="fragment" -->
+
+    - Once transactions get added in the blockchain they become immutable
 
   - Opens door for smart contracts
+<!-- .element: class="fragment" -->
 
-  A smart contract is a computer protocol intended to digitally facilitate, verify, or enforce the negotiation or performance of a contract. Smart contracts allow the performance of credible transactions without third parties. These transactions are trackable and irreversible. — wikipedia
+  - Scripting abilities have been in the Bitcion source from the beginning
+<!-- .element: class="fragment" -->
+
+----
 
 
-  - scripting abilities have been in the bitcion source from the beginning
+#### Bitcoin Script - Basic information
 
+  - Programmable Money - Digital currency with attached programs
+  <!-- .element: class="fragment" -->
 
-- BTC script
+  - Distributed computational network where arbitrary programs can get executed inside different machines to result in the exact same output
+  <!-- .element: class="fragment" -->
 
-  - cheap in terms of computational resources, doesn't need a resource metering system like gas
+----
+
+#### Bitcoin Script - Transaction
+
+```cpp
+Tranasction [network] -> Node -> execute script == valid ? propagate to peers : stop
+```
+<!-- .element: class="fragment" -->
+
+<img src="images/transaction.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+#### - Transaction Output - Includes scriptPubKey specifying conditions for unlocking
+<!-- .element: class="fragment" -->
+
+#### - Transaction Input - Includes scriptSig with signature and public key to satisfy the scriptPubKey
+<!-- .element: class="fragment" -->
+
+----
+
+#### Bitcoin Script - Transaction
+
+<img src="images/in_out.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+#### Scripting is all about this locking and unlocking mechanism
+<!-- .element: class="fragment" -->
+
+----
+
+#### Bitcion Script - Implementation details
+
+<img src="images/script.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+---
+
+### Script is a programming language
+<!-- .element: class="fragment" -->
+
+#### - Stack-based,
+<!-- .element: class="fragment" -->
+
+#### - Forth like - https://en.wikipedia.org/wiki/Forth_(programming_language)
+<!-- .element: class="fragment" -->
+
+#### - Turing incomplete (no loops, no jumps)
+<!-- .element: class="fragment" -->
+
+#### - Written in Reverse Polish Notation (RPN)
+<!-- .element: class="fragment" -->
+
+    ```cpp
+    EXPR: 2 + 2 = 4
+    RPN:  2 2 + 4 = 
+    ```
+    <!-- .element: class="fragment" -->
+
+----
+
+#### Bitcoin Script - Implementation details
+
+- ##### https://github.com/bitcoin/bitcoin/blob/main/src/script
+<!-- .element: class="fragment" -->
+
+- ##### Bitcion Script Wiki - https://en.bitcoin.it/wiki/Script
+<!-- .element: class="fragment" -->
+
+----
+
+#### Bitcoin Script - Implementation details
+
+#### A Script program consists
+<!-- .element: class="fragment" -->
+
+#### - `OP_CODES` - represent a certain operation, like addition, substraction, etc.
+<!-- .element: class="fragment" -->
+
+  - https://github.com/bitcoin/bitcoin/blob/master/src/script/script.h
+
+    Constants
+
+    Flow control
+      ```cpp
+      Word	    Opcode	  Hex	    Input	  Output
+      OP_NOP    97        0x61    -       -
+      OP_AND   
+      ```
+
+    Stack
+
+    Splice
+
+    Bitwise logic
+
+    Arithmetic
+
+    Locktime
+  
+
+#### - `Data` - everything that is not an OP_CODE is interpreted as raw data
+<!-- .element: class="fragment" -->
+
+----
+
+##### Bitcoin Script Debugging Utilities - https://github.com/bitcoin-core/btcdeb
+
+----
+
+#### Bitcoin Script - Formats
+
+- Human readable
+<!-- .element: class="fragment" -->
+
+```sh
+OP_DUP OP_HASH160 897c81ac37ae36f7bc5b91356cfb0138bfacb3c1 OP_EQUALVERIFY OP_CHECKSIG
+```
+<!-- .element: class="fragment" -->
+
+- Hex
+<!-- .element: class="fragment" -->
 
 ```cpp
 ```
+<!-- .element: class="fragment" -->
+
+- Binary
+<!-- .element: class="fragment" -->
+
+```cpp
+76a914897c81ac37ae36f7bc5b91356cfb0138bfacb3c188ac
+```
+<!-- .element: class="fragment" -->
+
+-----
+
+#### Bitcoin Script - Execution
+
+#### https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp
+<!-- .element: class="fragment" -->
+
+# pseudo code
+```cpp
+if execution_counter points to data
+  push data
+else if is opcode and opcode is enabled
+  if op_code == ADD # requires 2 elements
+    a1 = pop
+    a2 = pop
+    add a1 a2
+    push
+  ...
+
+if top stack == 1
+  return valid
+else
+  return invalid
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Bitcoin Script - Locking/Unlocking
+
+- Locking - ScriptPubKey
+<!-- .element: class="fragment" -->
+
+- Unlocking - ScriptSig
+<!-- .element: class="fragment" -->
+
+  “Unlocking” is the process of concatenating ScriptSig and ScriptPubkey, interpreting it as a Script program, and upon execution leaves 1 as the top stack element.
+<!-- .element: class="fragment" -->
+
+----
+
+#### Bitcoin Script - Example
+
+```cpp
+ScriptPubkey: 2 2 OP_ADD OP_EQUAL
+ScriptSig: 4
+```
+<!-- .element: class="fragment" -->
+
+```sh
+btcdeb "[2 2 OP_ADD 4 OP_EQUAL]"
+```
+
+```sh
+script   |  stack 
+---------+--------
+2        | 
+2        | 
+OP_ADD   | 
+4        | 
+OP_EQUAL | 
+#0000 2
+btcdeb> step
+                <> PUSH stack 02
+script   |  stack 
+---------+--------
+2        |      02
+OP_ADD   | 
+4        | 
+OP_EQUAL | 
+#0001 2
+btcdeb> step
+                <> PUSH stack 02
+script   |  stack 
+---------+--------
+OP_ADD   |      02
+4        |      02
+OP_EQUAL | 
+#0002 OP_ADD
+btcdeb> step
+                <> POP  stack
+                <> POP  stack
+                <> PUSH stack 04
+script   |  stack 
+---------+--------
+4        |      04
+OP_EQUAL | 
+#0003 4
+btcdeb> step
+                <> PUSH stack 04
+script   |  stack 
+---------+--------
+OP_EQUAL |      04
+         |      04
+#0004 OP_EQUAL
+btcdeb> step
+                <> POP  stack
+                <> POP  stack
+                <> PUSH stack 01
+script   |  stack 
+---------+--------
+         |      01
+```
+
+```sh
+script   |  stack 
+---------+--------
+2        | 
+2        | 
+OP_ADD   | 
+OP_EQUAL | 
+#0000 2
+```
+
+----
+
+#### Bitcoin Script - Pay To PubKey (P2PK) (Not used anymore)
+
+<img src="images/p2pk.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
+
+```cpp
+scriptPubKey: <pubKey> OP_CHECKSIG
+scriptSig:    <sig>
+```
+
+
+```cpp
+OP_CHECKSIG	172	0xac	sig pubkey	True / false	The entire transaction's outputs, inputs, and script (from the most recently-executed OP_CODESEPARATOR to the end) are hashed. The signature used by OP_CHECKSIG must be a valid signature for this hash and public key. If it is, 1 is returned, 0 otherwise.
+```
+
+----
+
+#### Bitcoin Script - PayToPubKeyHash (P2PKH) - Standard Transaction to Bitcoin address
+
+<img src="images/p2pkh.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
+
+```cpp
+scriptPubKey: OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
+scriptSig: <sig> <pubKey>
+```
+
+```cpp
+OP_HASH160	169	0xa9	in	hash	The input is hashed twice: first with SHA-256 and then with RIPEMD-160.
+```
+
+----
+
+#### Bitcoin Script - Use cases
+
+#### - Smart Contracts
+A smart contract is a program that executes in an automated and uncensorable way
+
+A smart contract is a computer protocol intended to digitally facilitate, verify, or enforce the negotiation or performance of a contract. Smart contracts allow the performance of credible transactions without third parties. These transactions are trackable and irreversible. — wikipedia
+Because each of the script of a transaction is independently executed by each node in the network, there is no central server to attack in order to stop the execution
+
+#### - Lightning network is nothing but a very elaborate Bitcoin script known as HTLC (Hashed Time-Locked Contracts)
+
+```cpp
+scriptPubKey:
+  OP_IF
+  [HASHOP] <digest> OP_EQUALVERIFY OP_DUP OP_HASH160 <seller pubkey hash>
+  OP_ELSE
+  <num> [TIMEOUTOP] OP_DROP OP_DUP OP_HASH160 <buyer pubkey hash>
+  OP_ENDIF
+  OP_EQUALVERIFY
+  OP_CHECKSIG
+
+scriptSig: <sig>
+```
+
+----
+
+#### Bitcoin Script - Safety and Future
+
+```cpp
+OP_Codes
+  Disabled: OP_CAT, OP_SUBSTR, OP_MUL, OP_DIV, OP_MOD, ...
+  Lmited: OP_RETURN (80 bytes) - data embeeding
+```
+  <!-- .element: class="fragment" -->
+
+----
+
+#### Bitcoin Script - Future
+
+Bitcoin Improvement Proposal (BIP) - https://github.com/bitcoin/bips
+
+  - BIP 119: CHECKTEMPLATEVERIFY (CTV)
+  - BIP 342: Taproot Script Path Spending
+    - ...
+
+----
+
+#### Bitcoin Script vs ...
+
+- BTC script vs EVM
+
+  - cheap in terms of computational resources, doesn't need a resource metering system like gas
 
 > Solidity (EVM) - gas fees - Gas is a unit that measures the amount of computational effort required to execute operations on the Ethereum network
 
@@ -112,277 +455,6 @@ contract HelloWorld {
   }
 }
 ```
-
-----
-
-Programmable money
-
-Flow
-
-  - Every transaction has an associated script, and every node in the network, upon receiving a transaction, executes the Script in their own local machine
-  - Proof Of Work, once these transactions get added in the blockchain they become immutable, thus every node always computes a script in the exact same steps and arrives at the exact same result
-  - We get a distributed computational network where arbitrary programs can get executed inside different machines to result in the exact same output and they cannot be censored
-
-programmable money - digital currency with attached programs
-
-----
-
-Flow Example
-
-Seller’s Transaction Output:
-  Includes scriptPubKey specifying conditions for spending (e.g., P2PKH script).
-
-Buyer’s Transaction Input:
-  Includes scriptSig with Jon’s signature and public key to satisfy the scriptPubKey.
-
-
-----
-
-<img src="images/transaction.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
-
-<img src="images/in_out.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
-
-inputs - outputs - Scripting is all about this locking and unlocking mechanism
-
-----
-
-- #### Bitcion Script
-
-### Script is a programming language
-<!-- .element: class="fragment" -->
-
-#### - stack-based,
-<!-- .element: class="fragment" -->
-
-#### - forth like,
-<!-- .element: class="fragment" -->
-
-#### - turing incomplete
-<!-- .element: class="fragment" -->
-
-
-#### - written in reverse polish notation.
-<!-- .element: class="fragment" -->
-
-
-----
-
-<img src="images/script.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
-
-- Reverse Polish Notation (RPN)
-
-2+2=4 -> 2 2 +
-
-
-----
-
-- #### Bitcion Script - implementation details
-
-Made of
-
-  - OP_CODES - These are specific bytes that represent a certain operation, like Addition, Subtraction, Multiplication
-
-  - Data - Everything that is not an OP_CODE is interpreted as raw data, and pushed on top of the stack
-
-- A Script is nothing but a sequence of such OP_CODES and DATA
-
-----
-
-btcdeb
-
-2 2 + 4 =
-
-     op       stack
-#0            2
-#1            2 2
-#2   +        4
-#3            4 4
-#4   =        1
-
-----
-
-- Interpreter - https://github.com/bitcoin/bitcoin/blob/main/src/script/interpreter.cpp
-
-ScriptPubkey: 2 2 OP_ADD OP_EQUAL
-
-ScriptSig: 4
-
-
-execution counter: 0..N
-
-if execution_counter points to data
-  push data
-else if is opcode and opcode is enabled
-  if op_code == ADD # requires 2 elements
-    a1 = pop
-    a2 = pop
-    add a1 a2
-    push
-
-if top stack == 1
-  return valid
-else
-  return invalid
-
-----
-
-----
-
-formats
-
-human readable
-
-hex
-
-binary
-
-----
-
-> human readable format turned into its hexadecimal representation
-
-```sh
-btcc OP_DUP OP_HASH160 897c81ac37ae36f7bc5b91356cfb0138bfacb3c1 OP_EQUALVERIFY OP_CHECKSIG
-```
-
-```cpp
-76a914897c81ac37ae36f7bc5b91356cfb0138bfacb3c188ac
-```
-
-```cpp
-btcdeb '[OP_DUP OP_HASH160 897c81ac37ae36f7bc5b91356cfb0138bfacb3c1 OP_EQUALVERIFY OP_CHECKSIG]' 3045022100c7d8e302908fdc601b125c2734de63ed3bf54353e13a835313c2a2aa5e8f21810220131fad73787989d7fbbdbbd8420674f56bdf61fed5dc2653c826a4789c68501101 03b05bdbdf395e495a61add92442071e32703518b8fca3fc34149db4b56c93be42
-```
-
-----
-
-Tranasction [network] -> Node
-                              -> execute script
-                                                ? valid
-                                                        -> propagate to peers
-
-
-----
-
-Mechanics
-
-Locking - ScriptPubKey
-
-Unlocking - ScriptSig
-
-  “Unlocking” is the process of concatenating ScriptSig and ScriptPubkey, interpreting it as a Script program, and upon execution leaves 1 as the top stack element.
-
-----
-
-- Pay To PubKey (P2PK) (not used anymore)
-
-<img src="images/p2pk.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
-
-
-<signature> <public key> OP_CHECKSIG
-
-```cpp
-OP_CHECKSIG	172	0xac	sig pubkey	True / false	The entire transaction's outputs, inputs, and script (from the most recently-executed OP_CODESEPARATOR to the end) are hashed. The signature used by OP_CHECKSIG must be a valid signature for this hash and public key. If it is, 1 is returned, 0 otherwise.
-```
-
-```cpp
-case OP_CHECKSIG:
-{
-    // 1. Extract the signature and public key from the stack
-    valtype vchSig = stacktop(-2); // Get the signature
-    valtype vchPubKey = stacktop(-1); // Get the public key
-
-    // 2. Hash the transaction
-    uint256 hash = SignatureHash(scriptCode, txTo, nIn, nHashType);
-
-    // 3. Verify the signature using ECDSA
-    bool fSuccess = CheckSignatureEncoding(vchSig) &&
-                    CheckPubKeyEncoding(vchPubKey) &&
-                    ECDSAVerify(vchSig, hash, vchPubKey);
-
-    // 4. Push the result onto the stack (true if valid, false otherwise)
-    if (fSuccess)
-        stack.push_back(vchTrue);
-    else
-        stack.push_back(vchFalse);
-
-    break;
-}
-```
-
-if 1 // transaction verified
-  unlock
-    propagate to the nodes
-
-----
-
-PayToPubKeyHash (P2PKH)
-
-<img src="images/p2pkh.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
-
-Standard Transaction to Bitcoin address
-
-scriptPubKey: OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
-scriptSig: <sig> <pubKey>
-
-OP_HASH160	169	0xa9	in	hash	The input is hashed twice: first with SHA-256 and then with RIPEMD-160.
-
-provides better privacy.
-
-----
-
-Smart Contracts
-A smart contract is a program that executes in an automated and uncensorable way
-Because each of the script of a transaction is independently executed by each node in the network, there is no central server to attack in order to stop the execution
-
-----
-
-Lightning network is nothing but a very elaborate Bitcoin script known as HTLC (Hashed Time-Locked Contracts)
-
-ScriptPubkey
-
-```cpp
-OP_IF
-[HASHOP] <digest> OP_EQUALVERIFY OP_DUP OP_HASH160 <seller pubkey hash>
-OP_ELSE
-<num> [TIMEOUTOP] OP_DROP OP_DUP OP_HASH160 <buyer pubkey hash>
-OP_ENDIF
-OP_EQUALVERIFY
-OP_CHECKSIG
-```
-
-----
-
-Safety and future
-
-OP_Codes Restrictions - 
-  Disabled: OP_CAT, OP_SUBSTR, OP_MUL, OP_DIV, OP_MOD, ...
-  Lmited: OP_RETURN (80 bytes) - data embeeding
-
-
-Bitcoin Improvement Proposal (BIP)
-
-  https://github.com/bitcoin/bips
-
- BIP 119: CHECKTEMPLATEVERIFY (CTV)
-2. BIP 342: Taproot Script Path Spending
-3. BIP 374: OP_CTV
-
-4. BIP 340: Schnorr Signatures
-
-5. BIP 341: Taproot
-    - BIP-0119 - OP_CHECKTEMPLATEVERIFY
-    - ...
-
-Future
-  - Taproot and Schnorr Signatures
-
-  ```cpp
-# Script for time-locked spending
-<1_year_time_lock> OP_CHECKLOCKTIMEVERIFY OP_DROP
-<P_Alice> OP_CHECKSIGVERIFY
-<P_Bob> OP_CHECKSIG
-```
-
-The script will first check if the time lock (1 year) has passed. If it has, either Alice or Bob can provide a valid signature to spend the coins
 
 ----
 
