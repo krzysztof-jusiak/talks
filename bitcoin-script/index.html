@@ -49,15 +49,17 @@
                    data-separator="^====+$"
                    data-separator-vertical="^----+$">
           <script type="text/template">
-<a href="https://cppcon.org/"><img src="images/logo.png" style="width: 35%; background:none; border:none; box-shadow:none;" /></a>
 
 ---
 
-## Bitcoin Script: Implementation Details and Use Cases
+# Bitcoin Script
 
-<img src="images/qr.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
+## Implementation Details and Use Cases
 
 ---
+
+<a href="https://cppcon.org/"><img src="images/logo.png" style="width: 50%; background:none; border:none; box-shadow:none;" /></a>&nbsp;&nbsp;&nbsp;
+<img src="images/qr.png" style="width: 10%; background:none; border:none; box-shadow:none;" />
 
 ----
 
@@ -80,6 +82,9 @@
 
   - #### Security and Future
   <!-- .element: class="fragment" -->
+
+- #### Summary
+<!-- .element: class="fragment" -->
 
 ----
 
@@ -164,31 +169,25 @@ Tranasction [network] -> Node -> execute script == valid ? propagate to peers : 
 
     ```cpp
     EXPR: 2 + 2 = 4
-    RPN:  2 2 + 4 = 
+    RPN:  2 2 + 4 =
     ```
     <!-- .element: class="fragment" -->
 
 ----
 
-#### Bitcoin Script - Implementation details
+### Bitcoin Script - Implementation details
 
-- ##### https://github.com/bitcoin/bitcoin/blob/main/src/script
-<!-- .element: class="fragment" -->
-
-- ##### Bitcion Script Wiki - https://en.bitcoin.it/wiki/Script
+#### https://github.com/bitcoin/bitcoin/blob/main/src/script
 <!-- .element: class="fragment" -->
 
 ----
 
-#### Bitcoin Script - Implementation details
-
-#### A Script program consists
-<!-- .element: class="fragment" -->
+### Bitcoin Script - Implementation details
 
 #### - `OP_CODES` - represent a certain operation, like addition, substraction, etc.
 <!-- .element: class="fragment" -->
 
-  - https://github.com/bitcoin/bitcoin/blob/master/src/script/script.h
+  https://github.com/bitcoin/bitcoin/blob/master/src/script/script.h
 
     Constants
 
@@ -196,7 +195,7 @@ Tranasction [network] -> Node -> execute script == valid ? propagate to peers : 
       ```cpp
       Word	    Opcode	  Hex	    Input	  Output
       OP_NOP    97        0x61    -       -
-      OP_AND   
+      OP_AND
       ```
 
     Stack
@@ -208,7 +207,6 @@ Tranasction [network] -> Node -> execute script == valid ? propagate to peers : 
     Arithmetic
 
     Locktime
-  
 
 #### - `Data` - everything that is not an OP_CODE is interpreted as raw data
 <!-- .element: class="fragment" -->
@@ -298,43 +296,43 @@ btcdeb "[2 2 OP_ADD 4 OP_EQUAL]"
 ```
 
 ```sh
-script   |  stack 
+script   |  stack
 ---------+--------
-2        | 
-2        | 
-OP_ADD   | 
-4        | 
-OP_EQUAL | 
+2        |
+2        |
+OP_ADD   |
+4        |
+OP_EQUAL |
 #0000 2
 btcdeb> step
                 <> PUSH stack 02
-script   |  stack 
+script   |  stack
 ---------+--------
 2        |      02
-OP_ADD   | 
-4        | 
-OP_EQUAL | 
+OP_ADD   |
+4        |
+OP_EQUAL |
 #0001 2
 btcdeb> step
                 <> PUSH stack 02
-script   |  stack 
+script   |  stack
 ---------+--------
 OP_ADD   |      02
 4        |      02
-OP_EQUAL | 
+OP_EQUAL |
 #0002 OP_ADD
 btcdeb> step
                 <> POP  stack
                 <> POP  stack
                 <> PUSH stack 04
-script   |  stack 
+script   |  stack
 ---------+--------
 4        |      04
-OP_EQUAL | 
+OP_EQUAL |
 #0003 4
 btcdeb> step
                 <> PUSH stack 04
-script   |  stack 
+script   |  stack
 ---------+--------
 OP_EQUAL |      04
          |      04
@@ -343,18 +341,18 @@ btcdeb> step
                 <> POP  stack
                 <> POP  stack
                 <> PUSH stack 01
-script   |  stack 
+script   |  stack
 ---------+--------
          |      01
 ```
 
 ```sh
-script   |  stack 
+script   |  stack
 ---------+--------
-2        | 
-2        | 
-OP_ADD   | 
-OP_EQUAL | 
+2        |
+2        |
+OP_ADD   |
+OP_EQUAL |
 #0000 2
 ```
 
@@ -482,7 +480,8 @@ Summary
 - ##### Bitcoin Script Debugging Utilities - https://github.com/bitcoin-core/btcdeb
 <!-- .element: style="text-align:left" -->
 
-https://ethereum.org/en/developers/docs/evm | https://soliditylang.org
+- ##### Ethereum Virtual Machine - https://ethereum.org/en/developers/docs/evm, https://soliditylang.org
+<!-- .element: style="text-align:left" -->
 
 ---
 
