@@ -83,34 +83,316 @@
 
 ----
 
+- Designed for verifying transactions in the network
+
+  - Opens door for smart contracts
+
+  A smart contract is a computer protocol intended to digitally facilitate, verify, or enforce the negotiation or performance of a contract. Smart contracts allow the performance of credible transactions without third parties. These transactions are trackable and irreversible. — wikipedia
+
+
+  - scripting abilities have been in the bitcion source from the beginning
+
+
+- BTC script
+
+  - cheap in terms of computational resources, doesn't need a resource metering system like gas
+
+```cpp
+```
+
+> Solidity (EVM) - gas fees - Gas is a unit that measures the amount of computational effort required to execute operations on the Ethereum network
+
+```cpp
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0 <0.9.0;
+
+contract HelloWorld {
+  function helloWorld() external pure returns (string memory) {
+      return "Hello, World!";
+  }
+}
+```
+
+----
+
+Programmable money
+
+Flow
+
+  - Every transaction has an associated script, and every node in the network, upon receiving a transaction, executes the Script in their own local machine
+  - Proof Of Work, once these transactions get added in the blockchain they become immutable, thus every node always computes a script in the exact same steps and arrives at the exact same result
+  - We get a distributed computational network where arbitrary programs can get executed inside different machines to result in the exact same output and they cannot be censored
+
+programmable money - digital currency with attached programs
+
+----
+
+Flow Example
+
+Seller’s Transaction Output:
+  Includes scriptPubKey specifying conditions for spending (e.g., P2PKH script).
+
+Buyer’s Transaction Input:
+  Includes scriptSig with Jon’s signature and public key to satisfy the scriptPubKey.
+
+
+----
+
+<img src="images/transaction.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+
+<img src="images/in_out.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+
+inputs - outputs - Scripting is all about this locking and unlocking mechanism
+
+----
+
 - #### Bitcion Script
 
 ### Script is a programming language
 <!-- .element: class="fragment" -->
 
-#### - stack-based, 
+#### - stack-based,
 <!-- .element: class="fragment" -->
 
-#### - forth like, 
+#### - forth like,
 <!-- .element: class="fragment" -->
 
 #### - turing incomplete
 <!-- .element: class="fragment" -->
-    
+
 
 #### - written in reverse polish notation.
 <!-- .element: class="fragment" -->
 
+
 ----
 
+<img src="images/script.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+
+- Reverse Polish Notation (RPN)
+
+2+2=4 -> 2 2 +
+
+
+----
 
 - #### Bitcion Script - implementation details
-  - Stack-based
-    - OP_CODES
-    - Reverse Polish Notation (RPN)
-  - Turing incomplete
-  - Interpreter
 
+Made of
+
+  - OP_CODES - These are specific bytes that represent a certain operation, like Addition, Subtraction, Multiplication
+
+  - Data - Everything that is not an OP_CODE is interpreted as raw data, and pushed on top of the stack
+
+- A Script is nothing but a sequence of such OP_CODES and DATA
+
+----
+
+btcdeb
+
+2 2 + 4 =
+
+     op       stack
+#0            2
+#1            2 2
+#2   +        4
+#3            4 4
+#4   =        1
+
+----
+
+- Interpreter - https://github.com/bitcoin/bitcoin/blob/main/src/script/interpreter.cpp
+
+ScriptPubkey: 2 2 OP_ADD OP_EQUAL
+
+ScriptSig: 4
+
+
+execution counter: 0..N
+
+if execution_counter points to data
+  push data
+else if is opcode and opcode is enabled
+  if op_code == ADD # requires 2 elements
+    a1 = pop
+    a2 = pop
+    add a1 a2
+    push
+
+if top stack == 1
+  return valid
+else
+  return invalid
+
+----
+
+----
+
+formats
+
+human readable
+
+hex
+
+binary
+
+----
+
+> human readable format turned into its hexadecimal representation
+
+```sh
+btcc OP_DUP OP_HASH160 897c81ac37ae36f7bc5b91356cfb0138bfacb3c1 OP_EQUALVERIFY OP_CHECKSIG
+```
+
+```cpp
+76a914897c81ac37ae36f7bc5b91356cfb0138bfacb3c188ac
+```
+
+```cpp
+btcdeb '[OP_DUP OP_HASH160 897c81ac37ae36f7bc5b91356cfb0138bfacb3c1 OP_EQUALVERIFY OP_CHECKSIG]' 3045022100c7d8e302908fdc601b125c2734de63ed3bf54353e13a835313c2a2aa5e8f21810220131fad73787989d7fbbdbbd8420674f56bdf61fed5dc2653c826a4789c68501101 03b05bdbdf395e495a61add92442071e32703518b8fca3fc34149db4b56c93be42
+```
+
+----
+
+Tranasction [network] -> Node
+                              -> execute script
+                                                ? valid
+                                                        -> propagate to peers
+
+
+----
+
+Mechanics
+
+Locking - ScriptPubKey
+
+Unlocking - ScriptSig
+
+  “Unlocking” is the process of concatenating ScriptSig and ScriptPubkey, interpreting it as a Script program, and upon execution leaves 1 as the top stack element.
+
+----
+
+- Pay To PubKey (P2PK) (not used anymore)
+
+<img src="images/p2pk.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
+
+
+<signature> <public key> OP_CHECKSIG
+
+```cpp
+OP_CHECKSIG	172	0xac	sig pubkey	True / false	The entire transaction's outputs, inputs, and script (from the most recently-executed OP_CODESEPARATOR to the end) are hashed. The signature used by OP_CHECKSIG must be a valid signature for this hash and public key. If it is, 1 is returned, 0 otherwise.
+```
+
+```cpp
+case OP_CHECKSIG:
+{
+    // 1. Extract the signature and public key from the stack
+    valtype vchSig = stacktop(-2); // Get the signature
+    valtype vchPubKey = stacktop(-1); // Get the public key
+
+    // 2. Hash the transaction
+    uint256 hash = SignatureHash(scriptCode, txTo, nIn, nHashType);
+
+    // 3. Verify the signature using ECDSA
+    bool fSuccess = CheckSignatureEncoding(vchSig) &&
+                    CheckPubKeyEncoding(vchPubKey) &&
+                    ECDSAVerify(vchSig, hash, vchPubKey);
+
+    // 4. Push the result onto the stack (true if valid, false otherwise)
+    if (fSuccess)
+        stack.push_back(vchTrue);
+    else
+        stack.push_back(vchFalse);
+
+    break;
+}
+```
+
+if 1 // transaction verified
+  unlock
+    propagate to the nodes
+
+----
+
+PayToPubKeyHash (P2PKH)
+
+<img src="images/p2pkh.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
+
+Standard Transaction to Bitcoin address
+
+scriptPubKey: OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
+scriptSig: <sig> <pubKey>
+
+OP_HASH160	169	0xa9	in	hash	The input is hashed twice: first with SHA-256 and then with RIPEMD-160.
+
+provides better privacy.
+
+----
+
+Smart Contracts
+A smart contract is a program that executes in an automated and uncensorable way
+Because each of the script of a transaction is independently executed by each node in the network, there is no central server to attack in order to stop the execution
+
+----
+
+Lightning network is nothing but a very elaborate Bitcoin script known as HTLC (Hashed Time-Locked Contracts)
+
+ScriptPubkey
+
+```cpp
+OP_IF
+[HASHOP] <digest> OP_EQUALVERIFY OP_DUP OP_HASH160 <seller pubkey hash>
+OP_ELSE
+<num> [TIMEOUTOP] OP_DROP OP_DUP OP_HASH160 <buyer pubkey hash>
+OP_ENDIF
+OP_EQUALVERIFY
+OP_CHECKSIG
+```
+
+----
+
+Safety and future
+
+OP_Codes Restrictions - 
+  Disabled: OP_CAT, OP_SUBSTR, OP_MUL, OP_DIV, OP_MOD, ...
+  Lmited: OP_RETURN (80 bytes) - data embeeding
+
+
+Bitcoin Improvement Proposal (BIP)
+
+  https://github.com/bitcoin/bips
+
+ BIP 119: CHECKTEMPLATEVERIFY (CTV)
+2. BIP 342: Taproot Script Path Spending
+3. BIP 374: OP_CTV
+
+4. BIP 340: Schnorr Signatures
+
+5. BIP 341: Taproot
+    - BIP-0119 - OP_CHECKTEMPLATEVERIFY
+    - ...
+
+Future
+  - Taproot and Schnorr Signatures
+
+  ```cpp
+# Script for time-locked spending
+<1_year_time_lock> OP_CHECKLOCKTIMEVERIFY OP_DROP
+<P_Alice> OP_CHECKSIGVERIFY
+<P_Bob> OP_CHECKSIG
+```
+
+The script will first check if the time lock (1 year) has passed. If it has, either Alice or Bob can provide a valid signature to spend the coins
+
+----
+
+Summary
+
+- Bitcoin script is very simple but powerful
+
+- It's Hard to write custom smart contracts of arbitrary complexity
+
+  - limitied flexibility but increased safety
 
 ----
 
@@ -127,6 +409,8 @@
 
 - ##### Bitcoin Script Debugging Utilities - https://github.com/bitcoin-core/btcdeb
 <!-- .element: style="text-align:left" -->
+
+https://ethereum.org/en/developers/docs/evm | https://soliditylang.org
 
 ---
 
