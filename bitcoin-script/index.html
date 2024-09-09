@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>Bitcoin script</title>
+    <title>Bitcoin Script: Implementation Details and Use Cases</title>
 
     <link rel="stylesheet" href="reveal.js/css/reveal.css">
     <link rel="stylesheet" href="reveal.js/css/theme/league.css" id="theme">
@@ -68,7 +68,7 @@
 - #### Bitcion Script
   <!-- .element: class="fragment" -->
 
-  - #### Basic information
+  - #### Introduction
   <!-- .element: class="fragment" -->
 
   - #### Implementation details
@@ -88,90 +88,27 @@
 
 ----
 
-#### Bitcoin Script - Basic information
-
-- Designed for verifying transactions in the network
-<!-- .element: class="fragment" -->
-
-    - Every transaction has an associated script, and every node in the network, upon receiving a transaction, executes the Script in their own local machine
-     <!-- .element: class="fragment" -->
-
-    - Once transactions get added in the blockchain they become immutable
-
-  - Opens door for smart contracts
-<!-- .element: class="fragment" -->
-
-  - Scripting abilities have been in the Bitcion source from the beginning
-<!-- .element: class="fragment" -->
+### Bitcoin Script - Introduction
 
 ----
 
-
-#### Bitcoin Script - Basic information
-
-  - Programmable Money - Digital currency with attached programs
-  <!-- .element: class="fragment" -->
-
-  - Distributed computational network where arbitrary programs can get executed inside different machines to result in the exact same output
-  <!-- .element: class="fragment" -->
-
-----
-
-#### Bitcoin Script - Transaction
-
-```cpp
-Tranasction [network] -> Node -> execute script == valid ? propagate to peers : stop
-```
-<!-- .element: class="fragment" -->
-
-<img src="images/transaction.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-#### - Transaction Output - Includes scriptPubKey specifying conditions for unlocking
-<!-- .element: class="fragment" -->
-
-#### - Transaction Input - Includes scriptSig with signature and public key to satisfy the scriptPubKey
-<!-- .element: class="fragment" -->
-
-----
-
-#### Bitcoin Script - Transaction
-
-<img src="images/in_out.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
-
-#### Scripting is all about this locking and unlocking mechanism
-<!-- .element: class="fragment" -->
-
-----
-
-#### Bitcion Script - Implementation details
-
-<img src="images/script.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
-<!-- .element: class="fragment" -->
+### Bitcoin Script
 
 ---
 
-### Script is a programming language
-<!-- .element: class="fragment" -->
+#### Designed for verifying transactions in the network
+<!-- .element: class="fragment" style="text-align:left" -->
 
-#### - Stack-based,
-<!-- .element: class="fragment" -->
+#### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Every transaction has an associated script
+<!-- .element: class="fragment" style="text-align:left" -->
 
-#### - Forth like - https://en.wikipedia.org/wiki/Forth_(programming_language)
-<!-- .element: class="fragment" -->
+#### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Upon receiving a transaction, the script is executed locally
+<!-- .element: class="fragment" style="text-align:left" -->
 
-#### - Turing incomplete (no loops, no jumps)
-<!-- .element: class="fragment" -->
+---
 
-#### - Written in Reverse Polish Notation (RPN)
-<!-- .element: class="fragment" -->
-
-    ```cpp
-    EXPR: 2 + 2 = 4
-    RPN:  2 2 + 4 =
-    ```
-    <!-- .element: class="fragment" -->
+<img src="images/transaction2.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
@@ -182,287 +119,429 @@ Tranasction [network] -> Node -> execute script == valid ? propagate to peers : 
 
 ----
 
-### Bitcoin Script - Implementation details
+### Bitcoin Script
 
-#### - `OP_CODES` - represent a certain operation, like addition, substraction, etc.
-<!-- .element: class="fragment" -->
+---
 
-  https://github.com/bitcoin/bitcoin/blob/master/src/script/script.h
+#### Bitcoin Script is a simple programming language
+<!-- .element: class="fragment" style="text-align:left" -->
 
-    Constants
+#### - Turing incomplete (no loops, no jumps)
+<!-- .element: class="fragment" style="text-align:left" -->
 
-    Flow control
-      ```cpp
-      Word	    Opcode	  Hex	    Input	  Output
-      OP_NOP    97        0x61    -       -
-      OP_AND
-      ```
+#### - Stack-based (Reverse Polish Notation - RPN)
+<!-- .element: class="fragment" style="text-align:left" -->
 
-    Stack
-
-    Splice
-
-    Bitwise logic
-
-    Arithmetic
-
-    Locktime
-
-#### - `Data` - everything that is not an OP_CODE is interpreted as raw data
+```cpp
+  EXPR: 2 + 2 = 4
+   RPN: 2 2 + 4 =
+```
 <!-- .element: class="fragment" -->
 
 ----
 
-##### Bitcoin Script Debugging Utilities - https://github.com/bitcoin-core/btcdeb
+### Bitcoin Script
+
+---
+
+<img src="images/script.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### OP_CODE - represent a certain operation, like addition, substraction, etc.
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### DATA - everything that is not an OP_CODE is interpreted as raw data
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
-#### Bitcoin Script - Formats
+#### OP_CODES
 
-- Human readable
-<!-- .element: class="fragment" -->
+#### Constants
+<!-- .element: class="fragment" style="text-align:left" -->
+```cpp
+Word      Opcode     Hex      Input      Output
+OP_0      0          0x00     Nothing    0
+
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### Flow control
+<!-- .element: class="fragment" style="text-align:left" -->
+```cpp
+Word      Opcode    Hex      Input       Output
+OP_VERIFY 105       0x69     True/False  (Nothing/Fail)*
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### Stack
+<!-- .element: class="fragment" style="text-align:left" -->
+```cpp
+Word      Opcode    Hex      Input       Output
+OP_DUP    118       0x76     x           x x
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+---
+
+##### \*May mark transaction as invalid
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+#### OP_CODES
+
+#### Splice
+<!-- .element: class="fragment" style="text-align:left" -->
+```cpp
+Word      Opcode    Hex      Input       Output
+OP_SIZE   130       0x82     x           x.size()
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### Bitwise logic
+<!-- .element: class="fragment" style="text-align:left" -->
+```cpp
+Word      Opcode    Hex      Input       Output
+OP_EQUAL  135       0x87     x1 x2       x1 == x2
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### Arithmetic
+<!-- .element: class="fragment" style="text-align:left" -->
+```cpp
+Word      Opcode    Hex      Input       Output
+OP_ADD    147       0x93     x1 x2       x1 + x2
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+#### OP_CODES
+
+#### Crypto
+<!-- .element: class="fragment" style="text-align:left" -->
+```cpp
+Word        Opcode    Hex      Input     Output
+OP_HASH160  169       0xa9     x         RIPEMD160(SHA256(x))
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### Locktime
+<!-- .element: class="fragment" style="text-align:left" -->
+```cpp
+Word                    Opcode  Hex     Input   Output
+OP_CHECKLOCKTIMEVERIFY  177     0xb1    x       (Nothing/Fail)*
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+---
+
+##### \*May mark transaction as invalid
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+#### OP_CODES
+
+<img src="images/opcode1.png" style="width: 17%; background:none; border:none; box-shadow:none;" />
+<img src="images/opcode2.png" style="width: 18.3%; background:none; border:none; box-shadow:none;" />
+
+----
+
+### Bitcoin Script - Execution
+
+#### https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### https://siminchen.github.io/bitcoinIDE
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### https://github.com/bitcoin-core/btcdeb
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+### Bitcoin Script - Example 0
+
+---
 
 ```sh
-OP_DUP OP_HASH160 897c81ac37ae36f7bc5b91356cfb0138bfacb3c1 OP_EQUALVERIFY OP_CHECKSIG
+[asm] OP_2 OP_2 OP_ADD
+[hex] 52   52   93
 ```
-<!-- .element: class="fragment" -->
-
-- Hex
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ```cpp
-```
-<!-- .element: class="fragment" -->
+[stack] [      ]
+        [ 2    ] # OP_2
+        [ 2, 2 ] # OP_2
+        [ 4    ] # OP_ADD
 
-- Binary
-<!-- .element: class="fragment" -->
+[result] 4
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+### Bitcoin Script - Example 1
+
+---
+
+```sh
+[asm] OP_3 OP_4 OP_ADD OP_5 OP_SUB
+[hex] 53   54   93     55   94
+```
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ```cpp
-76a914897c81ac37ae36f7bc5b91356cfb0138bfacb3c188ac
+[stack] [      ]
+        [ 3    ]  # OP_3
+        [ 3, 4 ]  # OP_4
+        [ 7    ]  # OP_ADD
+        [ 7, 5 ]  # OP_5
+        [ 2    ]  # OP_SUB
+
+[result] 2
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+### Bitcoin Script - Example 2
+
+---
+
+```sh
+[asm] OP_3 OP_4 OP_EQUAL OP_IF OP_5 OP_ELSE OP_10 OP_ENDIF
+[hex] 53   54   87       63    55   67      60    68
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+```cpp
+[stack] [      ]
+        [ 3    ] # OP_3
+        [ 3, 4 ] # OP_4
+        [ 0    ] # OP_EQUAL
+        [      ] # OP_IF - False
+        [      ] # OP_5
+        [      ] # OP_ELSE
+        [      ] # OP_10
+        [ 10   ] # OP_ENDIF
+
+[result] 10
+```
+<!-- .element: class="fragment" style="text-align:left" -->
 
 -----
 
-#### Bitcoin Script - Execution
+### Bitcoin Script - Locking / Unlocking
 
-#### https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp
-<!-- .element: class="fragment" -->
+---
 
-# pseudo code
+<img src="images/in_out.png" style="width: 50%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### ScriptSig (Unlocking / Spend)
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### ScriptPubKey (Locking / Sent)
+<!-- .element: class="fragment" style="text-align:left" -->
+
+---
+
 ```cpp
-if execution_counter points to data
-  push data
-else if is opcode and opcode is enabled
-  if op_code == ADD # requires 2 elements
-    a1 = pop
-    a2 = pop
-    add a1 a2
-    push
-  ...
-
-if top stack == 1
-  return valid
-else
-  return invalid
+[asm] <ScriptSig> <ScriptPubKey>
 ```
 <!-- .element: class="fragment" -->
 
 ----
 
-#### Bitcoin Script - Locking/Unlocking
+### Bitcoin Script - Example 3
 
-- Locking - ScriptPubKey
-<!-- .element: class="fragment" -->
-
-- Unlocking - ScriptSig
-<!-- .element: class="fragment" -->
-
-  “Unlocking” is the process of concatenating ScriptSig and ScriptPubkey, interpreting it as a Script program, and upon execution leaves 1 as the top stack element.
-<!-- .element: class="fragment" -->
-
-----
-
-#### Bitcoin Script - Example
+---
 
 ```cpp
-ScriptPubkey: 2 2 OP_ADD OP_EQUAL
-ScriptSig: 4
-```
-<!-- .element: class="fragment" -->
-
-```sh
-btcdeb "[2 2 OP_ADD 4 OP_EQUAL]"
+ScriptSig:    OP_4
+ScriptPubkey: OP_2 OP_2 OP_ADD OP_EQUAL
 ```
 
 ```sh
-script   |  stack
----------+--------
-2        |
-2        |
-OP_ADD   |
-4        |
-OP_EQUAL |
-#0000 2
-btcdeb> step
-                <> PUSH stack 02
-script   |  stack
----------+--------
-2        |      02
-OP_ADD   |
-4        |
-OP_EQUAL |
-#0001 2
-btcdeb> step
-                <> PUSH stack 02
-script   |  stack
----------+--------
-OP_ADD   |      02
-4        |      02
-OP_EQUAL |
-#0002 OP_ADD
-btcdeb> step
-                <> POP  stack
-                <> POP  stack
-                <> PUSH stack 04
-script   |  stack
----------+--------
-4        |      04
-OP_EQUAL |
-#0003 4
-btcdeb> step
-                <> PUSH stack 04
-script   |  stack
----------+--------
-OP_EQUAL |      04
-         |      04
-#0004 OP_EQUAL
-btcdeb> step
-                <> POP  stack
-                <> POP  stack
-                <> PUSH stack 01
-script   |  stack
----------+--------
-         |      01
+[asm] <ScriptSig> <ScriptPubKey>
+[asm] OP_4        OP_2 OP_2 OP_ADD OP_EQUAL
+[hex] 54          52   52   93     87
 ```
+<!-- .element: class="fragment" style="text-align:left" -->
 
-```sh
-script   |  stack
----------+--------
-2        |
-2        |
-OP_ADD   |
-OP_EQUAL |
-#0000 2
+```cpp
+[stack] [         ]
+        [ 4       ] # OP_4
+        [ 4, 2    ] # OP_2
+        [ 4, 2, 2 ] # OP_2
+        [ 4, 4    ] # OP_ADD
+        [ 1       ] # OP_EQUAL
+
+[result] 1 # valid
 ```
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
-#### Bitcoin Script - Pay To PubKey (P2PK) (Not used anymore)
+### Bitcoin Script
 
-<img src="images/p2pk.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
+---
 
-```cpp
-scriptPubKey: <pubKey> OP_CHECKSIG
-scriptSig:    <sig>
-```
+#### - P2PK (Pay To PubKey - obsolete)
+<!-- .element: class="fragment" style="text-align:left" -->
 
+#### - P2PKH (Pay To PubKey Hash)
+<!-- .element: class="fragment" style="text-align:left" -->
 
-```cpp
-OP_CHECKSIG	172	0xac	sig pubkey	True / false	The entire transaction's outputs, inputs, and script (from the most recently-executed OP_CODESEPARATOR to the end) are hashed. The signature used by OP_CHECKSIG must be a valid signature for this hash and public key. If it is, 1 is returned, 0 otherwise.
-```
+#### - P2SH (Pay To Script Hash)
+<!-- .element: class="fragment" style="text-align:left" -->
 
-----
-
-#### Bitcoin Script - PayToPubKeyHash (P2PKH) - Standard Transaction to Bitcoin address
-
-<img src="images/p2pkh.png" style="width: 13%; background:none; border:none; box-shadow:none;" />
-
-```cpp
-scriptPubKey: OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
-scriptSig: <sig> <pubKey>
-```
-
-```cpp
-OP_HASH160	169	0xa9	in	hash	The input is hashed twice: first with SHA-256 and then with RIPEMD-160.
-```
+#### - ...
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
-#### Bitcoin Script - Use cases
+### Bitcoin Script
 
-#### - Smart Contracts
-A smart contract is a program that executes in an automated and uncensorable way
+---
 
-A smart contract is a computer protocol intended to digitally facilitate, verify, or enforce the negotiation or performance of a contract. Smart contracts allow the performance of credible transactions without third parties. These transactions are trackable and irreversible. — wikipedia
-Because each of the script of a transaction is independently executed by each node in the network, there is no central server to attack in order to stop the execution
+<img src="images/usage.png" style="width: 60%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
 
-#### - Lightning network is nothing but a very elaborate Bitcoin script known as HTLC (Hashed Time-Locked Contracts)
+##### https://bitcoin.clarkmoody.com/dashboard
+<!-- .element: class="fragment" -->
+
+----
+
+#### Bitcoin Script - P2PK (Pay To PubKey - obsolete)
 
 ```cpp
-scriptPubKey:
+ScriptSig:    <Sig> # ECDSA algorithm
+ScriptPubKey: <PubKey> OP_CHECKSIG
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+```cpp
+[asm] <Sig> <PubKey> OP_CHECKSIG
+[hex] 6e751 6e751    AC
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+```cpp
+[stack] [              ]
+        [ 6e751        ] # 6e751
+        [ 6e751, 6e751 ] # 6e751
+        [ 1            ] # OP_CHECKSIG
+
+[result] 1 # valid
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+#### Bitcoin Script - P2PKH (Pay To PubKey Hash)
+
+```cpp
+ScriptSig:    <Sig> <PubKey>
+ScriptPubkey: OP_DUP OP_HASH160 <PubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+```cpp
+[asm] <ScriptSig>    <ScriptPubKey>
+[asm] <Sig> <PubKey> OP_DUP OP_HASH160 \
+                     <PubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+```cpp
+[stack] [                                     ]
+        [ <Sig>                               ] # <Sig>
+        [ <Sig>, <PubKey>                     ] # <PubKey>
+        [ <Sig>, <PubKey>, <PubKey>           ] # OP_DUP
+        [ <Sig>, <PubKey>, <Hash>             ] # OP_HASH160
+                                                #   RIPEMD160(SHA256(x))
+        [ <Sig>, <PubKey>, Hash, <PubKeyHash> ] # <PubKeyHash>
+        [ <Sig>, <PubKey>                     ] # OP_EQUALVERIFY
+                                                #   Stop if False
+        [ <Sig>, <PubKey>                     ] # OP_CHECKSIG
+        [ True/False                          ]
+
+[result] True: valid, False: invalid
+```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+#### Bitcoin Script - P2PKH (Pay To PubKey Hash)
+
+---
+
+<img src="images/transaction2.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+<img src="images/transaction4.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" -->
+
+----
+
+### Bitcoin Script - Use cases
+
+---
+
+#### A smart contract is a program that executes in an automated and uncensorable way
+<!-- .element: class="fragment" style="text-align:left" -->
+
+----
+
+#### HTLC (Hashed Time-Locked Contracts) / Lightning network
+
+```cpp
+ScriptPubKey:
   OP_IF
-  [HASHOP] <digest> OP_EQUALVERIFY OP_DUP OP_HASH160 <seller pubkey hash>
+    OP_SHA256 <Hash> OP_EQUALVERIFY OP_DUP
+    OP_HASH160 <RecipientPubKeyHash>
   OP_ELSE
-  <num> [TIMEOUTOP] OP_DROP OP_DUP OP_HASH160 <buyer pubkey hash>
+    <LockTime> OP_CHECKLOCKTIMEVERIFY
+    OP_DROP OP_DUP OP_HASH160 <SenderPubKeyHash>
   OP_ENDIF
-  OP_EQUALVERIFY
-  OP_CHECKSIG
+    OP_EQUALVERIFY OP_CHECKSIG
 
-scriptSig: <sig>
+ScriptSig [recipient]: <Sig> <RecipientPubKey> <PreImage> OP_TRUE
+ScriptSig [sender]:    <Sig> <SenderPubKey> OP_FALSE
 ```
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
-#### Bitcoin Script - Safety and Future
+### Summary
+
+#### - Bitcoin script is very simple but powerful
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### - It's possible to write custom, complex, smart contracts
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### - Limitied flexibility but increased safety
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ```cpp
-OP_Codes
-  Disabled: OP_CAT, OP_SUBSTR, OP_MUL, OP_DIV, OP_MOD, ...
-  Lmited: OP_RETURN (80 bytes) - data embeeding
+  Limited size:     ~200 OP_CODES
+  Disabled opcodes: OP_CAT, OP_SUBSTR, OP_MUL, OP_DIV, OP_MOD, ...
+  Lmited opcodes:   OP_RETURN (80 bytes)
 ```
-  <!-- .element: class="fragment" -->
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
-#### Bitcoin Script - Future
+#### Bitcoin Script vs Etherum Virtual Machine (Solidity via EVM)
 
-Bitcoin Improvement Proposal (BIP) - https://github.com/bitcoin/bips
-
-  - BIP 119: CHECKTEMPLATEVERIFY (CTV)
-  - BIP 342: Taproot Script Path Spending
-    - ...
-
-----
-
-#### Bitcoin Script vs ...
-
-- BTC script vs EVM
-
-  - cheap in terms of computational resources, doesn't need a resource metering system like gas
-
-> Solidity (EVM) - gas fees - Gas is a unit that measures the amount of computational effort required to execute operations on the Ethereum network
-
-```cpp
-// SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.9.0;
-
-contract HelloWorld {
-  function helloWorld() external pure returns (string memory) {
-      return "Hello, World!";
-  }
-}
-```
-
-----
-
-Summary
-
-- Bitcoin script is very simple but powerful
-
-- It's Hard to write custom smart contracts of arbitrary complexity
-
-  - limitied flexibility but increased safety
+<img src="images/vs.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
@@ -477,10 +556,13 @@ Summary
 - ##### Opcode Explained - https://opcodeexplained.com
 <!-- .element: style="text-align:left" -->
 
+- ##### Bitcoin Script IDE - https://siminchen.github.io/bitcoinIDE
+<!-- .element: style="text-align:left" -->
+
 - ##### Bitcoin Script Debugging Utilities - https://github.com/bitcoin-core/btcdeb
 <!-- .element: style="text-align:left" -->
 
-- ##### Ethereum Virtual Machine - https://ethereum.org/en/developers/docs/evm, https://soliditylang.org
+- #### Bitcoin Improvement Proposal (BIP) - https://github.com/bitcoin/bips
 <!-- .element: style="text-align:left" -->
 
 ---
