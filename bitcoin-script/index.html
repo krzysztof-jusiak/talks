@@ -65,7 +65,7 @@
 
 #### Agenda
 
-- #### Bitcion Script
+- #### Bitcoin Script
   <!-- .element: class="fragment" -->
 
   - #### Introduction
@@ -74,13 +74,10 @@
   - #### Implementation details
   <!-- .element: class="fragment" -->
 
-  - #### Examples
-  <!-- .element: class="fragment" -->
+    - #### Examples
+    <!-- .element: class="fragment" -->
 
   - #### Use cases
-  <!-- .element: class="fragment" -->
-
-  - #### Security and Future
   <!-- .element: class="fragment" -->
 
 - #### Summary
@@ -119,12 +116,9 @@
 
 ----
 
-### Bitcoin Script
+### Bitcoin Script is a simple programming language
 
 ---
-
-#### Bitcoin Script is a simple programming language
-<!-- .element: class="fragment" style="text-align:left" -->
 
 #### - Turing incomplete (no loops, no jumps)
 <!-- .element: class="fragment" style="text-align:left" -->
@@ -155,7 +149,7 @@
 
 ----
 
-#### OP_CODES
+#### Bitcoin Script - OP_CODES
 
 #### Constants
 <!-- .element: class="fragment" style="text-align:left" -->
@@ -189,7 +183,7 @@ OP_DUP    118       0x76     x           x x
 
 ----
 
-#### OP_CODES
+#### Bitcoin Script - OP_CODES
 
 #### Splice
 <!-- .element: class="fragment" style="text-align:left" -->
@@ -217,7 +211,7 @@ OP_ADD    147       0x93     x1 x2       x1 + x2
 
 ----
 
-#### OP_CODES
+#### Bitcoin Script - OP_CODES
 
 #### Crypto
 <!-- .element: class="fragment" style="text-align:left" -->
@@ -242,10 +236,12 @@ OP_CHECKLOCKTIMEVERIFY  177     0xb1    x       (Nothing/Fail)*
 
 ----
 
-#### OP_CODES
+#### Bitcoin Script - OP_CODES
 
-<img src="images/opcode1.png" style="width: 17%; background:none; border:none; box-shadow:none;" />
-<img src="images/opcode2.png" style="width: 18.3%; background:none; border:none; box-shadow:none;" />
+<img src="images/opcodes1.png" style="width: 20%; background:none; border:none; box-shadow:none;" />
+<img src="images/opcodes2.png" style="width: 22.6%; background:none; border:none; box-shadow:none;" />
+<img src="images/opcodes3.png" style="width: 23.2%; background:none; border:none; box-shadow:none;" />
+<img src="images/opcodes4.png" style="width: 24.5%; background:none; border:none; box-shadow:none;" />
 
 ----
 
@@ -420,9 +416,12 @@ ScriptPubkey: OP_2 OP_2 OP_ADD OP_EQUAL
 #### Bitcoin Script - P2PK (Pay To PubKey - obsolete)
 
 ```cpp
-ScriptSig:    <Sig> # ECDSA algorithm
+ScriptSig:    <Sig> [1]
 ScriptPubKey: <PubKey> OP_CHECKSIG
 ```
+<!-- .element: class="fragment" style="text-align:left" -->
+
+##### [1] - ECDSA - https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ```cpp
@@ -550,7 +549,7 @@ ScriptSig [sender]:    <Sig> <SenderPubKey> OP_FALSE
 - ##### Bitcoin Script Source Code - https://github.com/bitcoin/bitcoin/tree/master/src/script
 <!-- .element: style="text-align:left" -->
 
-- ##### Bitcion Script Wiki - https://en.bitcoin.it/wiki/Script
+- ##### Bitcoin Script Wiki - https://en.bitcoin.it/wiki/Script
 <!-- .element: style="text-align:left" -->
 
 - ##### Opcode Explained - https://opcodeexplained.com
