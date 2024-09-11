@@ -310,7 +310,7 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
   ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Value-based TMP ([mp](https://github.com/qlibs/mp)\*, [https://wg21.link/P2996](https://wg21.link/P2996)\*)
   <!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
 
-##### &nbsp;&nbsp;&nbsp;&nbsp; - [Circle-lang](https://www.circle-lang.org) (Circle meta model\*)
+##### &nbsp;&nbsp;&nbsp;&nbsp; - [Circle-lang](https://www.circle-lang.org) (Circle-lang meta model\*)
 <!-- .element: class="fragment" data-fragment-index="8" style="text-align:left" -->
 
 ##### - [Zig-lang](https://ziglang.org) (comptime)
@@ -1302,7 +1302,7 @@ static_assert(std::is_same_v<
 ##### Member packs - https://wg21.link/P1858
 <!-- .element: class="fragment" style="text-align:left" -->
 
-##### Circle meta model (Metaprogramming)
+##### Circle-lang meta model (Metaprogramming)
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ##### Reflection
@@ -1427,17 +1427,23 @@ static_assert(std::is_same_v<
 
 ----
 
-* #### Circle meta model is the fastest to compile - https://www.circle-lang.org
+* #### Circle-lang meta model is the fastest to compile all around
 <!-- .element: class="fragment" -->
 
-* #### Value-based Metaprogramming can compile almost as fast* as Type-based Metaprogramming
+* #### Circle-lang compiles Metaprogramming much faster than GCC-13 which is faster than Clang-19
 <!-- .element: class="fragment" -->
 
-* #### Value-based Metaprogramming with STL is significantly slower to compile than with the raw primitives! (may require compiler builtins)
+---
+
+* #### Value-based Metaprogramming can compile almost as fast* as Type-based Metaprogramming (constexpr evaluation is just an 'interpreter')
+<!-- .element: class="fragment" -->
+
+* #### Value-based Metaprogramming with STL is significantly slower to compile than with raw primitives (may require compiler builtins in the future)
 <!-- .element: class="fragment" -->
 
 * #### Value-based Metaprogramming can - potentially - support parallel execution (std::simd, std::execution)
 <!-- .element: class="fragment" -->
+
 
 ----
 
