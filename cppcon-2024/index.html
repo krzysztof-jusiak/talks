@@ -1145,39 +1145,38 @@ static_assert(typeid([: ^int :]) == typeid(int));
 #### Reflection for C++26* - https://wg21.link/P2996
 
 ```cpp
- this_talk (C++17)           | P2996 (C++26*)
+ this_talk (C++17)                 | P2996 (C++26*)
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
- meta<T>                     | ^T
+ meta<T>                           | ^T
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 ```cpp
- using info =                | using info =
-  decltype(meta<void>)       |  decltype(^::)
+ using info = decltype(meta<void>) | using info = decltype(^::)
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 ```cpp
- type_of<T>                  | typename [: T :]
+ type_of<T>                        | typename [: T :]
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 ```cpp
- apply_t                     | substitute
+ apply_t                           | substitute
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 ```cpp
- invoke                      | reflect_invoke, extract, test_trait
+ invoke                            | reflect_invoke, extract
 ```
 <!-- .element: class="fragment" data-fragment-index="6" -->
 
 ---
 
 ```cpp
- not_this_talk_but_possible* | members_of, enumerators_of, bases_of,
- (C++20)                     | identifier_of, is_private, ...
+ not_this_talk_but_possible*       | members_of, enumerators_of
+ (C++20)                           | identifier_of, is_private, ...
 ```
 <!-- .element: class="fragment" data-fragment-index="7" -->
 
