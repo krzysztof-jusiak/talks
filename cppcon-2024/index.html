@@ -1112,7 +1112,7 @@ int main() {
 #### Reflection for C++26* - https://wg21.link/P2996
 
 ```cpp
-^T // lift (reflection operator)
+^T // reflection operator (reflexpr)
 ```
 <!-- .element: class="fragment" -->
 
@@ -1126,7 +1126,7 @@ static_assert(typeid(^int) == typeid(^void));
 ---
 
 ```cpp
-[: info :] // splicer (reflection domain -> source code)
+[: info :] // splicer operator (unreflexpr)
 ```
 <!-- .element: class="fragment" -->
 
@@ -1152,7 +1152,7 @@ static_assert(typeid([: ^int :]) == typeid(int));
 ---
 
 ```cpp
- meta<T>                     | ^T // lift (reflexpr)
+ meta<T>                     | ^T
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 ```cpp
@@ -1161,7 +1161,7 @@ static_assert(typeid([: ^int :]) == typeid(int));
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 ```cpp
- type_of<T>                  | typename [: T :] // splicer (unreflexpr)
+ type_of<T>                  | typename [: T :]
 ```
 <!-- .element: class="fragment" data-fragment-index="4" -->
 ```cpp
