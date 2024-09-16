@@ -307,7 +307,7 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
   ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Heterogeneous-based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
   <!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
-  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Value-based TMP ([mp](https://github.com/qlibs/mp)\*, [https://wg21.link/P2996](https://wg21.link/P2996)\*)
+  ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Value-based TMP ([mp](https://github.com/qlibs/mp)\*, [https://wg21.link/p2996](https://wg21.link/p2996)\*)
   <!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
 
 ##### &nbsp;&nbsp;&nbsp;&nbsp; - [Circle-lang](https://www.circle-lang.org) (Circle-lang meta model\*)
@@ -1096,7 +1096,7 @@ int main() {
 
 ----
 
-### Reflection for C++26* - https://wg21.link/P2996
+### Reflection for C++26* - https://wg21.link/p2996
 
 ---
 
@@ -1109,7 +1109,7 @@ int main() {
 
 ----
 
-#### Reflection for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/p2996
 
 ```cpp
 ^T // reflection operator (reflexpr)
@@ -1142,10 +1142,10 @@ static_assert(typeid([: ^int :]) == typeid(int));
 
 ----
 
-#### Reflection for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/p2996
 
 ```cpp
- this_talk (C++17)                 | P2996 (C++26*)
+ this_talk (C++17)                 | p2996 (C++26*)
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
 
@@ -1182,7 +1182,7 @@ static_assert(typeid([: ^int :]) == typeid(int));
 
 ----
 
-#### Reflection for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/p2996
 
 
 ```cpp
@@ -1210,7 +1210,7 @@ static_assert(
 
 ----
 
-#### Reflection for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/p2996
 
 ```cpp
 template<std::size_t I, class... Ts>
@@ -1232,7 +1232,7 @@ static_assert(
 
 ----
 
-#### Reflection for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/p2996
 
 ```cpp
 constexpr auto variant_for(auto t, const std::ranges::range auto& ts)
@@ -1269,7 +1269,7 @@ constexpr auto variant_for(auto t, const std::ranges::range auto& ts)
 
 ----
 
-#### Reflection for C++26* - https://wg21.link/P2996
+#### Reflection for C++26* - https://wg21.link/p2996
 
 ```cpp
 template<class T, class... Ts>
@@ -1298,7 +1298,7 @@ static_assert(std::is_same_v<
 
 ---
 
-##### Member packs - https://wg21.link/P1858
+##### Member packs - https://wg21.link/p1858
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ##### Circle-lang meta model (Metaprogramming)
@@ -1403,7 +1403,22 @@ static_assert(std::is_same_v<
 
 ### Compilation-times benchmarks
 
-#### https://qlibs.github.io/mp
+---
+
+#### - boost.mp11 (template aliases, compiler builtins)
+<!-- .element: class="fragment"  style="text-align:left" -->
+#### - circle-lang (languate feature / compiler builtins)
+<!-- .element: class="fragment"  style="text-align:left" -->
+#### - mp (constexpr evaluation)
+<!-- .element: class="fragment"  style="text-align:left" -->
+#### - p2996 (constexpr evaluation)
+<!-- .element: class="fragment"  style="text-align:left" -->
+#### - p1858 (language feature / compiler builtin)
+<!-- .element: class="fragment"  style="text-align:left" -->
+
+---
+
+### https://qlibs.github.io/mp
 <!-- .element: class="fragment" -->
 
 ----
@@ -1426,23 +1441,24 @@ static_assert(std::is_same_v<
 
 ----
 
-* #### Circle-lang meta model is the fastest to compile all around
-<!-- .element: class="fragment" -->
-
-* #### Circle-lang compiles Metaprogramming much faster than GCC-13 which is faster than Clang-19
-<!-- .element: class="fragment" -->
+### Compilation-times benchmarks
 
 ---
 
-* #### Value-based Metaprogramming can compile almost as fast* as Type-based Metaprogramming (constexpr evaluation is just an 'interpreter')
+* #### Circle-lang meta model is the fastest to compile all around
 <!-- .element: class="fragment" -->
 
-* #### Value-based Metaprogramming with STL is significantly slower to compile than with raw primitives (may require compiler builtins in the future)
+* #### Type-based Metaprogramming with aliases and builtins is fast to compile
 <!-- .element: class="fragment" -->
 
-* #### Value-based Metaprogramming can - potentially - support parallel execution (std::simd, std::execution)
+* #### Value-based Metaprogramming can compile almost as fast as Type-based Metaprogramming
 <!-- .element: class="fragment" -->
 
+* #### Value-based Metaprogramming with STL is significantly slower to compile than with raw primitives
+<!-- .element: class="fragment" -->
+
+* #### Value-based Metaprogramming can - potentially - support parallel execution via std::simd, std::execution
+<!-- .element: class="fragment" -->
 
 ----
 
