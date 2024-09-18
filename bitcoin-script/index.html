@@ -321,10 +321,7 @@ typedef prevector<28, unsigned char> CScript;
  * Implements a drop-in replacement for std::vector<T>
  * which stores up to N elements directly (without heap allocation).
  */
-template<unsigned int N,
-         typename T,
-         typename Size = uint32_t,
-         typename Diff = int32_t>
+template<unsigned int N, typename T>
 class prevector;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
