@@ -548,7 +548,7 @@ OP_ENDIF    104        0x68     <expression>  endif
 ### How Bitcoin enables it?
 <!-- .element: class="fragment" style="text-align:left" -->
 
-##### Bitcoin Script <- this talk
+##### Bitcoin Script
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ---
@@ -629,8 +629,8 @@ OP_ENDIF    104        0x68     <expression>  endif
 ---
 
 ```cpp
-ScriptSig:    OP_4                        # locking
-ScriptPubkey: OP_2 OP_2 OP_ADD OP_EQUAL   # unlocking
+ScriptPubkey: OP_2 OP_2 OP_ADD OP_EQUAL   # locking
+ScriptSig:    OP_4                        # unlocking
 ```
 <!-- .element: class="fragment" style="text-align:left" -->
 
@@ -664,8 +664,8 @@ ScriptPubkey: OP_2 OP_2 OP_ADD OP_EQUAL   # unlocking
 ---
 
 ```cpp
-ScriptSig:    OP_5                        # locking
-ScriptPubkey: OP_2 OP_2 OP_ADD OP_EQUAL   # unlocking
+ScriptPubkey: OP_2 OP_2 OP_ADD OP_EQUAL   # locking
+ScriptSig:    OP_5                        # unlocking
 ```
 <!-- .element: class="fragment" style="text-align:left" -->
 
@@ -969,7 +969,7 @@ RedeemScript: OP_DUP OP_HASH160 <PubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
 
 ----
 
-### August 2017 (SegWit upgrade)
+### August 2017 (Segregated Witness upgrade)
 ### https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 
 ---
