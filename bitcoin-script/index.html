@@ -495,7 +495,7 @@ OP_ENDIF    104        0x68     <expression>  endif
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ```cpp
-        [      ] # OP_IF - 0 (False)
+        [      ] # OP_IF // False
 ```
 <!-- .element: class="fragment" style="text-align:left" -->
 
@@ -515,7 +515,7 @@ OP_ENDIF    104        0x68     <expression>  endif
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ```cpp
-        [      ] # OP_ENDIF
+        [ 10   ] # OP_ENDIF
 ```
 <!-- .element: class="fragment" style="text-align:left" -->
 
@@ -550,11 +550,6 @@ OP_ENDIF    104        0x68     <expression>  endif
 
 ##### Bitcoin Script
 <!-- .element: class="fragment" style="text-align:left" -->
-
----
-
-#### Fiat - coupled / Bitcoin - solving the problem / Other Coins - over engineered
-<!-- .element: class="fragment" -->
 
 ----
 
@@ -867,9 +862,7 @@ OP_EQUALVERIFY  136       0x88     x1 x2       x1 == x2
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ```cpp
-case OP_EQUAL: case OP_EQUALVERIFY:
-//case OP_NOTEQUAL: // use OP_NUMNOTEQUAL
-{
+case OP_EQUAL: case OP_EQUALVERIFY: {
   valtype& vch1 = stacktop(-2);
   valtype& vch2 = stacktop(-1);
   bool fEqual = (vch1 == vch2);
@@ -880,8 +873,8 @@ case OP_EQUAL: case OP_EQUALVERIFY:
     if (fEqual) popstack(stack);
     else return set_error(serror, SCRIPT_ERR_EQUALVERIFY);
   }
-
-  // ...
+  break;
+}
 ```
 <!-- .element: class="fragment" style="text-align:left" -->
 
@@ -1073,6 +1066,8 @@ case OP_CHECKLOCKTIMEVERIFY: {
 ### HTLC (Hashed Time-Locked Contracts)
 
 ```cpp
+ReceipentScriptSig: <Sig> <RecipientPubKey> <PreImage> OP_TRUE
+SenderScriptSig:    <Sig> <SenderPubKey> OP_FALSE
 ScriptPubKey:
   OP_IF
     OP_SHA256 <Hash> OP_EQUALVERIFY OP_DUP
@@ -1082,9 +1077,6 @@ ScriptPubKey:
     OP_DROP OP_DUP OP_HASH160 <SenderPubKeyHash>
   OP_ENDIF
     OP_EQUALVERIFY OP_CHECKSIG
-
-ScriptSig [recipient]: <Sig> <RecipientPubKey> <PreImage> OP_TRUE
-ScriptSig [sender]:    <Sig> <SenderPubKey> OP_FALSE
 ```
 <!-- .element: class="fragment" style="text-align:left" -->
 
@@ -1108,7 +1100,10 @@ ScriptSig [sender]:    <Sig> <SenderPubKey> OP_FALSE
 #### - Bitcoin script is very simple but powerful
 <!-- .element: class="fragment" style="text-align:left" -->
 
-#### - It's possible to write custom, complex, scripts
+#### - It's possible to write complex, scripts
+<!-- .element: class="fragment" style="text-align:left" -->
+
+#### - It's possible to add/extend/deprecate functionality (BIPs)
 <!-- .element: class="fragment" style="text-align:left" -->
 
 #### - Limited flexibility but increased safety
