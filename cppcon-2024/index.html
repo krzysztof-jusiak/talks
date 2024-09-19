@@ -64,14 +64,14 @@
 
 ```cpp
 
-❓static_assert(Template::Metaprogramming::is_hard);
+❓static_assert(Template::Metaprogramming::is_hard); // ✔️
 
 
 ```
 
 ```cpp
 
-❓static_assert(Template::Metaprogramming::is_powerful);
+❓static_assert(Template::Metaprogramming::is_powerful); // ✔️
 
 
 ```
@@ -84,7 +84,7 @@
     Template::Metaprogramming::is_powerful and
     Template::Metaprogramming::has_nice_error_messages and
     Template::Metaprogramming::is_fast_to_compile
-  ) and ...);
+  ) and ...); // ✔️
 
 
 ```
@@ -95,25 +95,9 @@
 #### Template Metaprogramming (TMP)
 > ```cpp
 template<class... Ts>
-using meta_fn = this_talk<Ts...>; // types
+using meta_fun = this_talk<Ts...>;
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="text-align:center" -->
-
-#### Compile-time computations
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:center" -->
-> ```cpp
-constexpr auto this_talk(
-  const std::ranges::range auto& v); // values
-```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:center" -->
-
-#### Code generation
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:center" -->
-> ```cpp
-./ai not_this_talk.txt >
-  generated_by_ai.cpp // files
-```
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:center" -->
 
 ----
 
@@ -237,7 +221,6 @@ auto lookup(std::string_view) -> protocol; // Powered by TMP
 [1]: #uOps   [2]: Latency  [3]: RThroughput
 [4]: MayLoad [5]: MayStore [6]: HasSideEffects (U)
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -251,7 +234,6 @@ auto lookup(std::string_view) -> protocol; // Powered by TMP
  1    1   0.25                shrx  eax, ecx, eax
  1    1   0.25                and   eax, 7
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -265,7 +247,6 @@ auto lookup(std::string_view) -> protocol; // Powered by TMP
  1    5   0.33  *             mov   eax, dword ptr [rcx + 4*rax]
                              .lookup 2 0 0 0 0 0 0 1 3 0 ... 4
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -288,14 +269,14 @@ sm connection = overload{
  [](auto,         auto)        -> Error        { },
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
 static_assert(sizeof(connection) == 1u); // Powered by TMP
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -311,27 +292,27 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
   <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
   ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Type-based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
-  <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+  <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
   ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Heterogeneous-based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
-  <!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
+  <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
   ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Value-based TMP ([mp](https://github.com/qlibs/mp)\*, [https://wg21.link/p2996](https://wg21.link/p2996)\*)
-  <!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
+  <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ##### &nbsp;&nbsp;&nbsp;&nbsp; - [Circle-lang](https://www.circle-lang.org) (Circle-lang meta model\*)
-<!-- .element: class="fragment" data-fragment-index="8" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ##### - [Zig-lang](https://ziglang.org) (comptime)
-<!-- .element: class="fragment" data-fragment-index="9" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ##### - ...
-<!-- .element: class="fragment" data-fragment-index="10" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ---
 
 ##### \* - this_talk
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:right" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:right" -->
 
 ----
 
@@ -408,14 +389,14 @@ std::array ts{🪄<int>, 🪄<void>}; // ?
 
 ```cpp
 template<class T> struct type {
-  static constexpr std::size_t id{};
+  static constexpr struct info{} id{};
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 ```cpp
 template<class T>
-inline constexpr auto meta = &type<T>::id;
+inline constexpr auto meta = &type<T>::id; // const info*
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
@@ -694,7 +675,7 @@ struct tuple_element<I, std::tuple<Ts...>> {
 ```cpp
 /**
  * std::variant with unique types without qualifiers
- * for which T type is constructible with a single Ts type
+ * for which T type is constructible with Ts type
  *
  * @tparam T type
  * @tparam Ts... list of types
@@ -721,7 +702,7 @@ static_assert(std::is_same_v<
   variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
 >);
 ```
-<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 ----
 
@@ -771,7 +752,7 @@ constexpr auto variant_for(const std::ranges::range& ts)
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-std::vector<???> // ?
+std::vector<🪄> // ?
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
 
@@ -841,7 +822,7 @@ constexpr auto invoke(Fn fn, info m); // type_traits
 static_assert(invoke<std::is_constructible, foo>(meta<int>)); // ✔️
 static_assert(meta<int> == invoke<std::remove_cvref>(meta<int&>)); // ✔️
 ```
-<!-- .element: class="fragment" data-fragment-index="5" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 -----
 
@@ -938,6 +919,10 @@ template<class T> constexpr auto is_constructible = [](auto t) {
 // ...
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+----
+
+## ❓Will 'std::ranges' refactor be faster or slower to compile?
 
 ----
 
@@ -1096,7 +1081,6 @@ Testable ✅
 Debuggable ✅
 Code coverage ✅
 Nicer error messages 📈
-Fast to compile ❓
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
@@ -1118,12 +1102,10 @@ Fast to compile ❓
 
 ---
 
-##### New operators
-<!-- .element: class="fragment" style="text-align:left" -->
 ##### Value-based Metaprogramming
-<!-- .element: class="fragment" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 ##### Meta functions for Reflection (introspection, generation)
-<!-- .element: class="fragment" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ----
 
@@ -1171,24 +1153,13 @@ static_assert(typeid([: ^^int :]) == typeid(int));
 
 ```cpp
  meta<T>                           | ^^T
-```
-<!-- .element: class="fragment" data-fragment-index="2" -->
-```cpp
+
  using info = decltype(meta<void>) | using info = decltype(^^::)
-```
-<!-- .element: class="fragment" data-fragment-index="3" -->
-```cpp
  type_of<T>                        | typename [: T :]
-```
-<!-- .element: class="fragment" data-fragment-index="4" -->
-```cpp
  apply_t                           | substitute
-```
-<!-- .element: class="fragment" data-fragment-index="5" -->
-```cpp
  invoke                            | reflect_invoke, extract, expand
 ```
-<!-- .element: class="fragment" data-fragment-index="6" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1198,13 +1169,19 @@ static_assert(typeid([: ^^int :]) == typeid(int));
 ```cpp
 constexpr auto find_index(auto t, const std::ranges::range auto& ts)
   -> std::size_t {
+```
+
+```cpp
   if (const auto found = std::ranges::find(ts, t); found) {
     return std::distance(v.begin(), found);
   }
   return ts.size();
-}
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+}
+```
 
 ---
 
@@ -1216,7 +1193,6 @@ static_assert(
   3u == find_index(^^void,  std::array{^^int, ^^float, ^^short})
 ); // ✔️
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1225,10 +1201,16 @@ static_assert(
 ```cpp
 template<std::size_t I, class... Ts>
 struct tuple_element<I, std::tuple<Ts...>> {
+```
+
+```cpp
   using type = typename [: array{^^Ts...}[I] :];
-};
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+};
+```
 
 ---
 
@@ -1238,7 +1220,6 @@ static_assert(
  std::is_same_v<bool,tuple_element<1, std::tuple<int, bool>>::type> and
 );
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -1248,7 +1229,6 @@ static_assert(
 constexpr auto variant_for(auto t, const std::ranges::range auto& ts)
   -> std::ranges::range auto {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
   auto&& r = ts
@@ -1258,10 +1238,7 @@ constexpr auto variant_for(auto t, const std::ranges::range auto& ts)
    | std::views::transform(std::meta::type_remove_cvref)
    | std::ranges::to<std::vector>()
    ;
-```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
-```cpp
   std::ranges::sort(r, [](auto lhs, auto rhs) {
     return std::meta::identifier_of(lhs) <
            std::meta::identifier_of(rhs);
@@ -1270,12 +1247,11 @@ constexpr auto variant_for(auto t, const std::ranges::range auto& ts)
 
   return r;
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1284,6 +1260,9 @@ constexpr auto variant_for(auto t, const std::ranges::range auto& ts)
 ```cpp
 template<class T, class... Ts>
 using variant_for_t =
+```
+
+```cpp
   typename [:
     std::meta::substitute(
       ^^std::variant, fn(^^T, std::vector{^^Ts...})
@@ -1300,7 +1279,6 @@ static_assert(std::is_same_v<
   variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
 >);
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ----
 
@@ -1309,16 +1287,16 @@ static_assert(std::is_same_v<
 ---
 
 ##### Member packs - https://wg21.link/p1858
-<!-- .element: class="fragment" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ##### Circle-lang meta model (Metaprogramming)
-<!-- .element: class="fragment" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ##### Reflection
-<!-- .element: class="fragment" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ##### ...
-<!-- .element: class="fragment" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ----
 
@@ -1328,17 +1306,15 @@ static_assert(std::is_same_v<
 template<class T, class... Ts>
 constexpr auto find_index() {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
   return T == Ts... ?? int... : sizeof...(Ts);
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
@@ -1348,12 +1324,11 @@ static_assert(1u == find_index<int,  float, int, short>());
 static_assert(2u == find_index<int,  float, short, int>());
 static_assert(3u == find_index<void, float, short, int>());
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
 ##### ??: constexpr conditional - https://github.com/seanbaxter/circle/blob/master/conditional/README.md
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ----
 
@@ -1362,10 +1337,16 @@ static_assert(3u == find_index<void, float, short, int>());
 ```cpp
 template<std::size_t I, class... Ts>
 struct tuple_element<I, std::tuple<Ts...>> {
+````
+
+```cpp
   using type = Ts...[I];
-};
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
+
+```cpp
+};
+```
 
 ---
 
@@ -1375,7 +1356,6 @@ static_assert(
  std::is_same_v<bool,tuple_element<1, std::tuple<int, bool>>::type> and
 );
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -1389,10 +1369,16 @@ static_assert(
 ```cpp
 template<class T, class... Ts>
 using variant_for_t = std::variant<
+```
+
+```cpp
   (if std::is_constructible_v<T, Ts> => Ts.remove_cvref...).unique...
+```
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+
+```cpp
 >;
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
@@ -1402,7 +1388,6 @@ static_assert(std::is_same_v<
   variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
 >);
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ---
 
@@ -1415,17 +1400,17 @@ static_assert(std::is_same_v<
 #### [clang-p2996-bfd0d06c](), [clang-19](), [gcc-14](), [circle-214]()
 
 #### - ~~boost.mpl (recursive template instanitations)~~
-<!-- .element: class="fragment"  style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 #### - boost.mp11 (template aliases / compiler builtins)
-<!-- .element: class="fragment"  style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 #### - circle-lang (language feature)
-<!-- .element: class="fragment"  style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 #### - mp (constexpr evaluation)
-<!-- .element: class="fragment"  style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 #### - p2996 (consteval evaluation)
-<!-- .element: class="fragment"  style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 #### - p1858 (language feature)
-<!-- .element: class="fragment"  style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ---
 
