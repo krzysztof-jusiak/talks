@@ -62,29 +62,33 @@
 
 ----
 
-#### Agenda
+```cpp
 
-- #### Motivation
-<!-- .element: class="fragment" -->
-  - #### Examples
-<!-- .element: class="fragment" -->
+❓static_assert(Template::Metaprogramming::is_hard);
 
-- #### Template Metaprogramming (TMP)
-<!-- .element: class="fragment" -->
 
-  - #### Approches / Implementation
-  <!-- .element: class="fragment" -->
+```
 
-  - #### Benchmarks
-  <!-- .element: class="fragment" -->
+```cpp
 
-- #### Summary
-<!-- .element: class="fragment" -->
+❓static_assert(Template::Metaprogramming::is_powerful);
 
----
 
-###### Powered by [Compiler Explorer](https://godbolt.org)
-<!-- .element: class="fragment" -->
+```
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+
+```
+
+❓static_assert((
+    Template::Metaprogramming::is_easy and
+    Template::Metaprogramming::is_powerful and
+    Template::Metaprogramming::has_nice_error_messages and
+    Template::Metaprogramming::is_fast_to_compile
+  ) and ...);
+
+
+```
+<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
 
 ----
 
@@ -98,7 +102,7 @@ using meta_fn = this_talk<Ts...>; // types
 #### Compile-time computations
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:center" -->
 > ```cpp
-constexpr auto used_in_this_talk(
+constexpr auto this_talk(
   const std::ranges::range auto& v); // values
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:center" -->
@@ -106,7 +110,7 @@ constexpr auto used_in_this_talk(
 #### Code generation
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:center" -->
 > ```cpp
-./ai not_this_talk.txt > \
+./ai not_this_talk.txt >
   generated_by_ai.cpp // files
 ```
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:center" -->
@@ -233,12 +237,12 @@ auto lookup(std::string_view) -> protocol; // Powered by TMP
 [1]: #uOps   [2]: Latency  [3]: RThroughput
 [4]: MayLoad [5]: MayStore [6]: HasSideEffects (U)
 ```
-<!-- .element: class="fragment" data-fragment-index="2" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
 ```cpp
-[1]  [2]  [3]  [4]  [5]  [6]  lookup<magic_lut>:
+[1]  [2]  [3]  [4]  [5]  [6]  lookup<magic_lut>: // x86-64
  1    1   0.25                shl   edi, 3
  2    5   0.50  *             bzhi  eax, dword ptr [rsi], edi
  1    3   1.00                imul  eax, eax, 267363435
@@ -247,12 +251,12 @@ auto lookup(std::string_view) -> protocol; // Powered by TMP
  1    1   0.25                shrx  eax, ecx, eax
  1    1   0.25                and   eax, 7
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
 ```cpp
-[1]  [2]  [3]  [4]  [5]  [6]  lookup<pext>:
+[1]  [2]  [3]  [4]  [5]  [6]  lookup<pext>: // x86-64
  1    1   0.50                shl   edi, 3
  2    5   0.50  *             bzhi  eax, dword ptr [rsi], edi
  1    1   0.50                mov   ecx, 65795
@@ -261,7 +265,7 @@ auto lookup(std::string_view) -> protocol; // Powered by TMP
  1    5   0.33  *             mov   eax, dword ptr [rcx + 4*rax]
                              .lookup 2 0 0 0 0 0 0 1 3 0 ... 4
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -295,7 +299,7 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 
 ----
 
-### More \<Template\> Metaprogramming examples - https://github.com/boostorg
+### More \<Template::Metaprogramming\> examples - https://github.com/boostorg
 
 ----
 
@@ -510,7 +514,7 @@ static_assert(2u == find_index(
   42, std::array{1, 2, 42, 3}
 )); // ✔️
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="2" -->
 
 ----
 
@@ -547,6 +551,10 @@ static_assert(3u == find_index(
 )); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
+
+-----
+
+## ❓Will 'no raw loops' refactor be faster or slower to compile?
 
 -----
 
@@ -685,7 +693,7 @@ struct tuple_element<I, std::tuple<Ts...>> {
 
 ```cpp
 /**
- * Alias for std::variant with unique types without qualifiers
+ * std::variant with unique types without qualifiers
  * for which T type is constructible with a single Ts type
  *
  * @tparam T type
@@ -810,7 +818,7 @@ constexpr auto invoke(Fn fn, info m) {
   constexpr auto dispatch =
     [fn]<std::size_t... Ns>(std::index_sequence<Ns...>) {
       return std::array{&Fn::template operator<meta<void> + Ns>...};
-    }(make_index_sequence<std::distance(meta<void>, meta<T>)>{});
+    }(std::make_index_sequence<std::distance(meta<void>, meta<T>)>{});
 
   return dispatch[std::distance(meta<void>, m)](fn);
 ```
@@ -1028,35 +1036,24 @@ static_assert(std::is_same_v<
 #### Value-based TMP - testing/debugging/coverage/errors
 
 ```cpp
-constexpr void expect(std::convertible_to<bool> auto cond) {
-  if (not cond) {
-    std::breakpoint(); // debug trap
-  }
-}
-```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
-
-```cpp
 constexpr auto test(auto fn) {
   static_assert((fn(), true)); // compile-time (no UB, no leaks, ...)
   fn();                        // run-time (debugging, coverage)
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
-----
-
-#### Value-based TMP - testing/debugging/coverage/errors
+---
 
 ```cpp
 int main() {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
   test([] {
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 
 ```cpp
@@ -1064,28 +1061,42 @@ int main() {
     v.push_back(meta<const int&>);
     v.push_back(meta<int&>);
 ```
-<!-- .element: class="fragment" data-fragment-index="3" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
 ```cpp
     auto r = variant_for<foo>(v);
 ```
-<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="5" style="text-align:left" -->
 
 
 ```cpp
-    expect(1u == r.size());
-    expect(meta<float> == r[0]); // error: expect(eq<float, int>)
+    assert(1u == r.size());
+    assert(meta<float> == r[0]); // error: meta<float> == meta<int>
 ```
-<!-- .element: class="fragment" data-fragment-index="5" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
 
 ```cpp
   });
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 
 ```cpp
 }
+```
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+
+----
+
+#### Value-based TMP - Summary
+
+```cpp
+Easy ✅
+Testable ✅
+Debuggable ✅
+Code coverage ✅
+Nicer error messages 📈
+Fast to compile ❓
 ```
 <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
@@ -1093,11 +1104,13 @@ int main() {
 
 ## 🪄 - https://godbolt.org/z/Kf9rovaqE
 
+<img src="images/godbolt.png" style="width: 15%; background:none; border:none; box-shadow:none;" />
+
 #### 100 LOC / C++17 / gcc, clang, msvc / no dependencies
-<!-- .element: class="fragment" -->
+
+---
 
 #### https://github.com/qlibs/mp
-<!-- .element: class="fragment" -->
 
 ----
 
@@ -1109,7 +1122,7 @@ int main() {
 <!-- .element: class="fragment" style="text-align:left" -->
 ##### Value-based Metaprogramming
 <!-- .element: class="fragment" style="text-align:left" -->
-##### Meta functions for Reflection
+##### Meta functions for Reflection (introspection, generation)
 <!-- .element: class="fragment" style="text-align:left" -->
 
 ----
@@ -1131,7 +1144,7 @@ static_assert(typeid(^^int) == typeid(^^void));
 ---
 
 ```cpp
-[: info :] // splicer operator (unreflexpr)
+[: ... :] // splicer operator (unreflexpr)
 ```
 <!-- .element: class="fragment" -->
 
@@ -1173,17 +1186,9 @@ static_assert(typeid([: ^^int :]) == typeid(int));
 ```
 <!-- .element: class="fragment" data-fragment-index="5" -->
 ```cpp
- invoke                            | reflect_invoke, extract
+ invoke                            | reflect_invoke, extract, expand
 ```
 <!-- .element: class="fragment" data-fragment-index="6" -->
-
----
-
-```cpp
- not_this_talk_but_possible*       | members_of, enumerators_of
- (C++20)                           | identifier_of, is_private, ...
-```
-<!-- .element: class="fragment" data-fragment-index="7" -->
 
 ----
 
@@ -1406,9 +1411,8 @@ static_assert(std::is_same_v<
 
 ----
 
-### Compilation-times benchmarks
-
----
+### Benchmarks (compilation {times/memory usage})
+#### [clang-p2996-bfd0d06c](), [clang-19](), [gcc-14](), [circle-214]()
 
 #### - ~~boost.mpl (recursive template instanitations)~~
 <!-- .element: class="fragment"  style="text-align:left" -->
@@ -1430,29 +1434,18 @@ static_assert(std::is_same_v<
 
 ----
 
-#### [at] - https://github.com/bloomberg/clang-p2996
-
-<a href="https://qlibs.github.io/mp"><img src="images/at.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
+<!-- .element: data-background-image="images/filter_mem.png"  data-background-size="100%"  -->
 
 ----
 
-#### [at] - https://gcc.gnu.org/gcc-13
-
-<a href="https://qlibs.github.io/mp"><img src="images/at_gcc.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
-
-----
-
-#### [at] - https://www.circle-lang.org/linux/build_214.tgz
-
-<a href="https://qlibs.github.io/mp"><img src="images/circle.png" style="width: 100%; background:none; border:none; box-shadow:none;" /></a>
-
-----
-
-### Compilation-times benchmarks
+### Benchmarks
 
 ---
 
-* #### Circle-lang meta model is the fastest to compile all around
+* #### Circle-lang meta model is the fastest to compile all around and uses much less memory
+<!-- .element: class="fragment" -->
+
+* #### Circle-lang C++ compiler is the fastest, followed by gcc and clang
 <!-- .element: class="fragment" -->
 
 * #### Type-based Metaprogramming with aliases and builtins is fast to compile
@@ -1461,23 +1454,29 @@ static_assert(std::is_same_v<
 * #### Value-based Metaprogramming can compile almost as fast as Type-based Metaprogramming
 <!-- .element: class="fragment" -->
 
-* #### Value-based Metaprogramming with STL is significantly slower to compile than with raw primitives
+----
+
+### Benchmarks
+
+- #### Value-based Metaprogramming with STL is significantly slower to compile than with raw primitives
 <!-- .element: class="fragment" -->
 
-* #### Value-based Metaprogramming can - potentially - support parallel execution via jit (std::simd, std::execution)
+- #### Value-based uses interepreter hence profiling the code for booltenecks makes no sense
 <!-- .element: class="fragment" -->
+
+* #### Value-based Metaprogramming to scale will need to be jitted (std::simd, std::execution, ...)
+<!-- .element: class="fragment" -->
+
+* #### Dead code matters
+
+* #### Value-based Metaprogramming supporst debugging/coverage/testing/error messages and it's for complex cases
 
 ----
 
 ### Summary
 
-* #### Better Metaprogramming features make better libraries!
-<!-- .element: class="fragment" -->
-
-* #### TMP doesn't have to be different than run-time programming (Value-based TMP)
-<!-- .element: class="fragment" -->
-
-* #### Reflection further enhances Metaprogramming use cases
+> ##### `"Better Metaprogramming features make better libraries!"`
+> ###### `Sean Baxter `
 <!-- .element: class="fragment" -->
 
 ----
@@ -1485,9 +1484,6 @@ static_assert(std::is_same_v<
 ### Further readings
 
 - ##### C++20 Metaprogramming library - https://github.com/qlibs/mp
-<!-- .element: style="text-align:left" -->
-
-- ##### C++20 Reflection library - https://github.com/qlibs/reflect
 <!-- .element: style="text-align:left" -->
 
 - ##### Reflection for C++26* - https://wg21.link/P2996
