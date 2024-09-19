@@ -72,7 +72,7 @@
 - #### Template Metaprogramming (TMP)
 <!-- .element: class="fragment" -->
 
-  - #### Approches / Implementation 🪄
+  - #### Approches / Implementation
   <!-- .element: class="fragment" -->
 
   - #### Benchmarks
@@ -1117,14 +1117,14 @@ int main() {
 #### Reflection for C++26* - https://wg21.link/p2996
 
 ```cpp
-^T // reflection operator (reflexpr)
+^^T // reflection operator (reflexpr)
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-static_assert(^int == ^int);
-static_assert(^int != ^void);
-static_assert(typeid(^int) == typeid(^void));
+static_assert(^^int == ^^int);
+static_assert(^^int != ^^void);
+static_assert(typeid(^^int) == typeid(^^void));
 ```
 <!-- .element: class="fragment" -->
 
@@ -1136,12 +1136,12 @@ static_assert(typeid(^int) == typeid(^void));
 <!-- .element: class="fragment" -->
 
 ```cpp
-typename [: ^int :] i = 42; // int i = 42;
+typename [: ^^int :] i = 42; // int i = 42;
 ```
 <!-- .element: class="fragment" -->
 
 ```cpp
-static_assert(typeid([: ^int :]) == typeid(int));
+static_assert(typeid([: ^^int :]) == typeid(int));
 ```
 <!-- .element: class="fragment" -->
 
@@ -1157,11 +1157,11 @@ static_assert(typeid([: ^int :]) == typeid(int));
 ---
 
 ```cpp
- meta<T>                           | ^T
+ meta<T>                           | ^^T
 ```
 <!-- .element: class="fragment" data-fragment-index="2" -->
 ```cpp
- using info = decltype(meta<void>) | using info = decltype(^::)
+ using info = decltype(meta<void>) | using info = decltype(^^::)
 ```
 <!-- .element: class="fragment" data-fragment-index="3" -->
 ```cpp
@@ -1205,10 +1205,10 @@ constexpr auto find_index(auto t, const std::ranges::range auto& ts)
 
 ```cpp
 static_assert(
-  0u == find_index(^int,   std::array{^int, ^float, ^short}) and
-  1u == find_index(^float, std::array{^int, ^float, ^short}) and
-  2u == find_index(^short, std::array{^int, ^float, ^short}) and
-  3u == find_index(^void,  std::array{^int, ^float, ^short})
+  0u == find_index(^^int,   std::array{^^int, ^^float, ^^short}) and
+  1u == find_index(^^float, std::array{^^int, ^^float, ^^short}) and
+  2u == find_index(^^short, std::array{^^int, ^^float, ^^short}) and
+  3u == find_index(^^void,  std::array{^^int, ^^float, ^^short})
 ); // ✔️
 ```
 <!-- .element: class="fragment" data-fragment-index="1" -->
@@ -1220,7 +1220,7 @@ static_assert(
 ```cpp
 template<std::size_t I, class... Ts>
 struct tuple_element<I, std::tuple<Ts...>> {
-  using type = typename [: array{^Ts...}[I] :];
+  using type = typename [: array{^^Ts...}[I] :];
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="0" -->
@@ -1248,7 +1248,7 @@ constexpr auto variant_for(auto t, const std::ranges::range auto& ts)
 ```cpp
   auto&& r = ts
    | std::views::filter([](auto m) {
-       return std::meta::test_trait(^std::constructible_from, {t, m});
+       return std::meta::test_trait(^^std::constructible_from, {t, m});
      })
    | std::views::transform(std::meta::type_remove_cvref)
    | std::ranges::to<std::vector>()
@@ -1281,7 +1281,7 @@ template<class T, class... Ts>
 using variant_for_t =
   typename [:
     std::meta::substitute(
-      ^std::variant, fn(^T, std::vector{^Ts...})
+      ^^std::variant, fn(^^T, std::vector{^^Ts...})
     )
   :];
 ```
@@ -1464,7 +1464,7 @@ static_assert(std::is_same_v<
 * #### Value-based Metaprogramming with STL is significantly slower to compile than with raw primitives
 <!-- .element: class="fragment" -->
 
-* #### Value-based Metaprogramming can - potentially - support parallel execution via std::simd, std::execution
+* #### Value-based Metaprogramming can - potentially - support parallel execution via jit (std::simd, std::execution)
 <!-- .element: class="fragment" -->
 
 ----
