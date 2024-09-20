@@ -58,7 +58,7 @@
 <br />&nbsp;
 <br />&nbsp;
 <br />&nbsp;
-<img src="images/qr.png" style="width: 15%; background:none; border:none; box-shadow:none;" />
+<img src="images/qr.png" style="width: 20%; background:none; border:none; box-shadow:none;" />
 
 ----
 
@@ -389,14 +389,14 @@ std::array ts{🪄<int>, 🪄<void>}; // ?
 
 ```cpp
 template<class T> struct type {
-  static constexpr struct info{} id{};
+  static void id();
 };
 ```
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
 ```cpp
 template<class T>
-inline constexpr auto meta = &type<T>::id; // const info*
+inline constexpr auto meta = type<T>::id; // common type
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
@@ -594,13 +594,13 @@ template<auto> struct info { constexpr auto friend get(info); };
 
 ```cpp
 template<class T> struct type {
-  static constexpr std::size_t id{};
+  using value_type = T;
+  static void id();
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
-  using value_type = T;
-  constexpr auto friend get(info<&id>) { return type{}; }
+  constexpr auto friend get(info<id>) { return type{}; }
 ```
 <!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
 
@@ -1396,65 +1396,47 @@ static_assert(std::is_same_v<
 
 ----
 
-### Benchmarks (compilation {times/memory usage})
-#### [clang-p2996-bfd0d06c](), [clang-19](), [gcc-14](), [circle-214]()
-
-#### - ~~boost.mpl (recursive template instanitations)~~
-<!-- .element: style="text-align:left" -->
-#### - boost.mp11 (template aliases / compiler builtins)
-<!-- .element: style="text-align:left" -->
-#### - circle-lang (language feature)
-<!-- .element: style="text-align:left" -->
-#### - mp (constexpr evaluation)
-<!-- .element: style="text-align:left" -->
-#### - p2996 (consteval evaluation)
-<!-- .element: style="text-align:left" -->
-#### - p1858 (language feature)
-<!-- .element: style="text-align:left" -->
-
----
-
-### https://qlibs.github.io/mp
-<!-- .element: class="fragment" -->
+### Benchmarks - https://qlibs.github.io/mp
 
 ----
 
-<!-- .element: data-background-image="images/filter_mem.png"  data-background-size="100%"  -->
+<!-- .element: data-background-image="images/clang_at.png"  data-background-size="100%"  -->
 
 ----
 
-### Benchmarks
+<!-- .element: data-background-image="images/gcc_at.png"  data-background-size="100%"  -->
 
----
+----
 
-* #### Circle-lang meta model is the fastest to compile all around and uses much less memory
-<!-- .element: class="fragment" -->
+<!-- .element: data-background-image="images/circle_at.png"  data-background-size="100%"  -->
 
-* #### Circle-lang C++ compiler is the fastest, followed by gcc and clang
-<!-- .element: class="fragment" -->
+----
 
-* #### Type-based Metaprogramming with aliases and builtins is fast to compile
-<!-- .element: class="fragment" -->
+<!-- .element: data-background-image="images/clang_filter.png"  data-background-size="100%"  -->
 
-* #### Value-based Metaprogramming can compile almost as fast as Type-based Metaprogramming
-<!-- .element: class="fragment" -->
+----
+
+<!-- .element: data-background-image="images/gcc_filter.png"  data-background-size="100%"  -->
+
+----
+
+<!-- .element: data-background-image="images/circle_filter.png"  data-background-size="100%"  -->
 
 ----
 
 ### Benchmarks
 
-- #### Value-based Metaprogramming with STL is significantly slower to compile than with raw primitives
-<!-- .element: class="fragment" -->
+#### Circle-lang meta model is the fastest to compile all around
+<!-- .element: class="fragment" style="text-align:left" -->
 
-- #### Value-based uses interepreter hence profiling the code for booltenecks makes no sense
-<!-- .element: class="fragment" -->
+#### Type-based Metaprogramming with template aliases/builtins ([boost.mp11]()) is much faster to compile than recursive template instantiations ([std::tuple]())
+<!-- .element: class="fragment" style="text-align:left" -->
 
-* #### Value-based Metaprogramming to scale will need to be jitted (std::simd, std::execution, ...)
-<!-- .element: class="fragment" -->
+#### Value-based Metaprogramming with [STL]() is significantly slower to compile than with raw primitives!
+<!-- .element: class="fragment" style="text-align:left" -->
 
-* #### Dead code matters
-
-* #### Value-based Metaprogramming supporst debugging/coverage/testing/error messages and it's for complex cases
+#### Value-based Metaprogramming has a lot of potential ([std::simd, std::execution, ...]()) but constexpr evaluation has to be JITTED instead of INTERPRETED
+<!-- .element: class="fragment" style="text-align:left" -->
 
 ----
 
