@@ -161,7 +161,6 @@ struct unpacked {
   char c; static_assert(sizeof(c) == 1u); // x86-64
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 /*
@@ -202,7 +201,6 @@ constexpr std::array protocols{
   std::pair{"wss"sv,  protocol::WSS},
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 template<class TPolicy>
@@ -254,7 +252,6 @@ struct Disconnected { };
 struct Connecting   { };
 struct Connected    { };
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 sm connection = overload{
@@ -266,7 +263,6 @@ sm connection = overload{
  [](auto,         auto)        -> Error        { },
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
@@ -323,7 +319,6 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 template<class T, class... Ts>
 constexpr auto find_index() -> std::size_t; // TODO
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
@@ -333,7 +328,6 @@ static_assert(1u == find_index<int,  float, int,   short>());
 static_assert(2u == find_index<int,  float, short, int>());
 static_assert(3u == find_index<void, float, short, int>());
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -343,7 +337,6 @@ static_assert(3u == find_index<void, float, short, int>());
 template<class T, class... Ts>
 constexpr auto find_index() -> std::size_t {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
   std::array ts{🪄<Ts>...};
@@ -367,7 +360,6 @@ constexpr auto find_index() -> std::size_t {
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ##### 🪄 - magic
 <!-- .element: class="fragment" data-fragment-index="1" -->
