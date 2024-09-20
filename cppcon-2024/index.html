@@ -97,7 +97,6 @@
 template<class... Ts>
 using meta_fun = this_talk<Ts...>;
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:center" -->
 
 ----
 
@@ -105,7 +104,6 @@ using meta_fun = this_talk<Ts...>;
 
 > ##### `"Better Metaprogramming features make better libraries!"`
 > ###### `Sean Baxter `
-<!-- .element: class="fragment" -->
 
 ----
 
@@ -119,7 +117,6 @@ constexpr variant<Ts...>::variant(T&& t)
  , // ...
 { }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
@@ -289,30 +286,30 @@ static_assert(sizeof(connection) == 1u); // Powered by TMP
 ---
 
 ##### - [C++](https://eel.is/c++draft/)
-  <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+  <!-- .element: data-fragment-index="0" style="text-align:left" -->
 
   ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Type-based TMP ([boost.mpl](https://github.com/boostorg/mpl) -> [boost.mp11](https://github.com/boostorg/mp11), ...)
-  <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+  <!-- .element: style="text-align:left" -->
 
   ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Heterogeneous-based TMP ([boost.fusion](https://github.com/boostorg/fusion) -> [boost.hana](https://github.com/boostorg/hana))
-  <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+  <!-- .element: style="text-align:left" -->
 
   ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - Value-based TMP ([mp](https://github.com/qlibs/mp)\*, [https://wg21.link/p2996](https://wg21.link/p2996)\*)
-  <!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+  <!-- .element: style="text-align:left" -->
 
 ##### &nbsp;&nbsp;&nbsp;&nbsp; - [Circle-lang](https://www.circle-lang.org) (Circle-lang meta model\*)
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ##### - [Zig-lang](https://ziglang.org) (comptime)
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ##### - ...
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
+<!-- .element: style="text-align:left" -->
 
 ---
 
 ##### \* - this_talk
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:right" -->
+<!-- .element: style="text-align:right" -->
 
 ----
 
@@ -336,7 +333,7 @@ static_assert(1u == find_index<int,  float, int,   short>());
 static_assert(2u == find_index<int,  float, short, int>());
 static_assert(3u == find_index<void, float, short, int>());
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -396,7 +393,7 @@ template<class T> struct type {
 
 ```cpp
 template<class T>
-inline constexpr auto meta = type<T>::id; // common type
+inline constexpr auto meta = type<T>::id;
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
@@ -405,7 +402,7 @@ static_assert(meta<int> == meta<int>);
 static_assert(meta<int> != meta<void>);
 static_assert(typeid(meta<int>) == typeid(meta<void>));
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -545,7 +542,6 @@ static_assert(3u == find_index(
 template<std::size_t I, class... Ts>
 struct tuple_element; // TODO
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
@@ -555,7 +551,6 @@ static_assert(
  std::is_same_v<bool,tuple_element<1, std::tuple<int, bool>>::type> and
 );
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -565,7 +560,6 @@ static_assert(
 template<std::size_t I, class... Ts>
 struct tuple_element;
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 template<std::size_t I, class... Ts>
@@ -573,7 +567,6 @@ struct tuple_element<I, std::tuple<Ts...>> {
   using type = 🪄<std::array{meta<Ts>...}[I]>;
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ----
 
@@ -583,7 +576,6 @@ struct tuple_element<I, std::tuple<Ts...>> {
 ```cpp
 🪄<std::array{meta<Ts>...}[I]> // ?
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ---
 
@@ -635,7 +627,6 @@ type_of<std::array{meta<Ts>...}[I]> // ✔️
 template<std::size_t I, class... Ts>
 struct tuple_element<I, std::tuple<Ts...>> {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
   using type = type_of<std::array{meta<Ts>...}[I]>;
@@ -645,7 +636,6 @@ struct tuple_element<I, std::tuple<Ts...>> {
 ```cpp
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ```cpp
 static_assert(
@@ -653,7 +643,7 @@ static_assert(
  std::is_same_v<bool,tuple_element<1, std::tuple<int, bool>>::type> and
 ); // ✔️
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -683,7 +673,6 @@ struct tuple_element<I, std::tuple<Ts...>> {
 template<class T, class... Ts>
 using variant_for_t; // TODO
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ---
 
@@ -694,7 +683,7 @@ struct foo {
   foo(bar) { }
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ```cpp
 static_assert(std::is_same_v<
@@ -702,7 +691,7 @@ static_assert(std::is_same_v<
   variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
 >);
 ```
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ----
 
@@ -711,10 +700,9 @@ static_assert(std::is_same_v<
 
 ```cpp
 template<class T>
-constexpr auto variant_for(const std::ranges::range& ts)
+constexpr auto variant_for(const std::ranges::range auto& ts)
   -> std::ranges::range auto {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ```cpp
   std::vector<🪄> r;
@@ -744,7 +732,6 @@ constexpr auto variant_for(const std::ranges::range& ts)
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ----
 
@@ -754,7 +741,6 @@ constexpr auto variant_for(const std::ranges::range& ts)
 ```cpp
 std::vector<🪄> // ?
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="float:left" -->
 
 ---
 
@@ -814,7 +800,7 @@ constexpr auto invoke(Fn fn, info m) {
 template<template<class...> class T, class... Ts>
 constexpr auto invoke(Fn fn, info m); // type_traits
 ```
-<!-- .element: class="fragment" data-fragment-index="4" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -834,7 +820,6 @@ template<class T>
 constexpr auto variant_for(const std::ranges::range auto& ts)
   -> std::ranges::range auto {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ```cpp
   std::vector<info> r;
@@ -864,14 +849,12 @@ constexpr auto variant_for(const std::ranges::range auto& ts)
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ---
 
 ```cpp
 static_assert(std::vector{meta<int>} == variant_for<foo>(meta<int&>));
 ```
-<!-- .element: class="fragment" data-fragment-index="5" style="text-align:left" -->
 
 ----
 
@@ -883,7 +866,6 @@ template<class T>
 constexpr auto variant_for(const std::ranges::range auto& ts)
   -> std::ranges::range auto {
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ```cpp
   auto&& r = ts
@@ -908,7 +890,6 @@ constexpr auto variant_for(const std::ranges::range auto& ts)
 ```cpp
 }
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ---
 
@@ -944,7 +925,7 @@ static_assert(std::is_same_v<
   variant_for_t<foo, const int&, int&&, std::string_view, bar, void>
 >);
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
+<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ----
 
@@ -954,7 +935,6 @@ static_assert(std::is_same_v<
 ```cpp
 🪄<std::variant, variant_for<T>(std::array{meta<Ts>...})> // ?
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 template<template<class...> class T, std::ranges::range auto range>
@@ -979,7 +959,7 @@ static_assert(std::is_same_v<
   apply_t<variant, std::array{meta<int>, meta<bar>}>
 >);
 ```
-<!-- .element: class="fragment" data-fragment-index="3" -->
+<!-- .element: class="fragment" data-fragment-index="1" -->
 
 ---
 
@@ -998,7 +978,6 @@ template<class T, class... Ts>
 using variant_for_t =
   apply_t<std::variant, variant_for<T>(std::array{meta<Ts>...)>;
 ```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
 
 ---
 
@@ -1026,47 +1005,24 @@ constexpr auto test(auto fn) {
   fn();                        // run-time (debugging, coverage)
 };
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ---
 
 ```cpp
 int main() {
-```
-<!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
-
-```cpp
   test([] {
-```
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
-
-
-```cpp
+    // given
     std::vector<info> v;
     v.push_back(meta<const int&>);
     v.push_back(meta<int&>);
-```
-<!-- .element: class="fragment" data-fragment-index="4" style="text-align:left" -->
 
-```cpp
-    auto r = variant_for<foo>(v);
-```
-<!-- .element: class="fragment" data-fragment-index="5" style="text-align:left" -->
+    // when
+    const auto r = variant_for<foo>(v);
 
-
-```cpp
+    // then
     assert(1u == r.size());
     assert(meta<float> == r[0]); // error: meta<float> == meta<int>
-```
-<!-- .element: class="fragment" data-fragment-index="6" style="text-align:left" -->
-
-```cpp
   });
-```
-<!-- .element: class="fragment" data-fragment-index="2" style="text-align:left" -->
-
-
-```cpp
 }
 ```
 <!-- .element: class="fragment" data-fragment-index="1" style="text-align:left" -->
@@ -1082,7 +1038,6 @@ Debuggable ✅
 Code coverage ✅
 Nicer error messages 📈
 ```
-<!-- .element: class="fragment" data-fragment-index="0" style="text-align:left" -->
 
 ----
 
@@ -1114,31 +1069,29 @@ Nicer error messages 📈
 ```cpp
 ^^T // reflection operator (reflexpr)
 ```
-<!-- .element: class="fragment" -->
 
 ```cpp
 static_assert(^^int == ^^int);
 static_assert(^^int != ^^void);
 static_assert(typeid(^^int) == typeid(^^void));
 ```
-<!-- .element: class="fragment" -->
 
 ---
 
 ```cpp
 [: ... :] // splicer operator (unreflexpr)
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 typename [: ^^int :] i = 42; // int i = 42;
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ```cpp
 static_assert(typeid([: ^^int :]) == typeid(int));
 ```
-<!-- .element: class="fragment" -->
+<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1147,19 +1100,16 @@ static_assert(typeid([: ^^int :]) == typeid(int));
 ```cpp
  this_talk (C++17)                 | p2996 (C++26*)
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ---
 
 ```cpp
  meta<T>                           | ^^T
-
  using info = decltype(meta<void>) | using info = decltype(^^::)
  type_of<T>                        | typename [: T :]
  apply_t                           | substitute
  invoke                            | reflect_invoke, extract, expand
 ```
-<!-- .element: class="fragment" data-fragment-index="0" -->
 
 ----
 
@@ -1444,7 +1394,6 @@ static_assert(std::is_same_v<
 
 > ##### `"Better Metaprogramming features make better libraries!"`
 > ###### `Sean Baxter `
-<!-- .element: class="fragment" -->
 
 ----
 
