@@ -114,21 +114,6 @@ Does it matter, and if so, why and how much?
 
 ----
 
-##### `"what if" rule`
-<!-- .element: style="text-align:left" -->
-
-```cpp
-What if data spikes?
-What if the environment inherently has jitter?
-What if caches aren’t as hot?
-What if branches aren’t as predictable?
-What if the code/data layout changes?
-What if ...?
-```
-<!-- .element: class="fragment" -->
-
-----
-
 #### Microprocessor trends
 <!-- .element: style="text-align:left" -->
 
@@ -163,18 +148,20 @@ https://github.com/karlrupp/microprocessor-trend-data
 #### Hardware effects
 <!-- .element: style="text-align:left" -->
 
-<img src="images/zen5.png" style="width: 82%; background:none; border:none; box-shadow:none;" />
-<!--<img src="images/zen5.png" style="width: 49%; background:none; border:none; box-shadow:none;" />-->
+<img src="images/zen52.jpg" style="width: 15%; background:none; border:none; box-shadow:none;" />
+<img src="images/zen5.png" style="width: 79%; background:none; border:none; box-shadow:none;" />
 
 https://chipsandcheese.com
 <!-- .element: style="text-align:left; margin: 0px 0px; font-size:22px;" -->
 
 ----
 
-#### System effects
+#### System effects <img src="images/htop.png" style="width: 50%; background:none; border:none; box-shadow:none; margin: -10px 20px;" />
 <!-- .element: style="text-align:left" -->
 
-<img src="images/linux.png" style="width: 74%; background:none; border:none; box-shadow:none;" />
+<p align="left">
+<img src="images/linux.png" style="width: 60%; background:none; border:none; box-shadow:none;" />
+</p>
 
 https://makelinux.github.io/kernel/map
 <!-- .element: style="text-align:left; margin: 0px 0px; font-size:22px;" -->
@@ -199,7 +186,7 @@ https://makelinux.github.io/kernel/map
 
 ----
 
-#### Performance Monitoring Unit
+#### Performance [Monitoring Unit]
 <!-- .element: style="text-align:left" -->
 
 <img src="images/perf_map.png" style="width: 43%; background:none; border:none; box-shadow:none;" />
@@ -467,7 +454,7 @@ auto bench(invocable auto code, integral auto samples, integral auto iterations)
     for (auto s = 0u; s < samples; ++s) { // statistics
         const auto start = chrono::steady_clock::now(); // perf counters
         for (auto i = 0u; i < iterations; ++i) {
-            keep(invoke(code)); // do not optimize away
+            keep(invoke(code)); // optimizing compiler
         } // latency vs. throughput
         const auto stop = chrono::steady_clock::now();
         stats[s] = (stop - start) / iterations;
@@ -483,13 +470,40 @@ auto bench(invocable auto code, integral auto samples, integral auto iterations)
 
 ----
 
-```
-What if we could answer "what if?"
-```
-<!-- .element: style="text-align:left; font-size:26px;" -->
+##### `"what if" rule`
+<!-- .element: style="text-align:left" -->
 
-AI friendly
-<!-- .element: style="text-align:right; font-size:22px;" -->
+<table>
+<tr>
+<td>
+<img src="images/range.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
+</td>
+<td>
+<pre><code>What if data spikes?
+What if the environment inherently has jitter?
+What if caches aren’t as hot?
+What if branches aren’t as predictable?
+What if the code/data layout changes?
+What if ...?</code></pre>
+</td>
+</tr>
+</table>
+
+----
+
+##### `"what if" rule`
+<!-- .element: style="text-align:left" -->
+
+<table>
+<tr>
+<td>
+<img src="images/range2.jpeg" style="width: 95%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+</td>
+<td>
+<pre><code>What if we could answer "what if?"         </code></pre>
+</td>
+</tr>
+</table>
 
 ----
 
@@ -1022,7 +1036,7 @@ perf bench func hot_path --exec hat_path.out -c hot_path.o
 <!-- .element: style="text-align:left" -->
 
 ```
-$ lstopo
+lstopo
 ```
 <!-- .element: style="text-align:left;font-size:14px" -->
 
@@ -1031,15 +1045,30 @@ $ lstopo
 </p>
 <!-- .element: style="text-align:left;font-size:14px" -->
 
+----
+
+##### `cpu-info`
+<!-- .element: style="text-align:left" -->
+
 ```
-$ lscpu
+perf info cpu
 ```
 <!-- .element: style="text-align:left;font-size:14px" -->
 
-```asm
-12th Gen Intel(R) Core(TM) i7-12650 (alderlake:6.154.3)
 ```
-<!-- .element: style="text-align:left;font-size:14px" -->
+cpu  core  numa  arch                                 vendor   model  family  stepping  freq    L1i   L1d   L2      L3
+  0     0     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
+  1     4     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
+  2     8     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
+  3    12     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
+  4    16     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
+  5    20     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
+  6    28     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  64Kb  32Kb  2048Kb  24576Kb
+  7    29     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  64Kb  32Kb  2048Kb  24576Kb
+  8    30     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  64Kb  32Kb  2048Kb  24576Kb
+  9    31     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  64Kb  32Kb  2048Kb  24576Kb
+```
+<!-- .element: style="text-align:left;font-size:12px" -->
 
 ##### https://en.wikichip.org / cpuid{family:6, model:154, stepping:3}
 <!-- .element: style="text-align:left;font-size:14px" -->
