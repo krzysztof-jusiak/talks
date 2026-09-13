@@ -1759,12 +1759,13 @@ clang++ -std=c++20 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
 ```python
 import perf
 
-hot   = {"branch": "predictable", "cache": "hot"}
+hot   = {"branch": "predictable",   "cache": "hot"}
+real  = {"branch": "unpredictable", "cache": "warm"}
 worst = {"branch": "unpredictable", "cache": "cold", "func": {"order": "random"}}
 
 for cxx in ("gcc", "clang"):
     for func in ("scan_find", "mph_find"):
-        for tag, config in (("hot", hot), ("worst", worst)):
+        for tag, config in (("hot", hot), ("read", real), ("worst", worst)):
             perf.bench(
                 name=f"{cxx}-{func}-{tag}"
                 exec=f"mph_{cxx}.o",
