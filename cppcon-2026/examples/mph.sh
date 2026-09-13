@@ -17,7 +17,9 @@ for func in mph_find scan_find; do
       echo "### ${func} branch=${branch} memory=${memory}"
       perf bench func "${func}" --exec mph.o --mode latency \
         -e cycles,branch-misses \
-        --config.branch="${branch}" --config.memory="${memory}"
+        --config.branch="${branch}" --config.memory="${memory}" \
+        -o data/mph
     done
   done
 done
+perf plot -t ecdf -e cycles -- data/mph

@@ -1025,6 +1025,11 @@ perf bench asm 'add r11, [rax]'
     --config.memory.cache.L3d=hit_rate:100
 ```
 
+----
+
+##### Cache effects [measured]
+<!-- .element: style="text-align:left" -->
+
 ```cpp
 perf bench asm 'add r11, [rax]' --mode latency -e cycles
     --config.memory=hot    # L1d hit:   ~0.6 cycles
@@ -1086,6 +1091,11 @@ perf bench func scan --exec a.out --mode latency -e cycles
     --data.rdi=<key>               # pin one path explicitly
 ```
 
+----
+
+##### Branch effects [measured]
+<!-- .element: style="text-align:left" -->
+
 <p align="left">
 <img src="images/branch_miss.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
 </p>
@@ -1113,14 +1123,29 @@ void hot_func(const int* v, int n) {
 
 ```sh
 perf bench func hot_func --exec codegen.o --mode latency -e cycles
-    --config.function.order=sequential  # as linked: ~19 cycles
-    --config.function.order=random      # shuffled layout: ~19 cycles
+    --config.function.order=sequential  # as linked
+    --config.function.order=random      # shuffled layout
 perf bench func hot_func --exec codegen.o --mode latency
-    --config.function.alignment=64      # align entry to 64B
+    --config.function.alignment=16      # vs =64
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
-Tiny loop fits L1I — layout effect grows with footprint (see frontend_bound study)
+----
+
+##### Codegen effects [measured]
+<!-- .element: style="text-align:left" -->
+
+```cpp
+cycles med:   align=16  align=64
+sequential    17        18
+random        19        21
+```
+
+<p align="left">
+<img src="images/codegen_ecdf.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
+</p>
+
+Layout is a controlled variable, not noise — ±4 cycles even on a tiny loop
 <!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
@@ -1128,14 +1153,23 @@ Tiny loop fits L1I — layout effect grows with footprint (see frontend_bound st
 ##### `JIT Code Generation`
 <!-- .element: style="text-align:left" -->
 
-```python
-ELF (.o auto-linked) → mmap PT_LOAD as RWX/FIXED → apply relocs
-  RELATIVE / GLOB_DAT / JUMP_SLOT / 64 → setup_stack
-  → [randomize_layout: move fns, fix RIP-rel + relocs]
-  → write_perf_map (/tmp/perf-PID.map)
-setup=call(sym) → code=call(target) → overhead=call(nop)
-data addrs → mmap pages + preload → assemble → mmap RWX
-→ CFUNCTYPE(Args) → runs × iterations → min (latency)
+```
+┌──────────┐   ┌──────────────────┐   ┌─────────────────┐
+│ ELF (.o  │ → │ mmap PT_LOAD     │ → │ apply relocs    │
+│ auto-    │   │ RWX / FIXED      │   │ RELATIVE/GLOB_  │
+│ linked)  │   │ copy segs,0 .bss │   │ DAT/JUMP_SLOT/64│
+└──────────┘   └──────────────────┘   └─────────────────┘
+        ┌──────────────────┐   ┌─────────────────┐
+        │ randomize_layout │ → │ write_perf_map  │
+        │ move fns, fix    │   │ /tmp/perf-PID   │
+        │ RIP-rel + relocs │   │ .map            │
+        └──────────────────┘   └─────────────────┘
+┌──────────┐   ┌──────────────────┐   ┌─────────────────┐
+│ setup =  │ → │ assemble → mmap  │ → │ CFUNCTYPE(Args) │
+│ call(sym)│   │ RWX, write bytes │   │ runs × iters →  │
+│ code =   │   │ data pages mapped│   │ min (latency)   │
+│ call(tgt)│   │ + preloaded      │   │                 │
+└──────────┘   └──────────────────┘   └─────────────────┘
 ```
 
 `[.jitdata] /tmp/perf-{pid}.map`
@@ -1406,15 +1440,28 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```cpp
-hit_rate 100 → cycles med ~720   (hot, L1d hit)
-hit_rate   0 → cycles med ~1330  (cold, DRAM + jitter)
+cycles med:   hot   cold
+gcc   -O2     717   1195
+gcc   -O3     755   1193
+clang -O2     562   975
+clang -O3     561   927
+```
+
+----
+
+##### Backend bound [measured]
+<!-- .element: style="text-align:left" -->
+
+```cpp
+perf bench func process --exec process.o --mode latency -e cycles
+    --config.memory=hot    # vs =cold, gcc vs clang, -O2 vs -O3
 ```
 
 <p align="left">
-<img src="images/cache_process.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
+<img src="images/backend_ecdf.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
 </p>
 
-Alder Lake i7-12650H — your numbers will differ, the effect won't
+Compiler axis (~25%) and cache axis (~1.7x) separate cleanly
 <!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
@@ -1562,9 +1609,25 @@ jitter
 
 ```cpp
 // ~/projects/qlibs/mph — 128 keys: pext+lut vs linear scan
-int mph_find(uint64_t k) { return mph::lookup<ids>(k); } // pext; one load
-int scan_find(uint64_t k){ for (...) if (ids[i].first==k) return ...; }
+static constexpr auto pairs = [] {
+    std::array<std::pair<unsigned, unsigned>, 128> a{};
+    for (unsigned i = 0; i < 128; ++i)
+        a[i] = {i * 2654435761u % 100003u, i};
+    return a;
+}();
+int mph_find(uint64_t k)  { return mph::lookup<pairs>(k); }
+int scan_find(uint64_t k) { for (...) if (pairs[i].first == k) return ...; }
 ```
+
+```asm
+mph_find: mov eax, 0x1ff; pext edi, edi, eax  # BMI2: compress key bits
+          mov eax, [rax + rdi*4]               # one load, no branches
+```
+
+----
+
+##### `mph` [measured]
+<!-- .element: style="text-align:left" -->
 
 ```cpp
 cycles med:            pred.hot  unpred.hot  unpred.cold

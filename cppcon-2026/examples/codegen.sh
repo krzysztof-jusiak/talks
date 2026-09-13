@@ -25,3 +25,17 @@ perf bench func hot_func --exec codegen.o --mode latency -e cycles \
   --data.arg0=0x10000000 --data.arg1=64 \
   "--data[0x10000000:]=[${PAYLOAD}]" \
   --config.function.alignment=64
+
+echo "### save + ECDF (layout is ±4 cycles even on a tiny loop)"
+rm -rf data/codegen
+for order in sequential random; do
+  for alignment in 16 64; do
+    perf bench func hot_func --exec codegen.o --mode latency -e cycles \
+      --data.arg0=0x10000000 --data.arg1=64 \
+      "--data[0x10000000:]=[${PAYLOAD}]" \
+      --config.function.order="${order}" \
+      --config.function.alignment="${alignment}" \
+      -o data/codegen
+  done
+done
+perf plot -t ecdf -e cycles -- data/codegen
