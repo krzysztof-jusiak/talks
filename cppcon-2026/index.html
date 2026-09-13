@@ -892,22 +892,17 @@ https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
 
 ----
 
-##### Cache effects [speed]
+##### Cache effects
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-  benchmark                 [0]           [1]                                               [2]
-  -------------------- --------  ------------ -------------------------------------------------
-  1 cycle execution      1 ± 00   0.25 ± 0.00 ▏
-  L1d hit                3 ± 01   0.75 ± 0.25 █░
-  L2d hit               12 ± 03   3.00 ± 0.75 ███░░
-  L3d hit               50 ± 05  10.00 ± 1.25 █████████░░░
-  DRAM access          350 ± 20  70.00 ± 5.00 ████████████████████████████████████████████░░░░░
-  ...
-
-  [0]: ~cycles # Intel/AMD/ARM
-  [1]: ~cycles/4Ghz [ns]
-  [2]: ~cycles ± variability
+ name                   cycles  cycles/4Ghz[ns] variability
+ -------------------- --------  --------------- -----------
+ 1 cycle execution      1 ± 00      0.25 ± 0.00 ▏
+ L1d hit                3 ± 01      0.75 ± 0.25 █░
+ L2d hit               12 ± 03      3.00 ± 0.75 ███░░
+ L3d hit               50 ± 05     10.00 ± 1.25 █████████░░░
+ DRAM access          350 ± 20     70.00 ± 5.00 ████████████████████████████████████████████░░░░░
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -950,7 +945,7 @@ CLDEMOTE    Hint into more distant level (Sapphire Rapids / Xeon, ...)
 
 ----
 
-##### Cache effects [mem_read,mem_write}]
+##### Cache effects [mem_read,mem_write]
 <!-- .element: style="text-align:left" -->
 
 ```python
@@ -1013,19 +1008,10 @@ Empirical Cumulative Distribution Function (ECDF) shows the entire distribution 
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-  benchmark                 [0]           [1]                                               [2]
-  -------------------- --------  ------------ -------------------------------------------------
-  1 cycle execution      1 ± 00   0.25 ± 0.00 ▏
-  L1d hit                3 ± 01   0.75 ± 0.25 █░
-  L2d hit               12 ± 03   3.00 ± 0.75 ███░░
-  branch misprediction  14 ± 10   3.50 ± 2.50 ███░░░
-  L3d hit               50 ± 05  10.00 ± 1.25 █████████░░░
-  DRAM access          350 ± 20  70.00 ± 5.00 ████████████████████████████████████████████░░░░░
-  ...
-
-  [0]: ~cycles # Intel/AMD/ARM
-  [1]: ~cycles/4Ghz [ns]
-  [2]: ~cycles ± variability
+ name                   cycles  cycles/4Ghz[ns] variability
+ -------------------- --------  --------------- -----------
+ 1 cycle execution      1 ± 00       0.25 ± 0.00 ▏
+ branch misprediction  14 ± 10       3.50 ± 2.50 ███░░░
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1652,20 +1638,34 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 
 ----
 
-##### Retiring [scaling] [TODO] veirfy top down classification
+##### Retiring [scaling]
 <!-- .element: style="text-align:left" -->
 
 ```sh
 $CXX -O3 -shared -fPIC -o sort.so sort.cpp
 ```
-<!-- .element: style="text-align:left; font-size:11px;" -->
+<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ```sh
-[TODO] do a loop 1-128 with seq and shuf with the same name per size
-perf bench func std::sort --name sort-1 -m latency -x listdc++.so
-    --data.arg0=0x10000000 --data.arg1=1 "--data[0x10000000:]=[$(shuf -i 1-1)]" -o sort
+for n in 1 4 8 16 32 64 128; do
+  perf bench func std::sort --name sort-$n
+    --mode latency
+    --exec libstdc++.so
+    --data.arg0=0x10000000
+    --data.arg1=$n
+    --data[0x10000000:]=[$(seq $n -1 1)]
+    --output sort
+
+  perf bench func std::sort --name sort-$n
+    --mode latency
+    --exec libstdc++.so
+    --data.arg0=0x10000000
+    --data.arg1=$n
+    --data[0x10000000:]=[$(shuf -i 1-$n)]
+    --output sort
+done
 ```
-<!-- .element: style="text-align:left; font-size:11px;" -->
+<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ----
 
@@ -1751,8 +1751,8 @@ auto find(const string_like auto symbol) noexcept;
 ----
 
 ```cpp
-g++16     -O3 -mbmi2 -c mph.cpp -o mph_gcc.o
-clang++23 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
+g++     -std=c++20 -O3 -mbmi2 -c mph.cpp -o mph_gcc.o
+clang++ -std=c++20 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1762,16 +1762,19 @@ import perf
 hot   = {"branch": "predictable", "cache": "hot"}
 worst = {"branch": "unpredictable", "cache": "cold", "func": {"order": "random"}}
 
-df = []
 for cxx in ("gcc", "clang"):
-    for func in ("scan", "map", "mph"):
+    for func in ("scan_find", "mph_find"):
         for tag, config in (("hot", hot), ("worst", worst)):
-            result = perf.bench(exec=f"mph_{cxx}.o", func=func, mode="latency",
-                                event="cycles,instructions", config=config)
-            [TODO] ensure syntax is correct
-            df = df.concat([df, result])
+            perf.bench(
+                name=f"{cxx}-{func}-{tag}"
+                exec=f"mph_{cxx}.o",
+                func=func,
+                mode="latency",
+                event=["cycles", "instructions"],
+                config=config,
+            )
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
 
