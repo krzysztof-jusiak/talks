@@ -460,9 +460,12 @@ callgrind_annotate callgrind.out.12345
 
 
 ```cpp
-[TODO] describe shortly meaining of Ir        I1mr  D1mr  D1mw   Bc      Bcm    Bi     Bim
+ Ir   instructions retired            I1mr L1-I miss reads
+ D1mr L1-D miss reads  D1mw L1-D miss writes
+ Bc   conditional branches  Bcm mispredicted cond branches
+ Bi   indirect branches     Bim mispredicted indirect branches
 ```
-<!-- .element: style="text-align:left; font-size:10px;" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -638,7 +641,17 @@ explore(project, &fizz_buzz, &fizz_buzz+size)
 ----
 
 ```cpp
-[TODO] Describe how symoblic exploration works under the hood with a diagram this is for slides so no much text
+machine code → VEX IR → blank state (symbolic regs, tracked reads/writes)
+    → step basic blocks → fork at each branch (solver: satisfiable?)
+        → found (ret) / active / deadended → one state per path
+```
+
+```
+┌────────────┐   ┌──────────────┐   ┌───────────────┐   ┌──────────────┐
+│ fizz_buzz  │ → │ blank_state  │ → │ fork on jbe/  │ → │ 4 states @  │
+│ machine    │   │ rdi=symbolic │   │ jne (sat?)    │   │ ret (1/path) │
+│ code       │   │ mem tracked  │   │ constraints+= │   │ regs+reads  │
+└────────────┘   └──────────────┘   └───────────────┘   └──────────────┘
 ```
 
 https://docs.angr.io/en/latest/core-concepts/symbolic.html
@@ -679,9 +692,12 @@ rdi: 1,  2,  4 // else
 <!-- .element: style="text-align:left" -->
 
 ```
-[TODO] fix the exapmle should trace function parameters
 BPF_PROGRAM = r"""
+#include <uapi/linux/ptrace.h>
+BPF_PERF_OUTPUT(events);
 int trace(struct pt_regs *ctx) {
+    bpf_trace_printk("arg0=%llu arg1=%llu\n",
+        PT_REGS_PARM1(ctx), PT_REGS_PARM2(ctx));
     return 0;
 }
 """
@@ -689,17 +705,33 @@ int trace(struct pt_regs *ctx) {
 
 ```cpp
 b = BPF(text=BPF_PROGRAM)
-b.attach_uprobe(name="a.out", sym="fizz_buzz", fn_name="trace")
+b.attach_uprobe(name="./fizz", sym="fizz_buzz", fn_name="trace")
 ```
 
 ```cpp
-perf record -e branch-misses,branch-refrences,cache-misses,cache-refernces -- ./.aout
+perf record -e branch-misses,branch-references,cache-misses,cache-references -- ./fizz
 ```
 
 ---
 
-```cpp
-[TODO] add example output and how to pass it to config and data (use json example)
+```asm
+fizz_buzz: arg0=15 arg1=0 arg2=0 arg3=0 arg4=0 arg5=0
+fizz_buzz: arg0=3  arg1=0 arg2=0 arg3=0 arg4=0 arg5=0
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+```json
+// --config.branch=predictable --config.memory=hot
+{ "branch": "predictable", "memory": "hot", "samples": 100, "runs": 10 }
+// --data.rdi=15  (arg0 alias)  |  --data[0x10000000:]=[1,2,3]
+{ "rdi": 15 }
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+```python
+df = perf.bench(exec="fizz", func="fizz_buzz", mode="latency",
+                config={"branch": "predictable", "memory": "hot"},
+                data={"rdi": 15})
 ```
 
 https://github.com/iovisor/bcc
@@ -751,10 +783,14 @@ https://github.com/iovisor/bcc
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-start:    stop:                 [TODO] add rdpmc setup
-  lfence    rdtscp
-  rdtsc     lfence
-  lfence
+start (duration_time):        stop:
+  push rcx                      rdtscp
+  lfence                        lfence
+  rdtsc; mov r11, rax           sub rax, r11
+
+start (rdpmc, e.g. cycles):  stop:
+  mov ecx, <idx>; lfence;       mov ecx, <idx>; lfence;
+  rdpmc; mov rbx, rax           rdpmc; sub rax, rbx
 ```
 
 ```
@@ -807,14 +843,16 @@ imul eax, 42 latency    max   3.00         1.00
 
 ----
 
-`backend: repeat # (substract overhead)`
+`backend: repeat # (subtract overhead)`
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-[TODO] finish repeat harness setup
-loop:                   loop:
-  add eax, 42    -      jmp loop
-jmp .loop
+repeat: one snippet per iteration (subtract nop overhead)
+loop:                       loop:
+  {start}                     {start}
+  nop            -            {code}
+  {stop}                      {stop}
+  dec r8; jnz loop             dec r8; jnz loop
 ```
 
 https://github.com/andreas-abel/nanoBench
@@ -946,14 +984,12 @@ for addr, size in state["mem_read"] + state["mem_write"]:
 ---
 
 ```python
-#{setup}
-[TODO] replace below with actual examples
-mov eax, [r11]
-cclufshup
-cldemote
-pause
-mfence
-...
+#{setup} per address, sampled per iteration (hit_rate)
+mov rax, [addr]          # L1d hit: load + mfence
+clflushopt [addr]; mfence; prefetcht1 [addr]  # L2
+clflushopt [addr]; mfence; prefetcht2 [addr]  # L3 (or cldemote)
+clflushopt [addr]; mfence                     # RAM (DRAM miss)
+pause x16; ...           # settle
 {start}
 {code}
 {stop}
@@ -990,8 +1026,17 @@ perf bench asm 'add r11, [rax]'
 ```
 
 ```cpp
-[TODO] add results and chart (put it to images/)
+perf bench asm 'add r11, [rax]' --mode latency -e cycles
+    --config.memory=hot    # L1d hit:  ~0.4-0.6 cycles
+    --config.memory=cold   # DRAM miss: ~5-16 cycles
 ```
+
+<p align="left">
+<img src="images/cache_lat.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
+</p>
+
+Alder Lake i7-12650H — your numbers will differ, the effect won't
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1013,10 +1058,18 @@ auto predict(uint64_t ip, uint64_t target) {
 ---
 
 ```python
-[TODO] finish it up based on how it works in ~/projects/perf-labs/perf/src/perf/bench.py, add ilustraitons
+predictable:   pin models[0]          # same inputs every iteration
+unpredictable: rng.choice(models)    # sample a path per iteration
 for solution in solutions:
-    value = solution.eval(1)
     bench(code, [repeat(value, N) if predictable else shuffle(values)])
+```
+
+```
+┌──────────┐   ┌───────────────────┐   ┌────────────────┐
+│ 4 states │ → │ predictable: m[0] │ → │ steer asm:     │
+│ (1/path) │   │ unpredictable:    │   │ values + evict │
+│          │   │ rng.choice / iter │   │ per iteration  │
+└──────────┘   └───────────────────┘   └────────────────┘
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -1026,11 +1079,19 @@ for solution in solutions:
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-[TODO] add proper asm branching examples which works (add chart with images/)
-perf bench asm '...'
-    --config.branch=unpredictable
-    --data[...]=
+perf bench func fizz_buzz --exec fizz --mode latency -e branch-misses
+    --config.branch=predictable    # ~0.0 miss/op
+    --config.branch=unpredictable  # ~1.0 miss/op
+perf bench func fizz_buzz --exec fizz --mode latency -e cycles
+    --data.rdi=15                  # pin one path: FizzBuzz
 ```
+
+<p align="left">
+<img src="images/branch_miss.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
+</p>
+
+Alder Lake i7-12650H — your numbers will differ, the effect won't
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1051,11 +1112,16 @@ void hot_func(const int* v, int n) {
 ----
 
 ```sh
-[TODO] add example with alignment and used which shows it aadd charts
-perf bench func hot_func --exec a.out
-    --config.func.order=random
+perf bench func hot_func --exec codegen.o --mode latency -e cycles
+    --config.function.order=sequential  # as linked: ~19 cycles
+    --config.function.order=random      # shuffled layout: ~19 cycles
+perf bench func hot_func --exec codegen.o --mode latency
+    --config.function.alignment=64      # align entry to 64B
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
+
+Tiny loop fits L1I — layout effect grows with footprint (see frontend_bound study)
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1063,17 +1129,13 @@ perf bench func hot_func --exec a.out
 <!-- .element: style="text-align:left" -->
 
 ```python
-[TODO] finish it up based on how it works in ~/projects/perf-labs/perf/src/perf/bench.py
-page = mmap(
-    -1,
-    len(code_bytes),
-    prot=PROT_READ | PROT_WRITE | PROT_EXEC,
-    flags=MAP_PRIVATE | MAP_ANONYMOUS
-)
-# map.process
-# apply relocations
-page.write(bench)
-CFUNCTYPE((addressof(from_buffer(page)))()
+page = mmap(-1, len(code_bytes),
+            prot=PROT_READ | PROT_WRITE | PROT_EXEC,
+            flags=MAP_PRIVATE | MAP_ANONYMOUS)
+page.write(code_bytes)  # assembled {setup}{code}{timing}
+fn = CFUNCTYPE(None, POINTER(Args))(addressof(from_buffer(page)))
+fn(byref(Args(iterations, inputs, outputs, data_ptr)))
+# keep page alive; map written to /tmp/perf-{pid}.map
 ```
 
 `[.jitdata] /tmp/perf-{pid}.map`
@@ -1104,7 +1166,7 @@ lstopo
 <!-- .element: style="text-align:left" -->
 
 ```
-perf info cpu -c cpu,numa,arch,model,family,settping,freq,L1i,L1d,L2,L3
+perf info cpu -c cpu,numa,arch,model,family,stepping,freq,L1i,L1d,L2,L3
 ```
 <!-- .element: style="text-align:left;font-size:20px" -->
 
@@ -1211,8 +1273,13 @@ perf bench func ".*" --mode latency --exec a.out
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-[TODO] show example results should match examples for top down  afterwards
+name      mode     stat retiring bad-spec fe-bound be-bound
+process   latency  med  2312     22/0     19       1436/1519
 ```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+L1d hot → cold shifts slots from retiring to backend bound (see next slides)
+<!-- .element: style="text-align:right; font-size:16px;" -->
 ----
 
 ##### `hot_path` [PERF_LABEL]
@@ -1275,15 +1342,16 @@ int process(int n) {
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
 ```cpp
-g++16 -O3 -std=c++23 -Ilib backend_bound/memory.cpp -o memory.out
-g++16 -O2 -std=c++23 -Ilib backend_bound/memory.cpp -o memory.out
-clang++-22 -O2 -std=c++23 -Ilib backend_bound/memory.cpp -o memory.out
-clang++-22 -O3 -std=c++23 -Ilib backend_bound/memory.cpp -o memory.out
+g++ -O3 -std=c++23 backend_bound/process.cpp -o process_O3.out
+g++ -O2 -std=c++23 backend_bound/process.cpp -o process_O2.out
+clang++ -O2 -std=c++23 backend_bound/process.cpp -o process_clang_O2.out
+clang++ -O3 -std=c++23 backend_bound/process.cpp -o process_clang_O3.out
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
 ```cpp
-[TODO] execute and show results
+perf bench func process --exec process_O3.out --mode latency
+    -e cycles -o data/  # median ~750 cycles hot, ~1200-1360 cold
 ```
 
 ----
@@ -1335,8 +1403,16 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```cpp
-[TODO] show results and charts
+hit_rate 100 → cycles med ~750  (hot, L1d hit)
+hit_rate   0 → cycles med ~1200-1360 (cold, DRAM)
 ```
+
+<p align="left">
+<img src="images/cache_process.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
+</p>
+
+Alder Lake i7-12650H — your numbers will differ, the effect won't
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1353,16 +1429,24 @@ constexpr auto fizz_buzz(int n) {
 ```
 
 ```
-perf bench func fizz_buzz --data.rdi=0
-perf bench func fizz_buzz --data.rdi=1
-perf bench func fizz_buzz --data.rdi=2
-perf bench func fizz_buzz --config.branch=predictable
-perf bench func fizz_buzz --config.branch=unpredictable
-perf bench func fizz_buzz --config.branch=unpredictable -e branch-misses
-perf bench func fizz_buzz --event cycles,instructions
-
-[TODO]
+perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=15
+perf bench func fizz_buzz --exec fizz --mode latency --config.branch=predictable
+perf bench func fizz_buzz --exec fizz --mode latency --config.branch=unpredictable
+perf bench func fizz_buzz --exec fizz --mode latency --config.branch=unpredictable -e branch-misses
+perf bench func fizz_buzz --exec fizz --mode latency -e cycles,instructions
 ```
+<!-- .element: style="text-align:left; font-size: 16px;" -->
+
+```
+branch          cycles med  branch-misses med
+predictable     1.0         0.0
+unpredictable   1.0-2.0     1.0
+```
+<!-- .element: style="text-align:left; font-size: 16px;" -->
+
+<p align="left">
+<img src="images/branch_miss.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+</p>
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```
@@ -1403,7 +1487,7 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 
 ----
 
-##### Retiring [depedency-chain]
+##### Retiring [dependency-chain]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -1481,9 +1565,31 @@ jitter
 ----
 
 ```cpp
-[TOOD] add analysis of ~/projects/qlibs/mph # using pext (simple example showing lookup table vs if/else vs simd based on mameory, and branching)
-show code, then show perf bench and charts added to (images/)
+// ~/projects/qlibs/mph — 5-key lookup vs if/else chain
+static constexpr std::array ids{ std::pair{54u,91u}, {64u,324u},
+  {91u,234u}, {324u,54u}, {234u,64u} };
+int mph_find(uint64_t k)    { return mph::lookup<ids>(k); } // pext+lut
+int ifelse_find(uint64_t k) { if (k==54) return 91; /* ... */ }
 ```
+
+```asm
+mph_find: mov eax, 7; pext edi, edi, eax  # BMI2: compress key bits
+          mov eax, [rax + rdi*4]           # single lookup, no branches
+```
+
+```cpp
+perf bench func mph_find --exec mph.out -e branch-misses     # ~0.0 miss/op
+perf bench func ifelse_find --exec mph.out -e branch-misses  # ~1.0 miss/op
+perf bench func mph_find --exec mph.out --data.rdi=54        # ~1 cycle
+perf bench func ifelse_find --exec mph.out --data.rdi=54     # ~2 cycles
+```
+
+<p align="left">
+<img src="images/mph_brmiss.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+</p>
+
+Branchless pext+lut stays flat; the chain is data-dependent (see examples/mph.sh)
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 https://jupyter.org
 <!-- .element: style="text-align:left; font-size: 20px;" -->
