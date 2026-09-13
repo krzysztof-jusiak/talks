@@ -993,19 +993,19 @@ https://www.akkadia.org/drepper/cpumemory.pdf
 
 ```cpp
 perf bench asm 'add r11, [rax]' --mode latency -e cycles
-    --config.memory=hot --name add-hot -o cache
+    --config.cache=hot --name add-hot -o cache
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
 perf bench asm 'add r11, [rax]' --mode latency -e cycles
-    --config.memory=cold --name add-cold -o cache
+    --config.cache=cold --name add-cold -o cache
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
 perf bench asm 'add r11, [rax]'
-    --config.memory.cache.L1d=hit_rate:100
+    --config.cache.L1d=hit_rate:100
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1538,14 +1538,12 @@ import perf                                                                     
 
 for hit_rate in [100, 50, 0]:  # hot → warm → cold
     config = {
+        "cache": {
+          "L1d": {"hit_rate": hit_rate},
+          "L2d": {"hit_rate": 100},
+          "L3d": {"hit_rate": 100}
+        },
         "branch": "predictable",
-        "memory": {
-            "cache": {
-              "L1d": {"hit_rate": hit_rate},
-              "L2d": {"hit_rate": 100},
-              "L3d": {"hit_rate": 100}
-            }
-        }
     }
 
     df = perf.bench(
@@ -1573,8 +1571,8 @@ clang++ -O3 memory.cpp -c bb_clang_03.o
 ```
 
 ```cpp
-perf bench func process --exec <target> --mode latency -e cycles --config.memory=hot -o backend
-perf bench func process --exec <target> --mode latency -e cycles --config.memory=cold -o backend
+perf bench func process --exec <target> --mode latency -e cycles --config.cache=hot -o backend
+perf bench func process --exec <target> --mode latency -e cycles --config.cache=cold -o backend
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
@@ -1705,19 +1703,26 @@ chain   p50  174.00   390.00       0.45
 
 ```json
 {
-  "branch": "unpredictable",
-  "heap":   "random",
-  "stack":  "random",
-  "mem": {
-      "cache": {
-        "L1i":  {"hit_rate":0},
-        "L1d":  {"hit_rate":0},
-        "L2d":  {"hit_rate":0},
-        "L3d":  {"hit_rate":0},
-        "TLBi": {"hit_rate":0},
-        "TLBd": {"hit_rate":0},
-      }
-  }
+    "code": {
+        "align": "random", # 16
+    },
+    "func": {
+        "align": "random", # 16
+        "order": "random", # as-is
+    },
+    "cache": {
+        "L1d":  {"hit_rate": 0},
+        "L1i":  {"hit_rate": 0}, # 100
+        "L2":   {"hit_rate": 0},
+        "L3":   {"hit_rate": 0}
+        "TLBi": {"hit_rate": 0}, # 100
+        "TLBd": {"hit_rate": 0}, # 100
+    },
+    "stack": {
+        "size": "random",
+        "align": "random"
+    },
+    "branch": "unpredictable",
 }
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
