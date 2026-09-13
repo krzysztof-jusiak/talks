@@ -1027,12 +1027,12 @@ perf bench asm 'add r11, [rax]'
 
 ```cpp
 perf bench asm 'add r11, [rax]' --mode latency -e cycles
-    --config.memory=hot    # L1d hit:  ~0.4-0.6 cycles
-    --config.memory=cold   # DRAM miss: ~5-16 cycles
+    --config.memory=hot    # L1d hit:   ~0.6 cycles
+    --config.memory=cold   # DRAM miss: ~6 cycles
 ```
 
 <p align="left">
-<img src="images/cache_lat.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
+<img src="images/cache_lat.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
 </p>
 
 Alder Lake i7-12650H — your numbers will differ, the effect won't
@@ -1079,18 +1079,18 @@ for solution in solutions:
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-perf bench func fizz_buzz --exec fizz --mode latency -e branch-misses
-    --config.branch=predictable    # ~0.0 miss/op
-    --config.branch=unpredictable  # ~1.0 miss/op
-perf bench func fizz_buzz --exec fizz --mode latency -e cycles
-    --data.rdi=15                  # pin one path: FizzBuzz
+perf bench func scan --exec a.out --mode latency -e branch-misses
+    --config.branch=predictable    # pinned input: ~0.0 miss/op
+    --config.branch=unpredictable  # new input each op: ~1.0 miss/op
+perf bench func scan --exec a.out --mode latency -e cycles
+    --data.rdi=<key>               # pin one path explicitly
 ```
 
 <p align="left">
-<img src="images/branch_miss.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
+<img src="images/branch_miss.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
 </p>
 
-Alder Lake i7-12650H — your numbers will differ, the effect won't
+ECDF by default: the whole distribution (see examples/mph.sh)
 <!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
@@ -1129,13 +1129,13 @@ Tiny loop fits L1I — layout effect grows with footprint (see frontend_bound st
 <!-- .element: style="text-align:left" -->
 
 ```python
-page = mmap(-1, len(code_bytes),
-            prot=PROT_READ | PROT_WRITE | PROT_EXEC,
-            flags=MAP_PRIVATE | MAP_ANONYMOUS)
-page.write(code_bytes)  # assembled {setup}{code}{timing}
-fn = CFUNCTYPE(None, POINTER(Args))(addressof(from_buffer(page)))
-fn(byref(Args(iterations, inputs, outputs, data_ptr)))
-# keep page alive; map written to /tmp/perf-{pid}.map
+ELF (.o auto-linked) → mmap PT_LOAD as RWX/FIXED → apply relocs
+  RELATIVE / GLOB_DAT / JUMP_SLOT / 64 → setup_stack
+  → [randomize_layout: move fns, fix RIP-rel + relocs]
+  → write_perf_map (/tmp/perf-PID.map)
+setup=call(sym) → code=call(target) → overhead=call(nop)
+data addrs → mmap pages + preload → assemble → mmap RWX
+→ CFUNCTYPE(Args) → runs × iterations → min (latency)
 ```
 
 `[.jitdata] /tmp/perf-{pid}.map`
@@ -1273,12 +1273,15 @@ perf bench func ".*" --mode latency --exec a.out
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-name      mode     stat retiring bad-spec fe-bound be-bound
-process   latency  med  2312     22/0     19       1436/1519
+func      retiring  bad-spec  fe-bound  be-bound    → section
+process   61%       0%        1%        38%         → backend bound
+branchy   26%       13%       37%       24%         → bad speculation
+hot_func  86%       7%        7%        1%          → retiring
+chain     58%       0%        40%       2%          → retiring (dep chain)
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-L1d hot → cold shifts slots from retiring to backend bound (see next slides)
+One `bench func ".*"` run per function; each dominant bucket gets its own section next
 <!-- .element: style="text-align:right; font-size:16px;" -->
 ----
 
@@ -1403,12 +1406,12 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```cpp
-hit_rate 100 → cycles med ~750  (hot, L1d hit)
-hit_rate   0 → cycles med ~1200-1360 (cold, DRAM)
+hit_rate 100 → cycles med ~720   (hot, L1d hit)
+hit_rate   0 → cycles med ~1330  (cold, DRAM + jitter)
 ```
 
 <p align="left">
-<img src="images/cache_process.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
+<img src="images/cache_process.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
 </p>
 
 Alder Lake i7-12650H — your numbers will differ, the effect won't
@@ -1429,29 +1432,22 @@ constexpr auto fizz_buzz(int n) {
 ```
 
 ```
-perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=15
 perf bench func fizz_buzz --exec fizz --mode latency --config.branch=predictable
-perf bench func fizz_buzz --exec fizz --mode latency --config.branch=unpredictable
 perf bench func fizz_buzz --exec fizz --mode latency --config.branch=unpredictable -e branch-misses
+perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=15   # pin FizzBuzz
 perf bench func fizz_buzz --exec fizz --mode latency -e cycles,instructions
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```
-branch          cycles med  branch-misses med
-predictable     1.0         0.0
-unpredictable   1.0-2.0     1.0
+unpredictable: ~1 miss/op, stable  |  predictable: pinned path, ~0-1 (path-dependent)
+cycles ~1 both — tiny function; see scan (branch slide) for the amplified effect
 ```
-<!-- .element: style="text-align:left; font-size: 16px;" -->
-
-<p align="left">
-<img src="images/branch_miss.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
-</p>
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```
 perf view -- data/fizz_buzz
-perf plot -- data/fizz_buzz
+perf plot -t ecdf -e branch-misses -- data/fizz_buzz
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
@@ -1565,30 +1561,22 @@ jitter
 ----
 
 ```cpp
-// ~/projects/qlibs/mph — 5-key lookup vs if/else chain
-static constexpr std::array ids{ std::pair{54u,91u}, {64u,324u},
-  {91u,234u}, {324u,54u}, {234u,64u} };
-int mph_find(uint64_t k)    { return mph::lookup<ids>(k); } // pext+lut
-int ifelse_find(uint64_t k) { if (k==54) return 91; /* ... */ }
-```
-
-```asm
-mph_find: mov eax, 7; pext edi, edi, eax  # BMI2: compress key bits
-          mov eax, [rax + rdi*4]           # single lookup, no branches
+// ~/projects/qlibs/mph — 128 keys: pext+lut vs linear scan
+int mph_find(uint64_t k) { return mph::lookup<ids>(k); } // pext; one load
+int scan_find(uint64_t k){ for (...) if (ids[i].first==k) return ...; }
 ```
 
 ```cpp
-perf bench func mph_find --exec mph.out -e branch-misses     # ~0.0 miss/op
-perf bench func ifelse_find --exec mph.out -e branch-misses  # ~1.0 miss/op
-perf bench func mph_find --exec mph.out --data.rdi=54        # ~1 cycle
-perf bench func ifelse_find --exec mph.out --data.rdi=54     # ~2 cycles
+cycles med:            pred.hot  unpred.hot  unpred.cold
+mph_find (pext+lut)    1-5       1-5         1-5
+scan_find (loop)       4         10-16       250-310
 ```
 
 <p align="left">
-<img src="images/mph_brmiss.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+<img src="images/mph_ecdf.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
 </p>
 
-Branchless pext+lut stays flat; the chain is data-dependent (see examples/mph.sh)
+Branch eviction ~4x, memory eviction ~20-70x on the scan; `pext` stays flat (see examples/mph.sh)
 <!-- .element: style="text-align:right; font-size:16px;" -->
 
 https://jupyter.org

@@ -7,11 +7,11 @@ cd "$(dirname "$0")"
 
 g++ -O2 -o fizz fizz.c
 
-echo "### predictable (branch-misses ~0.0/op, cycles ~1.0)"
+echo "### predictable (pinned path, ~0-1 miss/op path-dependent)"
 perf bench func fizz_buzz --exec fizz --mode latency \
   -e cycles,branch-misses --config.branch=predictable
 
-echo "### unpredictable (branch-misses ~1.0/op, cycles ~1-2)"
+echo "### unpredictable (new path each op, ~1 miss/op stable)"
 perf bench func fizz_buzz --exec fizz --mode latency \
   -e cycles,branch-misses --config.branch=unpredictable
 
