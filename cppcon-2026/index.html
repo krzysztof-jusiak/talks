@@ -983,52 +983,38 @@ https://www.akkadia.org/drepper/cpumemory.pdf
 
 ----
 
-```cpp
-lut[i] += 1; // add r11, [rax]
-```
+##### Cache effects # lut[i] += 1; // add r11, [rax]
+<!-- .element: style="text-align:left" -->
 
----
+```cpp
+perf bench asm 'add r11, [rax]' --mode latency -e cycles
+    --config.memory=hot --name add-hot -o cache
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```cpp
+perf bench asm 'add r11, [rax]' --mode latency -e cycles
+    --config.memory=cold --name add-cold -o cache
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
 perf bench asm 'add r11, [rax]'
     --config.memory.cache.L1d=hit_rate:100
 ```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-perf bench asm 'add r11, [rax]'
-    --config.memory.cache.L1d=hit_rate:0
-    --config.memory.cache.L2d=hit_rate:100
+perf plot -t ecdf -e cycles -o images/cache_lat.png -- cache # sixel: to plot in terminal
 ```
-
-```cpp
-perf bench asm 'add r11, [rax]'
-    --config.memory.cache.L1d=hit_rate:0
-    --config.memory.cache.L2d=hit_rate:0
-    --config.memory.cache.L3d=hit_rate:100
-```
-
-----
-
-##### Cache effects [measured]
-<!-- .element: style="text-align:left" -->
-
-```cpp
-perf bench asm 'add r11, [rax]' --mode latency -e cycles
-    --config.memory=hot --name add-hot -o data/cache
-```
-
-```cpp
-perf bench asm 'add r11, [rax]' --mode latency -e cycles
-    --config.memory=cold --name add-cold -o data/cache
-```
-
-```cpp
-perf plot -t ecdf -e cycles -o images/cache_lat.png -- data/cache
-```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 <p align="left">
-<img src="images/cache_lat.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+<img src="images/cache_lat.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
 </p>
+
+Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
+<!-- .element: style="text-align:right; font-size:12px;" -->
 
 ----
 
@@ -1036,7 +1022,7 @@ perf plot -t ecdf -e cycles -o images/cache_lat.png -- data/cache
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-std::array<branch, 1 << 12> btb{};                                         # pseudo-code
+std::array<branch, 1 << 12> btb{};                                                    # simplified
 auto predict(uint64_t ip, uint64_t target) {
     auto& e = btb[(ip >> 2) & 0xFFF];        // branch aliasing
     if (e.valid and e.tag == ip) {
@@ -1050,27 +1036,20 @@ auto predict(uint64_t ip, uint64_t target) {
 ---
 
 ```python
-for iteration in range(iterations):# python
-    for solution in solutions:
-        if config.branch[solution.address] == "predictable":
-            data[solution.address] = asm(state.solver.eval_up_to(n))
-        else:
-            data[solution.address] = asm(shuffle(state.solver.eval_up_to(n)))
-```
-
-```
-┌────────────┐   ┌────────────────┐   ┌───────────────┐   ┌────────────────┐
-│ solutionsi │ → │ config.branch  │ → │ data synthesis│ → │ native execute │
-│ per-path   │   │ predictable /  │   │ pinned vs     │   │ mmap / jit     │
-│ constraints│   │ unpredictable  │   │ shuffled      │   │ [cache/branch] │
-└────────────┘   └────────────────┘   └───────────────┘   └────────────────┘
+for solution in solutions: # per iteration
+    if config.branch[solution.address] == "predictable":
+        data[solution.address] = asm(state.solver.eval_up_to(n))
+    else:
+        data[solution.address] = asm(shuffle(state.solver.eval_up_to(n)))
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-```asm
-fizz_buzz+0x1c  jbe .L1   # n % 15 == 0 -> FizzBuzz
-  predictable:   rdi = [15, 15, 15, ...]
-  unpredictable: rdi = [15, 3, 5, 1, ...]
+```
+┌─────────────┐   ┌────────────────┐   ┌───────────────┐   ┌────────────────┐
+│ solutions   │ → │ config.branch  │ → │ data synthesis│ → │ native execute │
+│ per-path    │   │ predictable /  │   │ pinned vs     │   │ mmap / jit     │
+│ constraints │   │ unpredictable  │   │ shuffled      │   │ [cache/branch] │
+└─────────────┘   └────────────────┘   └───────────────┘   └────────────────┘
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1080,45 +1059,31 @@ fizz_buzz+0x1c  jbe .L1   # n % 15 == 0 -> FizzBuzz
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-perf bench func scan --exec a.out --mode latency -e branch-misses
-    --config.branch=predictable
+[[gnu::optimize("O3")]] auto fizz_buzz(int n) {
+       if (n % 15 == 0) { return "FizzBuzz"; }
+  else if (n % 3  == 0) { return "Fizz";     }
+  else if (n % 5  == 0) { return "Buzz";     }
+  return "Unknown";
+}
 ```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-perf bench func scan --exec a.out --mode latency -e branch-misses
-    --config.branch=unpredictable
-```
-
-```cpp
+perf bench func scan --exec a.out --mode latency -e branch-misses --config.branch=predictable
+perf bench func scan --exec a.out --mode latency -e branch-misses --config.branch=unpredictable
 perf bench func scan --exec a.out --mode latency -e cycles --data.arg0=<key>
+perf bench func fizz_buzz --exec fizz --mode latency -e branch-misses -o fizz
 ```
-
-----
-
-##### Branch effects [measured]
-<!-- .element: style="text-align:left" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```
-perf bench func fizz_buzz --exec fizz --mode latency -e branch-misses -o data/fizz
-perf plot -t ecdf -e branch-misses -o images/branch_miss.png -- data/fizz
+perf plot -t ecdf -e branch-misses -- fizz
 ```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 <p align="left">
-<img src="images/branch_miss.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
+<img src="images/branch_miss.png" style="width: 55%; background:white; border:none; box-shadow:none;" />
 </p>
-
-ECDF by default: the whole distribution (see examples/mph.sh)
-<!-- .element: style="text-align:right; font-size:16px;" -->
-
-----
-
-##### Branch effects [measured]
-<!-- .element: style="text-align:left" -->
-
-```sh
-perf bench func fizz_buzz --exec a.out -S | llvm-mca
-perf bench func fizz_buzz --exec a.out --data.rdi=15 -S | llvm-mca
-```
 
 ----
 
@@ -1127,6 +1092,7 @@ perf bench func fizz_buzz --exec a.out --data.rdi=15 -S | llvm-mca
 
 ```cpp
 void unused();
+
 [[gnu::aligned(64), gnu::hot]]
 void hot_func(const int* v, int n) {
     [[clang::code_align(64)]] for (int i = 0; i < n; ++i) {
@@ -1135,39 +1101,33 @@ void hot_func(const int* v, int n) {
     // ...
 }
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 ----
 
 ```
 perf bench func hot_func --exec codegen.o --mode latency -e cycles
-    --config.function.order=sequential  # as linked
-    --config.function.order=random      # shuffled layout
+    --config.function.order=sequential
+    --config.function.order=random
+    #--config.function.order=hot
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```
 perf bench func hot_func --exec codegen.o --mode latency
-    --config.function.alignment=16      # vs =64
+    --config.function.alignment=16
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ---
 
-```cpp
-cycles med:   align=16  align=64
-sequential    21        22
-random        18        18
 ```
-
-```
-perf plot -t ecdf -e cycles -o images/codegen_ecdf.png -- data/codegen
+perf plot -t ecdf -e cycles -- codegen
 ```
 
 <p align="left">
-<img src="images/codegen_ecdf.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
+<img src="images/codegen_ecdf.png" style="width: 45%; background:white; border:none; box-shadow:none;" />
 </p>
-
-Layout is a controlled variable, not noise — ±4 cycles even on a tiny loop
-<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1192,27 +1152,31 @@ Layout is a controlled variable, not noise — ±4 cycles even on a tiny loop
 
 ----
 
-##### `JIT Code Generation` — isolated object for linking
+##### `JIT Code Generation` → assembly/object
 <!-- .element: style="text-align:left" -->
 
 ```sh
-perf bench func fizz_buzz --exec a.out --data.rdi=15 -c fizz_buzz_bench.o
+perf bench func fizz_buzz --exec a.out -c bench.o
 ```
+<!-- .element: style="text-align:left; font-size:22px" -->
 
 ```cpp
-// driver.c
-int fizz_buzz_bench(int n);
-int main(void) { return fizz_buzz_bench(15); }
+int bench();
+int main() { 
+    return bench(); 
+}
 ```
+<!-- .element: style="text-align:left; font-size:22px" -->
 
 ```sh
-g++ driver.c fizz_buzz_bench.o -o bench_run && ./bench_run
+$CXX main.cpp bench.o && ./a.out
 ```
+<!-- .element: style="text-align:left; font-size:22px" -->
 
 ----
 
-#### `Data-distrubutions / Problem-space-reduction`
-<!-- .element: style="text-align:left; font-size:30px" -->
+#### `Real-data distrubutions / Problem-space reduction`
+<!-- .element: style="text-align:left; font-size:34px" -->
 
 ----
 
@@ -1314,7 +1278,7 @@ perf plot -t ecdf -e cycles -- perf.data
 ```cpp
 perf bench func fizz_buzz --exec a.out
     --data data.json
-    --config config.json -o data/fizz
+    --config config.json -o fizz
 ```
 
 ```
@@ -1324,11 +1288,11 @@ fizz      fizz-unpredictable    p50   2.00   1.00
 ```
 
 ```cpp
-perf plot -t ecdf -e cycles -o images/fizz_ecdf.png -- data/fizz
+perf plot -t ecdf -e cycles -- fizz
 ```
 
 <p align="left">
-<img src="images/fizz_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+<img src="images/fizz_ecdf.png" style="width: 65%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
@@ -1394,13 +1358,13 @@ perf bench asm 'rdtsc' | perf plot -t bar
 
 ----
 
-##### Sanity-Checks [spec vs. measured]
+##### Sanity-Checks
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-perf bench asm 'imul eax, 0'    --mode latency -e cycles -o insn
 perf bench asm 'add  eax, 0'    --mode latency -e cycles -o insn
 perf bench asm 'sub  eax, 0'    --mode latency -e cycles -o insn
+perf bench asm 'imul eax, 0'    --mode latency -e cycles -o insn
 perf bench asm 'cdq; idiv ecx;' --mode latency -e cycles -o insn
 ```
 <!-- .element: style="text-align:left; font-size: 15px;" -->
@@ -1419,9 +1383,9 @@ perf plot -t bar -- insn
 <pre style="font-size:16px">
 name           mode     stat cycles
 add  eax, 0    latency   max   1.00
-cdq; idiv ecx; latency   max  12.00
-imul eax, 0    latency   max   3.00
 sub  eax, 0    latency   max   1.00
+imul eax, 0    latency   max   3.00
+cdq; idiv ecx; latency   max  12.00
 </pre>
 </td>
 </tr>
@@ -1448,11 +1412,11 @@ https://llvm.org/docs/CommandGuide/llvm-exegesis.html
 
 ----
 
-#### `profile → benchmark → ...`
+#### `profile → benchmark`
 <!-- .element: style="text-align:left; font-size: 32px;" -->
 
 <p align="left">
-<img src="images/td1.png" style="width: 50%; background:none; border:none; box-shadow:none;margin: 0 0;" />
+<img src="images/td1.png" style="width: 80%; background:none; border:none; box-shadow:none;margin: 0 0;" />
 </p>
 
 ```cpp
@@ -1471,15 +1435,15 @@ chain     58%       0%        40%       2%          → retiring (dep chain)
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-One `bench func ".*"` run per function; each dominant bucket gets its own section next
+".*" matches any function
 <!-- .element: style="text-align:right; font-size:16px;" -->
 ----
 
-##### `hot_path` [PERF_LABEL]
+##### `PERF_LABEL`
 <!-- .element: style="text-align:left;" -->
 
 ```cpp
-#define PERF_LABEL(name)
+#define PERF_LABEL(name) // global label # rust,zig, ...
     asm volatile(
         ".pushsection perf.label, \"aw?\", @progbits\n"
         ".quad 0f\n"
@@ -1490,29 +1454,19 @@ One `bench func ".*"` run per function; each dominant bucket gets its own sectio
 ```
 <!-- .element: style="text-align:left;font-size:20px" -->
 
-inlined multiple times
-<!-- .element: style="text-align:right; font-size:22px;" -->
-
-----
+---
 
 ```cpp
-auto hot_path(...) {
-    PERF_LABEL(hot_begin);
-    ...
-    PERF_LABEL(hot_end);
-}
+PERF_LABEL(hot_begin);
+...
+PERF_LABEL(hot_end);
 ```
 <!-- .element: style="text-align:left;font-size:20px" -->
 
 ```
-objdump -sj .perf.label <file>
+perf info metadata --exec a.out # objdump -sj .perf.label a.out
+[TODO] example output - it should show that the same label can be inlined multiple times
 ```
-<!-- .element: style="text-align:left;font-size:20px" -->
-
-`rust,zig` compatible
-can be across function boundries
-can be inlined multiple times
-<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ----
 
@@ -1544,8 +1498,8 @@ clang++ -O3 -std=c++23 backend_bound/process.cpp -o process_clang_O3.out
 
 ```cpp
 perf bench func process --exec process.o --mode latency -e cycles
-    --data.arg0=0x10000000 --data.arg1=256 --data[0x10000000:]=[...] -o data/backend
-perf plot -t ecdf -e cycles -o images/backend_ecdf.png -- data/backend
+    --data.arg0=0x10000000 --data.arg1=256 --data[0x10000000:]=[...] -o backend
+perf plot -t ecdf -e cycles -- backend
 ```
 
 ```
@@ -1560,16 +1514,13 @@ process-cold     1023.00
 <!-- .element: style="text-align:left" -->
 
 ```
-perf bench func process --exec process.o --mode latency -e cycles -o data/backend
-perf plot -t ecdf -e cycles -o images/backend_ecdf.png -- data/backend
+perf bench func process --exec process.o --mode latency -e cycles -o backend
+perf plot -t ecdf -e cycles -- backend
 ```
 
 <p align="left">
 <img src="images/backend_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
 </p>
-
-Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
-<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1605,35 +1556,35 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
 
 ----
 
-```cpp
-cycles med:   hot   cold
-gcc   -O2     717   1195
-gcc   -O3     755   1193
-clang -O2     562   975
-clang -O3     561   927
-```
-
-```
-perf plot -t ecdf -e cycles -o images/backend_ecdf.png -- data/backend
-```
-
-----
-
 ##### Backend bound
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-perf bench func process --exec process.o --mode latency -e cycles
-    --config.memory=hot    # vs =cold, gcc vs clang, -O2 vs -O3
+g++ -O2 memory.cpp -c bb_gcc_02.o
+g++ -O3 memory.cpp -c bb_gcc_03.o
+clang++ -O2 memory.cpp -c bb_clang_02.o
+clang++ -O3 memory.cpp -c bb_clang_03.o
 ```
 
+```cpp
+perf bench func process --exec <target> --mode latency -e cycles --config.memory=hot -o backend
+perf bench func process --exec <target> --mode latency -e cycles --config.memory=cold -o backend
+```
+<!-- .element: style="text-align:left; font-size: 16px;" -->
+
+```
+perf plot -- backend
+```
+<!-- .element: style="text-align:left; font-size: 16px;" -->
+
+[TODO] update the chart with  casees for gcc/clang memory hot cold
 <p align="left">
-<img src="images/backend_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+<img src="images/backend_ecdf.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
 
-##### Bad Speculation [branch]
+##### Bad Speculation [branch effects]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -1644,6 +1595,7 @@ constexpr auto fizz_buzz(int n) {
   return "Unknown";
 }
 ```
+<!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```
 perf bench func fizz_buzz --exec fizz --mode latency --config.branch=predictable
@@ -1654,14 +1606,8 @@ perf bench func fizz_buzz --exec fizz --mode latency -e cycles,instructions
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```
-unpredictable: ~1 miss/op, stable  |  predictable: pinned path, ~0-1 (path-dependent)
-cycles ~1 both — tiny function; see scan (branch slide) for the amplified effect
-```
-<!-- .element: style="text-align:left; font-size: 16px;" -->
-
-```
-perf view -- data/fizz
-perf plot -t ecdf -e branch-misses -o images/branch_miss.png -- data/fizz
+perf view -- branch
+perf plot -t ecdf -e cycles,instructions,branch-misses,instructions/cycles -- branch
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
@@ -1672,7 +1618,7 @@ perf plot -t ecdf -e branch-misses -o images/branch_miss.png -- data/fizz
 
 ```cpp
 void unused();
-void hot_function() {
+void hot_funcc() {
     // ... performance critical code ...
 }
 
@@ -1731,11 +1677,10 @@ perf bench region hot_begin..hot_end -e cycles/instructions --exec a.out | \
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```
-perf bench region hot_begin..hot_end --exec a.out --mode latency \
-    -e cycles,instructions -o data/chain
-perf plot -t ecdf -e cycles,instructions -o images/chain_ecdf.png -- data/chain
+perf bench region hot_begin..hot_end --exec a.out --mode latency -e cycles,instructions -o chain
+perf plot -t ecdf -e cycles,instructions -- chain
 ```
-<!-- .element: style="text-align:left; font-size:20px;" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```
 name    stat cycles instructions cycles/instructions
@@ -1813,15 +1758,15 @@ g++ -std=c++20 -O3 -mbmi2 -c mph.cpp -o mph.o # see examples/mph.cpp
 ```cpp
 for func in mph_find scan_find; do
     perf bench func $func --exec mph.o --mode latency -e cycles \
-        --config.branch=predictable --config.memory=hot --data.arg0=<key> -o data/mph
+        --config.branch=predictable --config.memory=hot --data.arg0=<key> -o bench
     perf bench func $func --exec mph.o --mode latency -e cycles \
-        --config.branch=unpredictable --config.memory=cold --data.arg0=<key> -o data/mph
+        --config.branch=unpredictable --config.memory=cold --data.arg0=<key> -o bench
 done
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```
-perf view -- data/mph
+perf view -- bench
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1835,7 +1780,7 @@ scan-cold    p50 266.00
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-perf plot -t ecdf -e cycles -o images/mph_ecdf.png -- data/mph
+perf plot -t ecdf -e cycles -- bench
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
