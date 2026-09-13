@@ -442,30 +442,26 @@ valgrind --tool=callgrind       # 5x-100x overhead
          --branch-sim=yes
          --collect-jumps=yes
          --dump-instr=yes
-       # --instr-atstart=no     #define CALLGRIND_START_INSTRUMENTATION
-                                #define CALLGRIND_STOP_INSTRUMENTATION
+       # --instr-atstart=no     # CALLGRIND_{START,STOP}_INSTRUMENTATION
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ---
 
 ```cpp
-callgrind_annotate callgrind.out.12345
-```
-
-```cpp
- Ir        I1mr  D1mr  D1mw   Bc      Bcm    Bi     Bim     file:funcion
- 1,523,401 12543 3421  1876  382,100  12,430  91,200 3,421  ./a.out:main
-   842,100  6210 1987   921  201,300   6,210  42,100 1,201  ./a.out:func
+callgrind_annotate callgrind.out.*
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
+```asm
+file:funcion  Ir        I1mr  D1mr  D1mw  Bc       Bcm     Bi     Bim
+./a.out:main  1,523,401 12543 3421  1876  382,100  12,430  91,200 3,421
+./a.out:func    842,100  6210 1987   921  201,300   6,210  42,100 1,201
 
-```cpp
- Ir   instructions retired            I1mr L1-I miss reads
- D1mr L1-D miss reads  D1mw L1-D miss writes
- Bc   conditional branches  Bcm mispredicted cond branches
- Bi   indirect branches     Bim mispredicted indirect branches
+Ir   instructions retired  I1mr L1-I miss reads
+D1mr L1-D miss reads       D1mw L1-D miss writes
+Bc   conditional branches  Bcm mispredicted cond branches
+Bi   indirect branches     Bim mispredicted indirect branches
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -758,7 +754,7 @@ imul eax, 42
 https://github.com/andreas-abel/nanoBench
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-Branches?
+[Note] Branch-prediction
 <!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
@@ -832,29 +828,23 @@ stat cycles instructions
 
 ```
 # duration time (TSC)
-[TODO] remove push/keep required things there should be shr
 start:                       stop:
-  push rcx                     push rcx
   lfence                       rdtscp
   rdtsc                        lfence
   mov r11, rax                 sub rax, r11
-  pop rcx                      mov [r10], rax; add r10, 8
-                               pop rcx
+                               mov [r10], rax; add r10, 8
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```
 # performance counters (RPDMC)
-[TODO] remove push/keep required things there should be shr
 start:                        stop:
-  push rcx                      push rcx
   mov ecx, <idx>                mov ecx, <idx>
   lfence                        lfence
   rdpmc                         rdpmc
   shl rdx, 32; or rax, rdx      shl rdx, 32; or rax, rdx
   mov r11, rax                  sub rax, r11
-  pop rcx                       mov [r10], rax; add r10, 8
-                                pop rcx
+                                mov [r10], rax; add r10, 8
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
@@ -868,10 +858,8 @@ bench:
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
-```cpp
-echo 2 | sudo tee /sys/devices/cpu_core/rdpmc
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+`echo 2 | sudo tee /sys/devices/cpu_core/rdpmc`
+<!-- .element: style="text-align:right; font-size:14px;" -->
 
 ----
 
@@ -1232,7 +1220,6 @@ perf record -e branch-misses,
 
 ```cpp
 perf plot -t ecdf -e cycles -- perf.data
-[TODO] regenerate perf_data.png with ecdf instead
 ```
 
 <p align="left">
@@ -1256,20 +1243,18 @@ perf plot -t ecdf -e cycles -- perf.data
 ```json
 # config.json
 {
-  "branch":
+  "branch": {
       "default": "unpredcitable",
-      # "0x1321321": "predictable",
+    # "0x1321321": "predictable",
   },
-  "mem": {
-      "cache": {
-        "L1d":  {
-            "default":   {"hit_rate":100}, # perf.data
-            # "0x1321321": {"hit_rate":50},
-        },
-        "L2d":  {"hit_rate":100},
-        "L3d":  {"hit_rate":100},
-        ...
-      }
+  "cache": {
+    "L1d":  {
+        "default":   {"hit_rate": 100}, # perf.data
+      # "0x1321321": {"hit_rate": 50},
+    },
+    "L2d":  {"hit_rate": 100},
+    "L3d":  {"hit_rate": 100},
+    ...
   }
 }
 ```
@@ -1278,19 +1263,14 @@ perf plot -t ecdf -e cycles -- perf.data
 ----
 
 ```cpp
-perf bench func fizz_buzz --exec a.out
+perf bench regoin hot_path_begin..hot_path_end --exec a.out
     --data data.json
-    --config config.json -o fizz
-```
-
-```
-file      name                stat cycles branch-misses
-fizz      fizz-predictable      p50   1.00   0.00
-fizz      fizz-unpredictable    p50   2.00   1.00
+    --config config.json
+    --output hot_path
 ```
 
 ```cpp
-perf plot -t ecdf -e cycles -- fizz
+perf plot -t ecdf -e cycles -- hot_path
 ```
 
 <p align="left">
@@ -1324,9 +1304,9 @@ lstopo
 ```
 perf info cpu -c cpu,numa,arch,model,family,stepping,freq,L1i,L1d,L2,L3
 ```
-<!-- .element: style="text-align:left;font-size:20px" -->
+<!-- .element: style="text-align:left;font-size:18px" -->
 
-```
+```sh
 cpu  numa  arch    model  family  stepping  freq    L1i   L1d   L2      L3
   0     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
   1     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
@@ -1339,7 +1319,7 @@ cpu  numa  arch    model  family  stepping  freq    L1i   L1d   L2      L3
   8     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
   9     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
 ```
-<!-- .element: style="text-align:left;font-size:20px" -->
+<!-- .element: style="text-align:left;font-size:18px" -->
 
 ##### https://en.wikichip.org / cpuid{family:6, model:154, stepping:3}
 <!-- .element: style="text-align:left;font-size:18px" -->
@@ -1472,14 +1452,14 @@ perf info metadata --exec a.out --kind label # objdump -sj .perf.label a.out
 
 ```
 file  kind  label      addr
-a.out label hot_begin  0x401154 # inlined first time
+a.out label hot_begin  0x401154 # inlined  first time
 a.out label hot_begin  0x401184 # inlined second time
 a.out label hot_end    0x401169
 a.out label hot_end    0x40119c
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
-Supported by rust,zig, ...
+perf label is supported by rust, zig
 <!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
@@ -1515,12 +1495,7 @@ perf bench func process --exec process.o --mode latency -e cycles
     --data.arg0=0x10000000 --data.arg1=256 --data[0x10000000:]=[...] -o backend
 perf plot -t ecdf -e cycles -- backend
 ```
-
-```
-name            p50 cycles
-process-hot       753.00
-process-cold     1023.00
-```
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
 ----
 
@@ -1538,11 +1513,11 @@ perf bench func process --exec process.o --mode latency -e cycles | perf plot
 
 ----
 
-##### Backend bound [memory]
+##### Backend bound [cache effects]
 <!-- .element: style="text-align:left" -->
 
 ```python
-import perf                                                           # python
+import perf                                                    # python
 
 for hit_rate in [100, 50, 0]:  # hot → warm → cold
     config = {
@@ -1561,21 +1536,19 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
         setup="init",
         config=config, event="cycles"
     )
-
-    print(hit_rate, df["cycles"].describe()[["mean", "min", "max"]])
 ```
-<!-- .element: style="text-align:left; font-size: 20px;" -->
+<!-- .element: style="text-align:left; font-size: 22px;" -->
 
 ----
 
-##### Backend bound
+##### Backend bound [cache effects]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-g++ -O2 -std=c++23 -c process.cpp -o bb_gcc_02.o
-g++ -O3 -std=c++23 -c process.cpp -o bb_gcc_03.o
-clang++ -O2 -std=c++23 -c process.cpp -o bb_clang_02.o
-clang++ -O3 -std=c++23 -c process.cpp -o bb_clang_03.o
+g++ -O2 -std=c++23 -c process.cpp -o process_gcc_02.o
+g++ -O3 -std=c++23 -c process.cpp -o process_gcc_03.o
+clang++ -O2 -std=c++23 -c process.cpp -o process_clang_02.o
+clang++ -O3 -std=c++23 -c process.cpp -o process_clang_03.o
 ```
 
 ```cpp
@@ -1584,19 +1557,10 @@ perf bench func process --exec <target> --mode latency -e cycles --config.cache=
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
-```
-perf view -- backend
-```
-<!-- .element: style="text-align:left; font-size: 16px;" -->
+----
 
-```
-cycles p50:   hot   cold
-gcc   -O2     748   1019
-gcc   -O3     749   1027
-clang -O2     560    795
-clang -O3     561    843
-```
-<!-- .element: style="text-align:left; font-size: 16px;" -->
+##### Backend bound [cache effects]
+<!-- .element: style="text-align:left" -->
 
 ```
 perf plot -t ecdf -e cycles -- backend
@@ -1604,11 +1568,8 @@ perf plot -t ecdf -e cycles -- backend
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 <p align="left">
-<img src="images/backend_ecdf.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
+<img src="images/backend_ecdf.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
 </p>
-
-clang ~25% faster hot; cold costs ~1.4-1.5x for both
-<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1625,7 +1586,7 @@ constexpr auto fizz_buzz(int n) {
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
-```
+```sh
 perf bench func fizz_buzz --exec fizz --mode latency --config.branch=predictable
 perf bench func fizz_buzz --exec fizz --mode latency --config.branch=unpredictable -e branch-misses
 perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=15   # pin FizzBuzz
@@ -1641,7 +1602,7 @@ perf plot -t ecdf -e cycles,instructions,branch-misses,instructions/cycles -- br
 
 ----
 
-##### Frontend Bound [layout]
+##### Frontend Bound [codegen effects]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -1710,11 +1671,6 @@ perf plot -t ecdf -e cycles,instructions -- chain
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-```
-name    stat cycles instructions cycles/instructions
-chain   p50  174.00   390.00       0.45
-```
-
 <p align="left">
 <img src="images/chain_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
 </p>
@@ -1732,13 +1688,13 @@ chain   p50  174.00   390.00       0.45
     },
     "func": {
         "align": "random", # 16
-        "order": "random", # as-is
+        "order": "random"  # as-is
     },
     "cache": {
         "L1d":  {"hit_rate": 0},
         "L1i":  {"hit_rate": 0}, # 100
         "L2":   {"hit_rate": 0},
-        "L3":   {"hit_rate": 0}
+        "L3":   {"hit_rate": 0},
         "TLBi": {"hit_rate": 0}, # 100
         "TLBd": {"hit_rate": 0}, # 100
     },
@@ -1746,7 +1702,7 @@ chain   p50  174.00   390.00       0.45
         "size": "random",
         "align": "random"
     },
-    "branch": "unpredictable",
+    "branch": "unpredictable"
 }
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
@@ -1775,9 +1731,6 @@ https://github.com/qlibs/mph
 
 ----
 
-#####  [Minimal] Perfect Hashing
-<!-- .element: style="text-align:left" -->
-
 ```cpp
 constexpr auto symbols = array{
   pair{"AMZN    "sv, 1},
@@ -1791,7 +1744,7 @@ constexpr auto symbols = array{
 ```
 
 ```cpp
-[[nodiscard]] auto find(const auto symbol) noexcept;
+auto find(const string_like auto symbol) noexcept;
 ```
 
 ----
@@ -1802,15 +1755,17 @@ clang++23 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-```cpp
-[TODO] fix use python library api instead
-for cxx in gcc clang; do for func in mph_find scan_find; do
-    perf bench func $func --exec mph_$cxx.o --mode latency -e cycles \
-        --config.branch=predictable --config.cache=hot -n $cxx-$func-hot -o mph
-    perf bench func $func --exec mph_$cxx.o --mode latency -e cycles \
-        --config.branch=unpredictable --config.cache=cold \
-        --config.func.order=random -n $cxx-$func-worst -o mph
-done; done
+```python
+import perf
+
+hot   = {"branch": "predictable", "cache": "hot"}
+worst = {"branch": "unpredictable", "cache": "cold", "func": {"order": "random"}}
+
+for cxx in ("gcc", "clang"):
+    for func in ("mph_find", "scan_find"):
+        for tag, config in (("hot", hot), ("worst", worst)):
+            perf.bench(exec=f"mph_{cxx}.o", func=func, mode="latency",
+                       event="cycles,instructions", config=config)
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1821,17 +1776,18 @@ perf view -e cycles,instructions/cycles -s min,p10,p50,p99,max -- mph
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
+```sh
+name                    stat  cycles instructions/cycles
+clang-mph_find-hot      p50    1.00                 5.00
+clang-mph_find-worst    p50  252.00                 0.02
+clang-scan_find-hot     p50    1.00                10.00
+clang-scan_find-worst   p50  261.00                 0.06
+gcc-mph_find-hot        p50    3.00                 2.67
+gcc-mph_find-worst      p50    3.00                 2.67
+gcc-scan_find-hot       p50    1.00                10.00
+gcc-scan_find-worst     p50  276.50                 0.06
 ```
-[TODO] fix should output perf view -e cycles,instructions/cycles -s min,p10,p50,p99,max -- mph
-cycles p50:    hot  worst
-gcc   mph        1      1
-gcc   scan       4    264
-clang mph        4    250
-clang scan       4    242
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
----
+<!-- .element: style="text-align:left; font-size:14px;" -->
 
 ```cpp
 perf plot -t ecdf -e cycles -- mph
@@ -1839,7 +1795,7 @@ perf plot -t ecdf -e cycles -- mph
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 <p align="left">
-<img src="images/mph_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+<img src="images/mph_ecdf.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
