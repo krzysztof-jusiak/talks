@@ -445,16 +445,24 @@ valgrind --tool=callgrind       # 5x-100x overhead
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
+---
+
 ```cpp
 callgrind_annotate callgrind.out.12345
 ```
 
 ```cpp
- Ir        I1mr  D1mr  D1mw   Bc      Bcm    Bi     Bim    file:function
+ Ir        I1mr  D1mr  D1mw   Bc      Bcm    Bi     Bim     file:funcion
  1,523,401 12543 3421  1876  382,100  12,430  91,200 3,421  ./a.out:main
    842,100  6210 1987   921  201,300   6,210  42,100 1,201  ./a.out:func
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
+
+
+```cpp
+[TODO] describe shortly meaining of Ir        I1mr  D1mr  D1mw   Bc      Bcm    Bi     Bim
+```
+<!-- .element: style="text-align:left; font-size:10px;" -->
 
 ----
 
@@ -627,6 +635,12 @@ explore(project, &fizz_buzz, &fizz_buzz+size)
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
+----
+
+```cpp
+[TODO] Describe how symoblic exploration works under the hood with a diagram this is for slides so no much text
+```
+
 https://docs.angr.io/en/latest/core-concepts/symbolic.html
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -665,6 +679,7 @@ rdi: 1,  2,  4 // else
 <!-- .element: style="text-align:left" -->
 
 ```
+[TODO] fix the exapmle should trace function parameters
 BPF_PROGRAM = r"""
 int trace(struct pt_regs *ctx) {
     return 0;
@@ -678,7 +693,13 @@ b.attach_uprobe(name="a.out", sym="fizz_buzz", fn_name="trace")
 ```
 
 ```cpp
-perf record -e branch-misses,branch-refrences,cache-misses,cache-refernces
+perf record -e branch-misses,branch-refrences,cache-misses,cache-refernces -- ./.aout
+```
+
+---
+
+```cpp
+[TODO] add example output and how to pass it to config and data (use json example)
 ```
 
 https://github.com/iovisor/bcc
@@ -729,19 +750,15 @@ https://github.com/iovisor/bcc
 ##### Benchmarking Harness
 <!-- .element: style="text-align:left" -->
 
-```
-{setup}
-{start}
-{code} # latency or throughput
-{stop}
-{teardown}
-```
-
 ```cpp
-start:    stop:
+start:    stop:                 [TODO] add rdpmc setup
   lfence    rdtscp
   rdtsc     lfence
   lfence
+```
+
+```
+{setup} {start} {code} {stop} {teardown}
 ```
 
 ----
@@ -794,6 +811,7 @@ imul eax, 42 latency    max   3.00         1.00
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
+[TODO] finish repeat harness setup
 loop:                   loop:
   add eax, 42    -      jmp loop
 jmp .loop
@@ -929,6 +947,7 @@ for addr, size in state["mem_read"] + state["mem_write"]:
 
 ```python
 #{setup}
+[TODO] replace below with actual examples
 mov eax, [r11]
 cclufshup
 cldemote
@@ -970,6 +989,10 @@ perf bench asm 'add r11, [rax]'
     --config.memory.cache.L3d=hit_rate:100
 ```
 
+```cpp
+[TODO] add results and chart (put it to images/)
+```
+
 ----
 
 ##### Branch effects
@@ -990,6 +1013,7 @@ auto predict(uint64_t ip, uint64_t target) {
 ---
 
 ```python
+[TODO] finish it up based on how it works in ~/projects/perf-labs/perf/src/perf/bench.py, add ilustraitons
 for solution in solutions:
     value = solution.eval(1)
     bench(code, [repeat(value, N) if predictable else shuffle(values)])
@@ -1002,34 +1026,10 @@ for solution in solutions:
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-perf bench func fizz_buzz --exec fizz_buzz.o
+[TODO] add proper asm branching examples which works (add chart with images/)
+perf bench asm '...'
     --config.branch=unpredictable
-```
-
-```cpp
-perf bench func fizz_buzz --exec fizz_buzz.o
-    --config.branch=predictable
-```
-
-```cpp
-perf bench func fizz_buzz --exec fizz_buzz.o
-    --data.arg0=3
-```
-
-```cpp
-perf bench func fizz_buzz --exec fizz_buzz.o
-    --data.arg0=5
-```
-
-```cpp
-perf bench func fizz_buzz --exec fizz_buzz.o
-    --data.arg0=15
-```
-
-```cpp
-perf bench func fizz_buzz --exec fizz_buzz.o
-    --config.branch=predictable
-    --data.arg0=[1,2,3]
+    --data[...]=
 ```
 
 ----
@@ -1038,6 +1038,7 @@ perf bench func fizz_buzz --exec fizz_buzz.o
 <!-- .element: style="text-align:left" -->
 
 ```cpp
+void unused();
 [[gnu::aligned(64), gnu::hot]]
 void hot_func(const int* v, int n) {
     [[clang::code_align(64)]] for (int i = 0; i < n; ++i) {
@@ -1050,6 +1051,7 @@ void hot_func(const int* v, int n) {
 ----
 
 ```sh
+[TODO] add example with alignment and used which shows it aadd charts
 perf bench func hot_func --exec a.out
     --config.func.order=random
 ```
@@ -1061,6 +1063,7 @@ perf bench func hot_func --exec a.out
 <!-- .element: style="text-align:left" -->
 
 ```python
+[TODO] finish it up based on how it works in ~/projects/perf-labs/perf/src/perf/bench.py
 page = mmap(
     -1,
     len(code_bytes),
@@ -1201,25 +1204,18 @@ https://llvm.org/docs/CommandGuide/llvm-exegesis.html
 </p>
 
 ```cpp
-perf record ...
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-```cpp
-bpftrace ...
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-```cpp
 perf bench func ".*" --mode latency --exec a.out
   -e duration_time,cycles,instructions                                   # seperate run
   -e topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound # seperate run
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
+```cpp
+[TODO] show example results should match examples for top down  afterwards
+```
 ----
 
-##### `PERF_LABEL` [regions]
+##### `hot_path` [PERF_LABEL]
 <!-- .element: style="text-align:left;" -->
 
 ```cpp
@@ -1286,6 +1282,10 @@ clang++-22 -O3 -std=c++23 -Ilib backend_bound/memory.cpp -o memory.out
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
+```cpp
+[TODO] execute and show results
+```
+
 ----
 
 ##### Backend bound
@@ -1334,6 +1334,10 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
+```cpp
+[TODO] show results and charts
+```
+
 ----
 
 ##### Bad Speculation [branch]
@@ -1356,6 +1360,8 @@ perf bench func fizz_buzz --config.branch=predictable
 perf bench func fizz_buzz --config.branch=unpredictable
 perf bench func fizz_buzz --config.branch=unpredictable -e branch-misses
 perf bench func fizz_buzz --event cycles,instructions
+
+[TODO]
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
@@ -1438,17 +1444,6 @@ perf bench region hot_begin..hot_end -e cycles/instructions --exec a.out | \
 
 ----
 
-```cpp
-perf bench func sort --name sort-64-seq -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=64 "--data[0x10000000:]=[$(seq 64 -1 1)]" -o sort2
-perf bench func sort --name sort-64-shuf -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=64 "--data[0x10000000:]=[$(shuf -i 1-64)]" -o sort2
-```
-
-```cpp
-perf plot -g '' -t line -x data.arg1 -- sort
-```
-
-----
-
 #### 'The Worst' Possible Execution
 <!-- .element: style="text-align:left" -->
 
@@ -1486,8 +1481,8 @@ jitter
 ----
 
 ```cpp
-TODO notebook -> gh gist create
-perf bench func find --exec hash.out -e cycles,instructions | llvm-mca
+[TOOD] add analysis of ~/projects/qlibs/mph # using pext (simple example showing lookup table vs if/else vs simd based on mameory, and branching)
+show code, then show perf bench and charts added to (images/)
 ```
 
 https://jupyter.org
