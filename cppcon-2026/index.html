@@ -272,6 +272,9 @@ main;render 7
 
 <img src="images/flamegraph.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
 
+https://github.com/brendangregg/FlameGraph
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
 ----
 
 ##### Instrumentation [[bpfrace](https://github.com/bpftrace/bpftrace), [bcc](https://github.com/iovisor/bcc), ...]
@@ -898,7 +901,6 @@ https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
   1 cycle execution      1 ± 00   0.25 ± 0.00 ▏
   L1d hit                3 ± 01   0.75 ± 0.25 █░
   L2d hit               12 ± 03   3.00 ± 0.75 ███░░
-  branch misprediction  14 ± 10   3.50 ± 2.50 ███░░░
   L3d hit               50 ± 05  10.00 ± 1.25 █████████░░░
   DRAM access          350 ± 20  70.00 ± 5.00 ████████████████████████████████████████████░░░░░
   ...
@@ -948,7 +950,7 @@ CLDEMOTE    Hint into more distant level (Sapphire Rapids / Xeon, ...)
 
 ----
 
-##### Cache effects [mem_{load,store}]
+##### Cache effects [mem_read,mem_write}]
 <!-- .element: style="text-align:left" -->
 
 ```python
@@ -1009,6 +1011,23 @@ Empirical Cumulative Distribution Function (ECDF) shows the entire distribution 
 
 ##### Branch effects [prediction]
 <!-- .element: style="text-align:left" -->
+
+```cpp
+  benchmark                 [0]           [1]                                               [2]
+  -------------------- --------  ------------ -------------------------------------------------
+  1 cycle execution      1 ± 00   0.25 ± 0.00 ▏
+  L1d hit                3 ± 01   0.75 ± 0.25 █░
+  L2d hit               12 ± 03   3.00 ± 0.75 ███░░
+  branch misprediction  14 ± 10   3.50 ± 2.50 ███░░░
+  L3d hit               50 ± 05  10.00 ± 1.25 █████████░░░
+  DRAM access          350 ± 20  70.00 ± 5.00 ████████████████████████████████████████████░░░░░
+  ...
+
+  [0]: ~cycles # Intel/AMD/ARM
+  [1]: ~cycles/4Ghz [ns]
+  [2]: ~cycles ± variability
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
 array<branch, 1 << 12> btb{};                                                         # simplified
@@ -1405,7 +1424,8 @@ https://llvm.org/docs/CommandGuide/llvm-exegesis.html
 
 ```cpp
 perf bench func ".*" --mode latency --exec a.out
-  -e duration_time,cycles,instructions                                   # seperate run
+  -e duration_time                                                       # seperate run
+  -e cycles,instructions                                                 # seperate run
   -e topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound # seperate run
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
@@ -1636,13 +1656,13 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 <!-- .element: style="text-align:left" -->
 
 ```sh
-$CXX -O3 -shared -fPIC -o sort.so sort.cpp 
+$CXX -O3 -shared -fPIC -o sort.so sort.cpp
 ```
 <!-- .element: style="text-align:left; font-size:11px;" -->
 
 ```sh
-[TODO] do a loop 1-128
-perf bench func std::sort --name sort-1 -m latency -x sort.so 
+[TODO] do a loop 1-128 with seq and shuf with the same name per size
+perf bench func std::sort --name sort-1 -m latency -x listdc++.so
     --data.arg0=0x10000000 --data.arg1=1 "--data[0x10000000:]=[$(shuf -i 1-1)]" -o sort
 ```
 <!-- .element: style="text-align:left; font-size:11px;" -->
@@ -1703,7 +1723,7 @@ jitter
 ```cpp
 find (scan - if/else)
 find (map  - hash map)
-find (mph  - pext + lookup table)
+find (mph  - pext lookup table)
 ...
 ```
 
@@ -1742,11 +1762,14 @@ import perf
 hot   = {"branch": "predictable", "cache": "hot"}
 worst = {"branch": "unpredictable", "cache": "cold", "func": {"order": "random"}}
 
+df = []
 for cxx in ("gcc", "clang"):
-    for func in ("mph_find", "scan_find"):
+    for func in ("scan", "map", "mph"):
         for tag, config in (("hot", hot), ("worst", worst)):
-            perf.bench(exec=f"mph_{cxx}.o", func=func, mode="latency",
-                       event="cycles,instructions", config=config)
+            result = perf.bench(exec=f"mph_{cxx}.o", func=func, mode="latency",
+                                event="cycles,instructions", config=config)
+            [TODO] ensure syntax is correct
+            df = df.concat([df, result])
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
