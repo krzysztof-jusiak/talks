@@ -694,127 +694,6 @@ rdi: 1,  2,  4 // else
 ```
 ----
 
-#### `Real data-distrubutions`
-<!-- .element: style="text-align:left" -->
-
-#### &nbsp;&nbsp;&nbsp;&nbsp; `Problem-space reduction`
-<!-- .element: style="text-align:left" -->
-
-----
-
-##### `trace.data`
-<!-- .element: style="text-align:left" -->
-
-```python
-BPF_PROGRAM = r"""
-int trace(struct pt_regs *ctx) {
-    bpf_trace_printk("arg0=%llu\n", PT_REGS_PARM1(ctx)); // ...
-    return 0;
-}
-"""
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
-```cpp
-b = BPF(text=BPF_PROGRAM)
-b.attach_uprobe(name="./a.out", sym="fizz_buzz", fn_name="trace")
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
----
-
-```asm
-{
-    "fizz_buzz": 15,
-    "fizz_buzz": 3,
-    "fizz_buzz": 7,
-    ...
-}
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
-https://github.com/iovisor/bcc
-<!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
-
-----
-
-##### `perf.data`
-<!-- .element: style="text-align:left" -->
-
-```cpp
-perf record -e branch-misses,
-               branch-references,
-               cache-misses,
-               cache-references
-            -o perf.data -- ./a.out
-```
-
-```cpp
-perf plot -- perf.data
-```
-
-[TODO] add example plot of perf.data
-
-----
-
-##### `data → config`
-<!-- .element: style="text-align:left" -->
-
-```json
-# data.json
-{
-  "rdi": [1,3,15,7,9,...] # trace.data
-}
-```
-<!-- .element: style="text-align:left; font-size:16px" -->
-
-
-```json
-# config.json
-{
-  "branch":
-      "default": "unpredcitable",
-      # "0x1321321": "predictable",
-  },
-  "mem": {
-      "cache": {
-        "L1d":  {
-            "default":   {"hit_rate":100}, # perf.data
-            # "0x1321321": {"hit_rate":50},
-        },
-        "L2d":  {"hit_rate":100},
-        "L3d":  {"hit_rate":100},
-        ...
-      }
-  }
-}
-```
-<!-- .element: style="text-align:left; font-size:14px" -->
-
-----
-
-```cpp
-perf bench func fizz_buzz --exec a.out
-    --data data.json
-    --config config.json -o data/fizz
-```
-
-```
-file      name                stat cycles branch-misses
-fizz      fizz-predictable      p50   1.00   0.00
-fizz      fizz-unpredictable    p50   2.00   1.00
-```
-
-```cpp
-perf plot -t ecdf -e cycles -o images/fizz_ecdf.png -- data/fizz
-```
-
-<p align="left">
-<img src="images/fizz_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
-</p>
-
-----
-
 #### `Native Execution`
 <!-- .element: style="text-align:left" -->
 
@@ -855,30 +734,10 @@ perf plot -t ecdf -e cycles -o images/fizz_ecdf.png -- data/fizz
 
 ----
 
-##### Benchmarking Harness
+##### Latency (backend: unroll)
 <!-- .element: style="text-align:left" -->
 
-```cpp
-start (duration_time):        stop:
-  push rcx                      rdtscp
-  lfence                        lfence
-  rdtsc; mov r11, rax           sub rax, r11
-
-start (rdpmc, e.g. cycles):  stop:
-  mov ecx, <idx>; lfence;       mov ecx, <idx>; lfence;
-  rdpmc; mov rbx, rax           rdpmc; sub rax, rbx
-```
-
-```
-{setup} {start} {code} {stop} {teardown}
-```
-
-----
-
-##### Benchmarking Harness [latency]
-<!-- .element: style="text-align:left" -->
-
-`backend: unroll # (2N × code - N × code) / N`
+`unroll # (2N × code - N × code) / N`
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```
@@ -922,11 +781,14 @@ imul eax, 42 latency    max   3.00         1.00
 
 ----
 
-`backend: repeat # (subtract overhead)`
+##### Latency (backend: loop)
+<!-- .element: style="text-align:left" -->
+
+`loop # (subtract overhead)`
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-repeat: one snippet per iteration (subtract overhead)
+loop: one snippet per iteration (subtract overhead)
 loop:             loop:
   {start}           {start}
   {code}       -
@@ -934,7 +796,6 @@ loop:             loop:
   dec <reg>         dec <reg>
   jnz loop          jnz loop
 ```
-
 
 ----
 
@@ -958,6 +819,42 @@ cdq; idiv ecx; latency    max  12.00         2.00
 <p align="left">
 <img src="images/idiv.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
 </p>
+
+----
+
+##### Benchmarking Harness
+<!-- .element: style="text-align:left" -->
+
+```
+# duration time (RDTSC/RDTSCP - Time Stamp Counter)
+start:                       stop:
+  push rcx                      rdtscp
+  lfence                        lfence
+  rdtsc                         sub rax, r11
+  mov r11, rax
+```
+<!-- .element: style="text-align:left; font-size:22px;" -->
+
+```
+# performance counters (rdpmc - Read Performance-Monitoring Counters)
+# echo 2 | sudo tee /sys/devices/cpu_core/rdpmc
+start:                        stop:
+  mov ecx, <idx>                mov ecx, <idx>
+  lfence                        lfence
+  rdpmc                         rdpmc
+  mov rbx, rax                  sub rax, rbx
+```
+<!-- .element: style="text-align:left; font-size:22px;" -->
+
+```
+bench:
+  {setup}     # data mapping
+  {start}     # tsc/rdpmc
+  {code}      # latency vs. throughput
+  {stop}      # tsc/rdpmc
+  {teardown}  # cleanup
+```
+<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ----
 
@@ -1154,21 +1051,28 @@ auto predict(uint64_t ip, uint64_t target) {
 
 ```python
 for iteration in range(iterations):# python
-    for solution in solutions:                          
+    for solution in solutions:
         if config.branch[solution.address] == "predictable":
             data[solution.address] = asm(state.solver.eval_up_to(n))
         else:
             data[solution.address] = asm(shuffle(state.solver.eval_up_to(n)))
 ```
 
-```cpp
-[TODO] add flow diagram
 ```
+┌────────────┐   ┌────────────────┐   ┌───────────────┐   ┌────────────────┐
+│ solutionsi │ → │ config.branch  │ → │ data synthesis│ → │ native execute │
+│ per-path   │   │ predictable /  │   │ pinned vs     │   │ mmap / jit     │
+│ constraints│   │ unpredictable  │   │ shuffled      │   │ [cache/branch] │
+└────────────┘   └────────────────┘   └───────────────┘   └────────────────┘
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
+```asm
+fizz_buzz+0x1c  jbe .L1   # n % 15 == 0 -> FizzBuzz
+  predictable:   rdi = [15, 15, 15, ...]
+  unpredictable: rdi = [15, 3, 5, 1, ...]
 ```
-[TOOD] add example assemlby data
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -1304,6 +1208,128 @@ int main(void) { return fizz_buzz_bench(15); }
 ```sh
 g++ driver.c fizz_buzz_bench.o -o bench_run && ./bench_run
 ```
+
+----
+
+#### `Data-distrubutions / Problem-space-reduction`
+<!-- .element: style="text-align:left; font-size:30px" -->
+
+----
+
+##### `trace.data`
+<!-- .element: style="text-align:left" -->
+
+```python
+BPF_PROGRAM = r"""
+int trace(struct pt_regs *ctx) {
+    bpf_trace_printk("arg0=%llu\n", PT_REGS_PARM1(ctx)); // ...
+    return 0;
+}
+"""
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+```cpp
+b = BPF(text=BPF_PROGRAM)
+b.attach_uprobe(name="./a.out", sym="fizz_buzz", fn_name="trace")
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+---
+
+```asm
+{
+    "fizz_buzz": 15,
+    "fizz_buzz": 3,
+    "fizz_buzz": 7,
+    ...
+}
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+https://github.com/iovisor/bcc
+<!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
+
+----
+
+##### `perf.data`
+<!-- .element: style="text-align:left" -->
+
+```cpp
+perf record -e branch-misses,
+               branch-references,
+               cache-misses,
+               cache-references
+            -o perf.data -- ./a.out
+```
+
+---
+
+```cpp
+perf plot -t ecdf -e cycles -- perf.data
+```
+
+<p align="left">
+<img src="images/perf_data.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
+</p>
+
+----
+
+##### `data → config`
+<!-- .element: style="text-align:left" -->
+
+```json
+# data.json
+{
+  "rdi": [1,3,15,7,9,...] # trace.data
+}
+```
+<!-- .element: style="text-align:left; font-size:20px" -->
+
+
+```json
+# config.json
+{
+  "branch":
+      "default": "unpredcitable",
+      # "0x1321321": "predictable",
+  },
+  "mem": {
+      "cache": {
+        "L1d":  {
+            "default":   {"hit_rate":100}, # perf.data
+            # "0x1321321": {"hit_rate":50},
+        },
+        "L2d":  {"hit_rate":100},
+        "L3d":  {"hit_rate":100},
+        ...
+      }
+  }
+}
+```
+<!-- .element: style="text-align:left; font-size:20px" -->
+
+----
+
+```cpp
+perf bench func fizz_buzz --exec a.out
+    --data data.json
+    --config config.json -o data/fizz
+```
+
+```
+file      name                stat cycles branch-misses
+fizz      fizz-predictable      p50   1.00   0.00
+fizz      fizz-unpredictable    p50   2.00   1.00
+```
+
+```cpp
+perf plot -t ecdf -e cycles -o images/fizz_ecdf.png -- data/fizz
+```
+
+<p align="left">
+<img src="images/fizz_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+</p>
 
 ----
 
@@ -1750,7 +1776,7 @@ jitter
 
 ----
 
-#### 'The Worst' Possible Execution
+#### Example / Hashing
 <!-- .element: style="text-align:left" -->
 
 <p align="left">
@@ -1779,7 +1805,46 @@ constexpr auto symbols = std::array{
 
 ----
 
-[TODO] implement all solutions and check latency for each (but do variations with compiler and config - memory: hot, cold, branch predictable (and example just args0.NVDA) -> write all to a single ecdf), keep it simple and write perf view and perf plot ecdf
+```cpp
+g++ -std=c++20 -O3 -mbmi2 -c mph.cpp -o mph.o # see examples/mph.cpp
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```cpp
+for func in mph_find scan_find; do
+    perf bench func $func --exec mph.o --mode latency -e cycles \
+        --config.branch=predictable --config.memory=hot --data.arg0=<key> -o data/mph
+    perf bench func $func --exec mph.o --mode latency -e cycles \
+        --config.branch=unpredictable --config.memory=cold --data.arg0=<key> -o data/mph
+done
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```
+perf view -- data/mph
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```
+name       stat cycles
+mph-hot      p50   1.00
+mph-cold     p50   1.00
+scan-hot     p50   4.00
+scan-cold    p50 266.00
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```cpp
+perf plot -t ecdf -e cycles -o images/mph_ecdf.png -- data/mph
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+<p align="left">
+<img src="images/mph_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+</p>
+
+branchless mph (pext + single load) stays flat ~1 cycle; linear scan pays 4x predictable, ~66x cold (see examples/mph.sh)
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
