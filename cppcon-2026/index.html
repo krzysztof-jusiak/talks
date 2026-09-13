@@ -1632,49 +1632,33 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 
 ----
 
-##### Retiring [dependency-chain]
+##### [TODO] Title with Top down bound
 <!-- .element: style="text-align:left" -->
 
-```cpp
-[[gnu::always_inline]] int chain(int n) {
-    PERF_LABEL(hot_begin); // inlined multiple times
-    int x = n;
-    for (int i = 0; i < 64; ++i) {
-        x = x * 31 + 17; // serial dependency → latency bound
-    }
-    PERF_LABEL(hot_end);
-    return x;
-}
+```sh
+$CXX -O3 -shared -fPIC -o sort.so sort.cpp
 ```
+<!-- .element: style="text-align:left; font-size:11px;" -->
 
-```asm
-main+0x40: imul eax, eax, 31
-main+0x43: add  eax, 17
-main+0x83: imul ecx, ecx, 31
-main+0x86: add  ecx, 17
+```sh
+[TODO] use shuf -i 1-N
+perf bench func sort --name sort-1 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=1 "--data[0x10000000:]=[$(seq 1 1)]" -o sort
+perf bench func sort --name sort-4 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=4 "--data[0x10000000:]=[$(seq 1 4)]" -o sort
+perf bench func sort --name sort-8 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=8 "--data[0x10000000:]=[$(seq 1 8)]" -o sort
+perf bench func sort --name sort-16 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=16 "--data[0x10000000:]=[$(seq 1 16)]" -o sort
+perf bench func sort --name sort-32 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=32 "--data[0x10000000:]=[$(seq 1 32)]" -o sort
+perf bench func sort --name sort-64 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=64 "--data[0x10000000:]=[$(seq 1 64)]" -o sort
+perf bench func sort --name sort-128 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=128 "--data[0x10000000:]=[$(seq 1 128)]" -o sort
 ```
+<!-- .element: style="text-align:left; font-size:11px;" -->
 
 ----
 
-##### Retiring [dependency-chain]
-<!-- .element: style="text-align:left" -->
+```cpp
+perf plot -g '' -t scatter -x data.arg1 -- sort
+```
 
-```
-perf bench region hot_begin..hot_end -e cycles/instructions --exec a.out | \
-    perf view -e instructions/cycles
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
-```
-perf bench region hot_begin..hot_end --exec a.out --mode latency -e cycles,instructions -o chain
-perf plot -t ecdf -e cycles,instructions -- chain
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-<p align="left">
-<img src="images/chain_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
-</p>
-<!-- .element: style="text-align:left; font-size:18px;" -->
+[TODO] plot -t scatter
 
 ----
 
