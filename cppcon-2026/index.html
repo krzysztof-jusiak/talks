@@ -141,7 +141,9 @@ Does it matter, and if so, why and how much?
 https://github.com/karlrupp/microprocessor-trend-data
 <!-- .element: style="text-align:left; margin: 5px 0px; font-size:22px;" -->
 
-<!--[Moore’s Law and Dennard Scaling](https://wgropp.cs.illinois.edu/courses/cs598-s15/lectures/lecture15.pdf)-->
+
+4Ghz CPU from 2006 != 4Ghz CPU from 2026
+<!-- .element: style="text-align:left; margin: 5px 0px; font-size:20px;" -->
 
 ----
 
@@ -168,7 +170,7 @@ https://makelinux.github.io/kernel/map
 
 ----
 
-#### Performance Is Not A Number!
+#### Performance Is Not A Number! Nanosecond count!
 <!-- .element: style="text-align:left" -->
 
 <p align="left">
@@ -286,14 +288,18 @@ sudo bpftrace -e '
 '
 ```
 
+```asm
+@latency:
+[2, 4)               12 |@@@@@@@@@@@@
+[4, 8)               37 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+[8, 16)              84 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+[16, 32)             51 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+[32, 64)             19 |@@@@@@@@@@@@@@@@@@@
+[64, 128)             7 |@@@@@@@
+[128, 256)            2 |@@
+[256, 512)            1 |@
 ```
-@latency_us:
-[64, 128)            2 |@@               |
-[128, 256)           5 |@@@@@@           |
-[256, 512)          12 |@@@@@@@@@@@@@@@@ |
-[512, 1K)            8 |@@@@@@@@@@       |
-[1K, 2K)             3 |@@@@             |
-```
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
 
@@ -417,8 +423,8 @@ llvm-mca -timeline            # pipeline diagram: D=dispatched, e=executing, E=e
 Scheduling Models - https://github.com/llvm/llvm-project/tree/main/llvm/lib/Target
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-https://www.uops.info/instructions.xml
-<!-- .element: style="text-align:left; font-size:16px;" -->
+https://uops.info/table.html # vs measured
+<!-- .element: style="text-align:left; font-size: 22px; margin: 5px 0px;" -->
 
 `MCA` results are estimates and will not perfectly reflect real-world performance
 <!-- .element: style="text-align:right; font-size:16px;" -->
@@ -428,16 +434,25 @@ https://www.uops.info/instructions.xml
 ##### Simulation [[callgrind](https://valgrind.org/docs/manual/cl-manual.html), [gem5](https://www.gem5.org), ...]
 <!-- .element: style="text-align:left;" -->
 
-```cpp
-```
-
 ```
 valgrind --tool=callgrind       # 5x-100x overhead
          --cache-sim=yes
          --branch-sim=yes
          --collect-jumps=yes
-         --dump-instr=yes       #define CALLGRIND_START_INSTRUMENTATION
-         --instr-atstart=no     #define CALLGRIND_STOP_INSTRUMENTATION
+         --dump-instr=yes
+       # --instr-atstart=no     #define CALLGRIND_START_INSTRUMENTATION
+                                #define CALLGRIND_STOP_INSTRUMENTATION
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+```cpp
+callgrind_annotate callgrind.out.12345
+```
+
+```cpp
+ Ir        I1mr  D1mr  D1mw   Bc      Bcm    Bi     Bim    file:function
+ 1,523,401 12543 3421  1876  382,100  12,430  91,200 3,421  ./a.out:main
+   842,100  6210 1987   921  201,300   6,210  42,100 1,201  ./a.out:func
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -539,6 +554,50 @@ Machine Code
 ##### Explore
 <!-- .element: style="text-align:left" -->
 
+<table>
+<tr>
+<td><pre style="font-size:19px;"><code>
+[[gnu::optimize("O3")]] auto fizz_buzz(int n) {
+       if (n % 15 == 0) { return "FizzBuzz"; }
+  else if (n % 3  == 0) { return "Fizz";     }
+  else if (n % 5  == 0) { return "Buzz";     }
+  return "Unknown";
+}
+</pre></code>
+<pre><code>n % 15 -> FizzBuzz
+n % 3  -> Fizz
+n % 5  -> Buzz
+     _ -> Unknown
+</pre></code></td>
+<td><pre style="font-size:15px;"><code>fizz_buzz(int):
+  imul    eax, edi, -286331153
+  mov     edx, OFFSET FLAT:.LC0
+  add     eax, 143165576
+  cmp     eax, 286331152
+  jbe     .L1
+  imul    eax, edi, -1431655765
+  mov     edx, OFFSET FLAT:.LC1
+  add     eax, 715827882
+  cmp     eax, 1431655764
+  jbe     .L1
+  imul    edi, edi, -858993459
+  mov     edx, OFFSET FLAT:.LC2
+  mov     eax, OFFSET FLAT:.LC3
+  add     edi, 429496729
+  cmp     edi, 858993459
+  cmovnb  rdx, rax
+.L1:
+  mov     rax, rdx
+  ret
+</pre></code></td>
+</tr>
+</table>
+
+----
+
+##### Explore
+<!-- .element: style="text-align:left" -->
+
 ```python
 def explore(project, start, end):                                      # python
     state = project.factory.blank_state(addr=start)
@@ -553,59 +612,23 @@ def explore(project, start, end):                                      # python
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
-https://docs.angr.io/en/latest/core-concepts/symbolic.html
+---
+
+```
+explore(project, &fizz_buzz, &fizz_buzz+size)
+```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
-----
-
-##### Explore
-<!-- .element: style="text-align:left" -->
-
-
-<table>
-<tr>
-<td><pre style="font-size:19px;"><code>
-[[gnu::optimize("O3")]] constexpr auto fizz_buzz(int n) {
-       if (n % 15 == 0) { return "FizzBuzz"; }
-  else if (n % 3  == 0) { return "Fizz";     }
-  else if (n % 5  == 0) { return "Buzz";     }
-  return "Unknown";
-}
-</pre></code></td>
-<td><pre style="font-size:15px;"><code>
-imul eax, edi, 0xeeeeeeef
-lea rdx, [rip + 0xeb3]
-add eax, 0x8888888
-cmp eax, 0x11111110
-jbe 0x40119a
-imul eax, edi, 0xaaaaaaab
-lea rdx, [rip + 0xea3]
-add eax, 0x2aaaaaaa
-cmp eax, 0x55555554
-jbe 0x40119a
-imul edi, edi, 0xcccccccd
-lea rdx, [rip + 0xe8f]
-lea rax, [rip + 0xe7e]
-add edi, 0x19999999
-cmp edi, 0x33333332
-cmovbe rdx, rax
-mov rax, rdx
-ret
-</pre></code></td>
-</tr>
-</table>
-
-```
-solutions = explore(project, fizz_buzz, fizz_buzz+size)
-```
-
-```
+```asm
 {'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
 {'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
 {'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
 {'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
+
+https://docs.angr.io/en/latest/core-concepts/symbolic.html
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 ----
 
@@ -616,6 +639,11 @@ solutions = explore(project, fizz_buzz, fizz_buzz+size)
 
 ##### `Solutions`
 <!-- .element: style="text-align:left" -->
+
+```python
+solutions = explore(project, &fizz_buzz, &fizz_buzz+size)       # python
+```
+<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ```python
 for solution in solutions:                                      # python
@@ -637,17 +665,16 @@ rdi: 1,  2,  4 // else
 <!-- .element: style="text-align:left" -->
 
 ```
-b.attach_uprobe(name=BINARY, sym="steady", fn_name="trace_function")
+b.attach_uprobe(name="a.out", sym="fizz_buzz")
 ...
 ```
 
 ```cpp
-perf record -e branch-misses,branch-refrences
+perf record -e branch-misses,branch-refrences,cache-misses,cache-refernces
 ```
 
-```cpp
-perf bench func fizz_buzz -x a.out --data.rdi=[1,2,3]
-```
+https://github.com/iovisor/bcc
+<!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
 
 ----
 
@@ -694,56 +721,55 @@ perf bench func fizz_buzz -x a.out --data.rdi=[1,2,3]
 ##### Benchmarking Harness
 <!-- .element: style="text-align:left" -->
 
-```asm
-# rdtsc/rdtscp or rdpmc
-start:                  stop:
-  lfence                  rdtscp
-  rdtsc                   lfence
-  lfence
 ```
-<!-- .element: style="text-align:left; font-size:19px;" -->
-
-```asm
 {setup}
-start
-{code}
-stop
+{start}
+{code} # latency or throughput
+{stop}
 {teardown}
 ```
-<!-- .element: style="text-align:left; font-size:14px;" -->
 
-https://gitlab.com/x86-psabis/x86-64-abi/-/jobs/artifacts/master/raw/x86-64-abi/abi.pdf
-<!-- .element: style="text-align:left; font-size:22px;" -->
+```cpp
+start:    stop:
+  lfence    rdtscp
+  rdtsc     lfence
+  lfence
+```
 
 ----
 
-##### Benchmarking Harness [unroll vs. repeat]
+##### Benchmarking Harness [latency]
 <!-- .element: style="text-align:left" -->
 
-`--backend unroll # (2N × code - N × nop) / N   = per-copy cost` https://github.com/andreas-abel/nanoBench
+`backend: unroll # (2N × code - N × code) / N`
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```
-perf bench bench 'imul eax, 42' --backend unroll
-add mov eax, 42            add mov eax, 42
-add mov eax, 42            add mov eax, 42
-add mov eax, 42            add mov eax, 42
-add mov eax, 42            add mov eax, 42
-add mov eax, 42            add mov eax, 42
-add mov eax, 42            add mov eax, 42
-add mov eax, 42
-add mov eax, 42
-add mov eax, 42
-add mov eax, 42
+add eax, 42             add eax, 42
+add eax, 42             add eax, 42
+add eax, 42             add eax, 42
+add eax, 42             add eax, 42
+add eax, 42      -      add eax, 42
+add eax, 42             add eax, 42
+add eax, 42
+add eax, 42
+add eax, 42
+add eax, 42
 ```
 
-`--backend repeat # one call fn  - one call nop  = fn cost`
+---
+
+`backend: repeat # (substract overhead)`
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-perf bench asm -D
-measured (code) - overhead (nop) = true cost
+loop:                   loop:
+  add eax, 42    -      jmp loop
+jmp .loop
 ```
+
+https://github.com/andreas-abel/nanoBench
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -782,23 +808,21 @@ https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-perf bench asm 'mov r11, [rax]' # lookup_table[value]
-```
+  benchmark                 [0]           [1]                                               [2]
+  -------------------- --------  ------------ -------------------------------------------------
+  1 cycle execution      1 ± 00   0.25 ± 0.00 ▏
+  L1d hit                3 ± 01   0.75 ± 0.25 █░
+  L2d hit               12 ± 03   3.00 ± 0.75 ███░░
+  branch misprediction  14 ± 10   3.50 ± 2.50 ███░░░
+  L3d hit               50 ± 05  10.00 ± 1.25 █████████░░░
+  DRAM access          350 ± 20  70.00 ± 5.00 ████████████████████████████████████████████░░░░░
+  ...
 
-```python
-for addr, size in reads + writes:
-    refresh(level, addr)
+  [0]: ~cycles # Intel/AMD/ARM
+  [1]: ~cycles/4Ghz [ns]
+  [2]: ~cycles ± variability
 ```
-
-```cpp
-dL1:   4ns
-dL2:  13ns
-dL3:  75ns
-RAM: 294ns
-```
-
-https://www.akkadia.org/drepper/cpumemory.pdf
-<!-- .element: style="text-align:left; font-size:22px;" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -809,7 +833,7 @@ https://www.akkadia.org/drepper/cpumemory.pdf
 template<Level level>
 auto refresh(const void* addr) {
     if constexpr (level == Level::L1) {
-        load(addr);                                 // L1
+        load(addr);                                 // L1d
         fence();
     } else if constexpr (level == Level::L2) {
         flush(addr);                                // RAM
@@ -817,7 +841,7 @@ auto refresh(const void* addr) {
         settle();
         prefetch<Level>(addr);                      // prefetcht1 hint
     } else if constexpr (level == Level::L3) {
-        load(addr);                                 // L1
+        load(addr);                                 // L1d
         demote(addr);                               // cldemote hint
     } else {
         flush(addr);                                // RAM
@@ -842,84 +866,55 @@ CLDEMOTE    Hint into more distant level (Sapphire Rapids / Xeon, ...)
 ##### Cache effects
 <!-- .element: style="text-align:left" -->
 
-```cpp
-             1000 addresses
-                    │
-        ┌───────────┴───────────┐
-        │                       │
-       L1                      800
-      200                       │
-   (20% total)       ┌─────────┴─────────┐
-                     │                   │
-                    L2                  560
-                   240                   │
-             (30% of 800)     ┌──────────┴──────────┐
-                              │                     │
-                              L3                    RAM
-                             224                    336
-                       (40% of 560)
+```python
+for addr, size in state["mem_read"] + state["mem_write"]:
+    refresh(level, addr)
 ```
-<!-- .element: style="text-align:left; font-size:15px;" -->
+
+---
 
 ```python
-for i in range(l1):
-    mov addresses[i], [reg]
-    mfence
-for i in range(l2):
-    cflushopt addresses[i + l1]
-    prefetcht1
-    mfence
-for i in range(l3):
-    addr = i + l1 + l2
-    mov addresses[addr], [reg]
-    cldemote addresses[addr]
-    mfence
-for i in range(ram):
-    addr = i + l1 + l2 + l3
-    cflushopt addresses[addr]
-    mfence
-settle
+#{setup}
+mov eax, [r11]
+cclufshup
+cldemote
+pause
+mfence
+...
+{start}
+{code}
+{stop}
+{teardown}
 ```
-<!-- .element: style="text-align:left; font-size:12px;" -->
+
+https://www.akkadia.org/drepper/cpumemory.pdf
+<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ----
 
 ##### Branch effects
 <!-- .element: style="text-align:left" -->
 
-<table style="margin:0; padding:0; border-collapse:collapse; width:100%;">
-  <tr>
-  <td>
-    <img src="images/cpu2.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-  </td>
-  <td>
-     <pre style="font-size:10px"><code>
-std::array<branch, 1 << 12> btb{};
+```cpp
+std::array<branch, 1 << 12> btb{};                                         # pseudo-code
 auto predict(uint64_t ip, uint64_t target) {
-    auto& e = btb[(ip >> 2) & 0xFFF]; // branch aliasing
+    auto& e = btb[(ip >> 2) & 0xFFF];        // branch aliasing
     if (e.valid and e.tag == ip) {
-        return e.hist >= 2; // 10'000 x 1/0
+        return e.hist >= 2;                  // 10'000 x 1/0
     }
-    return target < ip ? TAKEN : NOT_TAKEN; // cold: backward taken, forward not-taken
-} // update: if (!e.valid && !taken) return; // never-taken: no BTB entry allocated</code></pre>
-  </td>
-</tr>
-</table>
-
-<p align="left">
-</p>
-
+    return target < ip ? TAKEN : NOT_TAKEN;  // cold: backward taken, forward not-taken
+} // update: if (not e.valid and not taken) return; // never-taken: no BTB entry allocated
 ```
-perf bench asm 'cmp r11, [rax]; je hit; nop; hit:' --config.branch=predictable --data[0x0001]=[1,2,3]
-perf bench asm 'cmp r11, [rax]; je hit; nop; hit:' --config.branch=unpredictable
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+---
 
 ```python
 for solution in solutions:
     value = solution.eval(1)
     bench(code, [repeat(value, N) if predictable else shuffle(values)])
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 ----
 
@@ -955,50 +950,12 @@ void hot_func(const int* v, int n) {
 }
 ```
 
+----
+
 ```sh
 perf bench func hot_func --exec a.out
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
-
-----
-
-##### `PERF_LABEL` [regions]
-<!-- .element: style="text-align:left;" -->
-
-```cpp
-#define PERF_LABEL(name)
-    asm volatile(
-        ".pushsection perf.label, \"aw?\", @progbits\n"
-        ".quad 0f\n"
-        ".asciz \"" #name "\"\n"
-        ".popsection\n"
-        "0:\n"
-    ); name:
-```
-<!-- .element: style="text-align:left;font-size:20px" -->
-
-inlined multiple times
-<!-- .element: style="text-align:right; font-size:22px;" -->
-----
-
-```cpp
-auto hot_path(...) {
-    PERF_LABEL(hot_begin);
-    ...
-    PERF_LABEL(hot_end);
-}
-```
-<!-- .element: style="text-align:left;font-size:20px" -->
-
-```
-objdump -sj .perf.label <file>
-```
-<!-- .element: style="text-align:left;font-size:20px" -->
-
-`rust,zig` compatible
-can be across function boundries
-can be inlined multiple times
-<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ----
 
@@ -1009,23 +966,17 @@ can be inlined multiple times
 page = mmap(
     -1,
     len(code_bytes),
-    prot=PROT_READ|PROT_WRITE|PROT_EXEC,
-    flags=MAP_PRIVATE|MAP_ANONYMOUS
+    prot=PROT_READ | PROT_WRITE | PROT_EXEC,
+    flags=MAP_PRIVATE | MAP_ANONYMOUS
 )
-page.write(bench) # harness + code
-CFUNCTYPE((addressof(from_buffer(page)))() # execute
+# map.process
+# apply relocations
+page.write(bench)
+CFUNCTYPE((addressof(from_buffer(page)))()
 ```
 
 `[.jitdata] /tmp/perf-{pid}.map`
 <!-- .element: style="text-align:left; font-size:22px;" -->
-
-----
-
-```cpp
-perf record -- perf bench --save example.s --save example.o
-perf bench func hot_path --exec hat_path.out -c hot_path.o
-```
-
 
 ----
 
@@ -1040,10 +991,9 @@ perf bench func hot_path --exec hat_path.out -c hot_path.o
 ```
 lstopo
 ```
-<!-- .element: style="text-align:left;font-size:14px" -->
 
 <p align="left">
-<img src="images/lstopo.png" style="width: 800px; background:none; border:none; box-shadow:none;" />
+<img src="images/lstopo.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
 </p>
 <!-- .element: style="text-align:left;font-size:14px" -->
 
@@ -1053,27 +1003,27 @@ lstopo
 <!-- .element: style="text-align:left" -->
 
 ```
-perf info cpu
+perf info cpu -c cpu,numa,arch,model,family,settping,freq,L1i,L1d,L2,L3
 ```
-<!-- .element: style="text-align:left;font-size:14px" -->
+<!-- .element: style="text-align:left;font-size:20px" -->
 
 ```
-cpu  core  numa  arch                                 vendor   model  family  stepping  freq    L1i   L1d   L2      L3
-  0     0     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
-  1     4     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
-  2     8     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
-  3    12     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
-  4    16     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
-  5    20     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  32Kb  48Kb  1280Kb  24576Kb
-  6    28     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  64Kb  32Kb  2048Kb  24576Kb
-  7    29     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  64Kb  32Kb  2048Kb  24576Kb
-  8    30     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  64Kb  32Kb  2048Kb  24576Kb
-  9    31     0  x86_64  12th Gen Intel(R) Core(TM) i7-12650H    154       6         3  400Mhz  64Kb  32Kb  2048Kb  24576Kb
+cpu  numa  arch    model  family  stepping  freq    L1i   L1d   L2      L3
+  0     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  1     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  2     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  3     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  4     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  5     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  6     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
+  7     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
+  8     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
+  9     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
 ```
-<!-- .element: style="text-align:left;font-size:12px" -->
+<!-- .element: style="text-align:left;font-size:20px" -->
 
 ##### https://en.wikichip.org / cpuid{family:6, model:154, stepping:3}
-<!-- .element: style="text-align:left;font-size:14px" -->
+<!-- .element: style="text-align:left;font-size:18px" -->
 
 ----
 
@@ -1115,8 +1065,8 @@ perf bench asm 'cdq; idiv ecx;' --setup 'mov ecx, 2' --mode latency -e cycles
 <img src="images/cmp2.png" style="width: 50%; background:none; border:none; box-shadow:none;margin: 0 0;" />
 </p>
 
-https://uops.info/table.html # vs measured
-<!-- .element: style="text-align:left; font-size: 22px; margin: 5px 0px;" -->
+https://www.uops.info/instructions.xml
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 https://llvm.org/docs/CommandGuide/llvm-exegesis.html # vs llvm optimizer
 <!-- .element: style="text-align:left; font-size:20px; margin: 5px 0px;" -->
@@ -1141,11 +1091,52 @@ bpftrace ...
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-perf bench func ".*" --mode latency --exec a.out \
-  -e duration_time,cycles,instructions \
+perf bench func ".*" --mode latency --exec a.out
+  -e duration_time,cycles,instructions                                   # seperate run
   -e topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound # seperate run
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
+
+----
+
+##### `PERF_LABEL` [regions]
+<!-- .element: style="text-align:left;" -->
+
+```cpp
+#define PERF_LABEL(name)
+    asm volatile(
+        ".pushsection perf.label, \"aw?\", @progbits\n"
+        ".quad 0f\n"
+        ".asciz \"" #name "\"\n"
+        ".popsection\n"
+        "0:\n"
+    ); name:
+```
+<!-- .element: style="text-align:left;font-size:20px" -->
+
+inlined multiple times
+<!-- .element: style="text-align:right; font-size:22px;" -->
+
+----
+
+```cpp
+auto hot_path(...) {
+    PERF_LABEL(hot_begin);
+    ...
+    PERF_LABEL(hot_end);
+}
+```
+<!-- .element: style="text-align:left;font-size:20px" -->
+
+```
+objdump -sj .perf.label <file>
+```
+<!-- .element: style="text-align:left;font-size:20px" -->
+
+`rust,zig` compatible
+can be across function boundries
+can be inlined multiple times
+<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ----
 
@@ -1222,9 +1213,6 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
     print(hit_rate, df["cycles"].describe()[["mean", "min", "max"]])
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
-
-https://jupyter.org
-<!-- .element: style="text-align:left; font-size: 20px;" -->
 
 ----
 
@@ -1372,6 +1360,9 @@ jitter
 TODO notebook -> gh gist create
 perf bench func find --exec hash.out -e cycles,instructions | llvm-mca
 ```
+
+https://jupyter.org
+<!-- .element: style="text-align:left; font-size: 20px;" -->
 
 ----
 
