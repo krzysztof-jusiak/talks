@@ -746,6 +746,9 @@ perf plot -- perf.data
 
 ----
 
+##### `config/data`
+<!-- .element: style="text-align:left" -->
+
 ```json
 # config.json
 {
@@ -774,7 +777,7 @@ perf plot -- perf.data
 # --config.branch[0x115b]=predictable
 # --config.cache.L1d[0x10000000]=hit_rate:50
 ```
-<!-- .element: style="text-align:left; font-size:16px" -->
+<!-- .element: style="text-align:left; font-size:14px" -->
 
 ```json
 # data.json
@@ -885,6 +888,9 @@ imul eax, 42
 imul eax, 42
 ```
 
+https://github.com/andreas-abel/nanoBench
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
 ----
 
 ```cpp
@@ -915,15 +921,14 @@ imul eax, 42 latency    max   3.00         1.00
 
 ```cpp
 repeat: one snippet per iteration (subtract overhead)
-loop:                       loop:
-  {start}                     {start}
-  nop            -            {code}
-  {stop}                      {stop}
-  dec r8; jnz loop             dec r8; jnz loop
+loop:             loop:
+  {start}           {start}
+  {code}       -
+  {stop}            {stop}
+  dec <reg>         dec <reg>
+  jnz loop          jnz loop
 ```
 
-https://github.com/andreas-abel/nanoBench
-<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -1050,20 +1055,24 @@ for addr, size in state["mem_read"] + state["mem_write"]:
 
 ---
 
-```python
-# {setup} per address, sampled per iteration (hit_rate)
-# L1d hit: load + mfence
-# L2 hit:  clflushopt + mfence + prefetcht1, then settle
-# L3 hit:  clflushopt + mfence + prefetcht2 (or cldemote)
-# DRAM:    clflushopt + mfence (miss), then settle
+```
+┌─────────┐   ┌─────────────────┐   ┌────────┐
+│ explore │ → │ setup per addr  │ → │ settle │
+│ addrs   │   │ sample hit_rate │   └────────┘
+└─────────┘   └─────────────────┘
 ```
 
-```
-┌─────────┐   ┌──────────────────┐   ┌─────────┐   ┌──────────┐
-│ explore │ → │ setup per addr   │ → │ harness │ → │ teardown │
-│ addrs   │   │ sample hit_rate  │   │ start/  │   │ settle   │
-└─────────┘   └──────────────────┘   │ code/stop│   └──────────┘
-                                     └─────────┘
+```jso
+"cache": {
+  "L1d":  {
+      "default":  {"hit_rate":100},
+      "0x32212":  {"hit_rate":50},
+      "0x231121": {"hit_rate":25},
+      ...
+  },
+  "L2d":  {"hit_rate":50},
+  "L3d":  {"hit_rate":100},
+}
 ```
 
 https://www.akkadia.org/drepper/cpumemory.pdf
