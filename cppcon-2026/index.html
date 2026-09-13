@@ -1632,33 +1632,30 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 
 ----
 
-##### [TODO] Title with Top down bound
+##### Retiring [scaling] [TODO] veirfy top down classification
 <!-- .element: style="text-align:left" -->
 
 ```sh
-$CXX -O3 -shared -fPIC -o sort.so sort.cpp
+$CXX -O3 -shared -fPIC -o sort.so sort.cpp 
 ```
 <!-- .element: style="text-align:left; font-size:11px;" -->
 
 ```sh
-[TODO] use shuf -i 1-N
-perf bench func sort --name sort-1 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=1 "--data[0x10000000:]=[$(seq 1 1)]" -o sort
-perf bench func sort --name sort-4 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=4 "--data[0x10000000:]=[$(seq 1 4)]" -o sort
-perf bench func sort --name sort-8 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=8 "--data[0x10000000:]=[$(seq 1 8)]" -o sort
-perf bench func sort --name sort-16 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=16 "--data[0x10000000:]=[$(seq 1 16)]" -o sort
-perf bench func sort --name sort-32 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=32 "--data[0x10000000:]=[$(seq 1 32)]" -o sort
-perf bench func sort --name sort-64 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=64 "--data[0x10000000:]=[$(seq 1 64)]" -o sort
-perf bench func sort --name sort-128 -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=128 "--data[0x10000000:]=[$(seq 1 128)]" -o sort
+[TODO] do a loop 1-128
+perf bench func std::sort --name sort-1 -m latency -x sort.so 
+    --data.arg0=0x10000000 --data.arg1=1 "--data[0x10000000:]=[$(shuf -i 1-1)]" -o sort
 ```
 <!-- .element: style="text-align:left; font-size:11px;" -->
 
 ----
 
-```cpp
+```sh
 perf plot -g '' -t scatter -x data.arg1 -- sort
 ```
 
-[TODO] plot -t scatter
+<p align="left">
+<img src="images/sort.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
+</p>
 
 ----
 
