@@ -864,7 +864,7 @@ bench:
 <table>
 <tr>
 <td><pre style="font-size:15px"><code>
-0x0080: void unused();                     // layout
+0x0080: void unused(int);                  // layout
 0x0110: void func(auto value) {            // alignment
 0x0112:   auto var = ...;                  // stack
 0x0114:   for (...) {                      // alignment
@@ -1087,11 +1087,11 @@ perf plot -t ecdf -e branch-misses -- fizz
 
 ----
 
-##### Codegen effects
+##### Codegen effects [alignment]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-void unused();
+void unused(int);
 
 [[gnu::aligned(64), gnu::hot]]
 void hot_func(const int* v, int n) {
@@ -1617,13 +1617,13 @@ perf plot -t ecdf -e cycles,instructions,branch-misses,instructions/cycles -- br
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-void unused();
-void hot_funcc() {
+void unused(int);
+void hot_func() {
     // ... performance critical code ...
 }
 
-void unused() {
-    for (auto i = 0; i < 1000000; ++i) {
+void unused(int n) {
+    for (auto i = 0; i < n; ++i) {
         compute();
     }
 }
