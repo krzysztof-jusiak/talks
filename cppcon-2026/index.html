@@ -372,23 +372,23 @@ perf record \
     --filter 'filter func @ ./a.out' \
     --pid=$(pidof a.out) \
     --mmap-pages 512,4096
-    # --snapshot # magic-trace
+  # --snapshot # magic-trace
 ```
 
 ```
-perf script --itrace=i --insn-trace=disasm -F+ipc # IPC - instructions/cycles
+perf script --itrace=i --insn-trace=disasm,intel -F+ipc
 ```
 
 ```
-[TODO] use intel asm and more accurate and mark ipc
-push   %rbp                          —
-mov    %rsp,%rbp                     —
-sub    $0x20,%rsp                   1.00
-mov    (%rdi),%rax                  0.50
-imul   %rcx,%rax                    0.33
-add    %rax,%rdx                     —
-leave                               1.00
-ret                                  —
+Instruction          IPC (instructions / cycle)
+push   rbp           —
+mov    rbp, rsp      —
+sub    rsp, 0x20     1.00
+mov    rax, [rdi]    0.50  ← data miss halves IPC
+imul   rax, rcx      0.33  ← 3-cycle latency chain
+add    rdx, rax      —
+leave                1.00
+ret                  —
 ```
 
 Requires Intel-PT or ARM ETM (CoreSight)
@@ -396,7 +396,7 @@ Requires Intel-PT or ARM ETM (CoreSight)
 
 ----
 
-##### Machine-Code Analysis [[llvm-mca](https://llvm.org/docs/commandguide/llvm-mca.html), [uica](https://uica.uops.info), ...]
+##### Machine Code Analysis [[llvm-mca](https://llvm.org/docs/commandguide/llvm-mca.html), [uica](https://uica.uops.info), ...]
 <!-- .element: style="text-align:left;" -->
 
 ```
@@ -426,13 +426,10 @@ llvm-mca -timeline            # pipeline diagram: D=dispatched, e=executing, E=e
 <!-- .element: style="text-align:left; font-size:14px;" -->
 
 Scheduling Models - https://github.com/llvm/llvm-project/tree/main/llvm/lib/Target
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:16px; margin: 5px 0px;" -->
 
-https://uops.info/table.html # vs measured
-<!-- .element: style="text-align:left; font-size: 22px; margin: 5px 0px;" -->
-
-`MCA` results are estimates and will not perfectly reflect real-world performance
-<!-- .element: style="text-align:right; font-size:16px;" -->
+Latency, Throughput, and Port Usage Information - https://uops.info/table.html
+<!-- .element: style="text-align:left; font-size: 16px; margin: 5px 0px;" -->
 
 ----
 
@@ -630,14 +627,14 @@ def explore(project, start, end):                                      # python
 
 ---
 
-```cpp
+```asm
 machine code → VEX IR → blank state [symbolic regs, memory]
     → step basic blocks [fork at each branch]
         → solution [found, active, deadended]
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
-```
+```asm
 ┌────────────┐   ┌──────────────┐   ┌──────────────────┐   ┌───────────────────┐
 │ fizz_buzz  │ → │ blank_state  │ → │ fork on branch   │ → │ solutions         │
 │ machine    │   │ rdi=symbolic │   │ track            │   │ [state, mem, reg] │
@@ -739,7 +736,7 @@ rdi: 1,  2,  4 // else
 
 ----
 
-##### Latency (backend: unroll)
+##### Latency [backend:unroll]
 <!-- .element: style="text-align:left" -->
 
 `unroll - (2N × code - N × code) / N`
@@ -761,7 +758,7 @@ imul eax, 42
 https://github.com/andreas-abel/nanoBench
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-Branches, ...
+Branches?
 <!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
@@ -789,7 +786,7 @@ imul eax, 42 latency    max   3.00         1.00
 
 ----
 
-##### Latency (backend: loop)
+##### Latency [backend:loop]
 <!-- .element: style="text-align:left" -->
 
 `loop - subtract overhead`
@@ -815,13 +812,13 @@ perf bench asm 'cdq; idiv ecx'
 ```
 
 ```cpp
-          name    mode   stat cycles instructions
-cdq; idiv ecx; latency    min  12.00         2.00
-cdq; idiv ecx; latency    p10  12.00         2.00
-cdq; idiv ecx; latency    p50  12.00         2.00
-cdq; idiv ecx; latency    p90  12.00         2.00
-cdq; idiv ecx; latency    p99  12.00         2.00
-cdq; idiv ecx; latency    max  12.00         2.00
+stat cycles instructions
+ min  12.00         2.00
+ p10  12.00         2.00
+ p50  12.00         2.00
+ p90  12.00         2.00
+ p99  12.00         2.00
+ max  12.00         2.00
 ```
 
 <p align="left">
@@ -830,41 +827,51 @@ cdq; idiv ecx; latency    max  12.00         2.00
 
 ----
 
-##### Benchmarking Harness
+##### Benchmarking [harness]
 <!-- .element: style="text-align:left" -->
 
-[TODO] fix for proper flow for start stop for tsc and rdpmc
-
 ```
-# duration time (RDTSC/RDTSCP - Time Stamp Counter)
+# duration time (TSC)
+[TODO] remove push/keep required things there should be shr
 start:                       stop:
-  push rcx                      rdtscp
-  lfence                        lfence
-  rdtsc                         sub rax, r11
-  mov r11, rax
+  push rcx                     push rcx
+  lfence                       rdtscp
+  rdtsc                        lfence
+  mov r11, rax                 sub rax, r11
+  pop rcx                      mov [r10], rax; add r10, 8
+                               pop rcx
 ```
-<!-- .element: style="text-align:left; font-size:22px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```
-# performance counters (rdpmc - Read Performance-Monitoring Counters)
-# echo 2 | sudo tee /sys/devices/cpu_core/rdpmc
+# performance counters (RPDMC)
+[TODO] remove push/keep required things there should be shr
 start:                        stop:
+  push rcx                      push rcx
   mov ecx, <idx>                mov ecx, <idx>
   lfence                        lfence
   rdpmc                         rdpmc
-  mov rbx, rax                  sub rax, rbx
+  shl rdx, 32; or rax, rdx      shl rdx, 32; or rax, rdx
+  mov r11, rax                  sub rax, r11
+  pop rcx                       mov [r10], rax; add r10, 8
+                                pop rcx
 ```
-<!-- .element: style="text-align:left; font-size:22px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```
 bench:
-  {setup}     # data mapping
-  {start}     # tsc/rdpmc
+  {setup}     # mmap (data), prime cache/branch state
+  {start}     # rdtsc/rdpmc
   {code}      # latency vs. throughput
-  {stop}      # tsc/rdpmc
-  {teardown}  # cleanup
+  {stop}      # rdtscp/rdpmc
+  {teardown}  # unmap
 ```
-<!-- .element: style="text-align:left; font-size:22px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+```cpp
+echo 2 | sudo tee /sys/devices/cpu_core/rdpmc
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -894,7 +901,7 @@ https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
 
 ----
 
-#### Cache effects
+##### Cache effects [speed]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -916,7 +923,7 @@ https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
 
 ----
 
-##### Cache effects
+##### Cache effects [refresh]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -953,7 +960,7 @@ CLDEMOTE    Hint into more distant level (Sapphire Rapids / Xeon, ...)
 
 ----
 
-##### Cache effects
+##### Cache effects [mem_{load,store}]
 <!-- .element: style="text-align:left" -->
 
 ```python
@@ -988,46 +995,35 @@ https://www.akkadia.org/drepper/cpumemory.pdf
 
 ----
 
-##### Cache effects # lut[i] += 1; // add r11, [rax]
+##### Cache effects [access]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-perf bench asm 'add r11, [rax]' --mode latency -e cycles
-    --config.cache=hot --name add-hot -o cache
+perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=hot --name add-hot -o cache
+perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=cold --name add-cold -o cache
+perf bench asm 'add r11, [rax]' --config.cache.L1d=hit_rate:100
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
 ```cpp
-perf bench asm 'add r11, [rax]' --mode latency -e cycles
-    --config.cache=cold --name add-cold -o cache
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-```cpp
-perf bench asm 'add r11, [rax]'
-    --config.cache.L1d=hit_rate:100
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-```cpp
-perf plot -t ecdf -e cycles -o images/cache_lat.png -- cache # sixel: to plot in terminal
+perf plot -t ecdf -e cycles -- cache # sixel - to plot in terminal
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 <p align="left">
-<img src="images/cache_lat.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
+<img src="images/cache_lat.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
 </p>
 
 Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
-<!-- .element: style="text-align:right; font-size:12px;" -->
+<!-- .element: style="text-align:right; font-size:14px;" -->
 
 ----
 
-##### Branch effects
+##### Branch effects [prediction]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-array<branch, 1 << 12> btb{};                                                       # simplified
+array<branch, 1 << 12> btb{};                                                         # simplified
 auto predict(uint64_t ip, uint64_t target) {
     auto& e = btb[(ip >> 2) & 0xFFF];        // branch aliasing
     if (e.valid and e.tag == ip) {
@@ -1114,7 +1110,7 @@ void hot_func(const int* v, int n) {
 perf bench func hot_func --exec codegen.o --mode latency -e cycles
     --config.function.order=sequential
     --config.function.order=random
-    #--config.function.order=hot
+   #--config.function.order=hot
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -1141,12 +1137,12 @@ perf plot -t ecdf -e cycles -- codegen
 
 ```
 ┌──────┐   ┌─────────────────────┐   ┌─────────────┐
-│ ELF  │ → │ mmap (RWX/FIXED)    │ → │ apply       │
+│ ELF  │ → │ mmap (RWX/FIXED)    │ → │ apply       │ →
 │ or   │   │ copy segments [bss] │   │ relocations │
 │ asm  │   │ (bss)               │   │             │
 └──────┘   └─────────────────────┘   └─────────────┘
    ┌────────────┐   ┌───────────────────┐
-   │ randomize  │ → │ [.jitdata]        │
+   │ randomize  │ → │ [.jitdata]        │ →
    │ layout     │   │ /tmp/perf-PID.map │
    └────────────┘   └───────────────────┘
 ┌────────────┐   ┌───────────┐   ┌──────────┐
@@ -1236,6 +1232,7 @@ perf record -e branch-misses,
 
 ```cpp
 perf plot -t ecdf -e cycles -- perf.data
+[TODO] regenerate perf_data.png with ecdf instead
 ```
 
 <p align="left">
@@ -1349,7 +1346,7 @@ cpu  numa  arch    model  family  stepping  freq    L1i   L1d   L2      L3
 
 ----
 
-##### Tuning [[Performance Tuning Guide](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/performance_tuning_guide/index)]
+##### `tuning` [[Performance Tuning Guide](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/performance_tuning_guide/index)]
 <!-- .element: style="text-align:left" -->
 
 
@@ -1361,12 +1358,12 @@ perf bench asm 'rdtsc' | perf plot -t bar
 <img src="images/tune.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
 </p>
 
-The benchmark should control the noise, not the noise control the benchmark
-<!-- .element: style="text-align:left;font-size:18px" -->
+`"The benchmark should control the noise, not the noise control the benchmark"`
+<!-- .element: style="text-align:right;font-size:14px" -->
 
 ----
 
-##### Sanity-Checks
+##### `sanity checks`
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -1388,13 +1385,12 @@ perf plot -t bar -- insn
 <img src="images/cmp0.png" style="width: 90%; background:none; border:none; box-shadow:none;margin: 0 0;" />
 </td>
 <td>
-<pre style="font-size:16px">
-name           mode     stat cycles
+<pre style="font-size:14px"><code>name           mode     stat cycles
 add  eax, 0    latency   max   1.00
 sub  eax, 0    latency   max   1.00
 imul eax, 0    latency   max   3.00
 cdq; idiv ecx; latency   max  12.00
-</pre>
+</code></pre>
 </td>
 </tr>
 </table>
@@ -1445,11 +1441,11 @@ chain     58%       0%        40%       2%          → retiring (dep chain)
 
 ----
 
-##### `PERF_LABEL`
+###### `perf label`
 <!-- .element: style="text-align:left;" -->
 
 ```cpp
-#define PERF_LABEL(name) // global label # rust,zig, ...
+#define PERF_LABEL(name) // global label
     asm volatile(
         ".pushsection perf.label, \"aw?\", @progbits\n"
         ".quad 0f\n"
@@ -1460,8 +1456,6 @@ chain     58%       0%        40%       2%          → retiring (dep chain)
 ```
 <!-- .element: style="text-align:left;font-size:20px" -->
 
----
-
 ```cpp
 PERF_LABEL(hot_begin);
 ...
@@ -1469,10 +1463,24 @@ PERF_LABEL(hot_end);
 ```
 <!-- .element: style="text-align:left;font-size:20px" -->
 
+---
+
 ```
-perf info metadata --exec a.out # objdump -sj .perf.label a.out
-[TODO] example output - it should show that the same label can be inlined multiple times
+perf info metadata --exec a.out --kind label # objdump -sj .perf.label a.out
 ```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+```
+file  kind  label      addr
+a.out label hot_begin  0x401154 # inlined first time
+a.out label hot_begin  0x401184 # inlined second time
+a.out label hot_end    0x401169
+a.out label hot_end    0x40119c
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+Supported by rust,zig, ...
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1519,13 +1527,13 @@ process-cold     1023.00
 ##### Backend bound
 <!-- .element: style="text-align:left" -->
 
+```sh
+perf bench func process --exec process.o --mode latency -e cycles | perf plot
 ```
-perf bench func process --exec process.o --mode latency -e cycles -o backend
-perf plot -t ecdf -e cycles -- backend
-```
+<!-- .element: style="text-align:left; font-size: 20px;" -->
 
 <p align="left">
-<img src="images/backend_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+<img src="images/backend_ecdf.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
@@ -1534,7 +1542,7 @@ perf plot -t ecdf -e cycles -- backend
 <!-- .element: style="text-align:left" -->
 
 ```python
-import perf                                                                               # python
+import perf                                                           # python
 
 for hit_rate in [100, 50, 0]:  # hot → warm → cold
     config = {
@@ -1556,7 +1564,7 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
 
     print(hit_rate, df["cycles"].describe()[["mean", "min", "max"]])
 ```
-<!-- .element: style="text-align:left; font-size: 16px;" -->
+<!-- .element: style="text-align:left; font-size: 20px;" -->
 
 ----
 
@@ -1564,10 +1572,10 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-g++ -O2 memory.cpp -c bb_gcc_02.o
-g++ -O3 memory.cpp -c bb_gcc_03.o
-clang++ -O2 memory.cpp -c bb_clang_02.o
-clang++ -O3 memory.cpp -c bb_clang_03.o
+g++ -O2 -std=c++23 -c process.cpp -o bb_gcc_02.o
+g++ -O3 -std=c++23 -c process.cpp -o bb_gcc_03.o
+clang++ -O2 -std=c++23 -c process.cpp -o bb_clang_02.o
+clang++ -O3 -std=c++23 -c process.cpp -o bb_clang_03.o
 ```
 
 ```cpp
@@ -1577,14 +1585,30 @@ perf bench func process --exec <target> --mode latency -e cycles --config.cache=
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```
-perf plot -- backend
+perf view -- backend
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
-[TODO] update the chart with  casees for gcc/clang memory hot cold
+```
+cycles p50:   hot   cold
+gcc   -O2     748   1019
+gcc   -O3     749   1027
+clang -O2     560    795
+clang -O3     561    843
+```
+<!-- .element: style="text-align:left; font-size: 16px;" -->
+
+```
+perf plot -t ecdf -e cycles -- backend
+```
+<!-- .element: style="text-align:left; font-size: 16px;" -->
+
 <p align="left">
 <img src="images/backend_ecdf.png" style="width: 50%; background:white; border:none; box-shadow:none;" />
 </p>
+
+clang ~25% faster hot; cold costs ~1.4-1.5x for both
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1742,7 +1766,7 @@ jitter
 ```cpp
 find (scan - if/else)
 find (map  - hash map)
-find (pext - pext + lookup table)
+find (mph  - pext + lookup table)
 ...
 ```
 
@@ -1750,6 +1774,9 @@ https://github.com/qlibs/mph
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
+
+#####  [Minimal] Perfect Hashing
+<!-- .element: style="text-align:left" -->
 
 ```cpp
 constexpr auto symbols = array{
@@ -1770,20 +1797,44 @@ constexpr auto symbols = array{
 ----
 
 ```cpp
-$CXX -O3 -mbmi2 -c mph.cpp -o mph.out
+g++16     -O3 -mbmi2 -c mph.cpp -o mph_gcc.o
+clang++23 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-perf bench func map  --exec mph.out --mode latency --config worst.json
-perf bench func scan --exec mph.out --mode latency --config worst.json
-perf bench func pext --exec mph.out --mode latency --config worst.json
+[TODO] fix use python library api instead
+for cxx in gcc clang; do for func in mph_find scan_find; do
+    perf bench func $func --exec mph_$cxx.o --mode latency -e cycles \
+        --config.branch=predictable --config.cache=hot -n $cxx-$func-hot -o mph
+    perf bench func $func --exec mph_$cxx.o --mode latency -e cycles \
+        --config.branch=unpredictable --config.cache=cold \
+        --config.func.order=random -n $cxx-$func-worst -o mph
+done; done
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
+----
+
+```
+perf view -e cycles,instructions/cycles -s min,p10,p50,p99,max -- mph
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```
+[TODO] fix should output perf view -e cycles,instructions/cycles -s min,p10,p50,p99,max -- mph
+cycles p50:    hot  worst
+gcc   mph        1      1
+gcc   scan       4    264
+clang mph        4    250
+clang scan       4    242
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+---
+
 ```cpp
-[TODO] compile and regenerate ecdf chart, with different compilers,modes (including worst)
-perf plot -t ecdf -e cycles -- bench
+perf plot -t ecdf -e cycles -- mph
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
