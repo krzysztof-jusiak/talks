@@ -736,7 +736,7 @@ https://github.com/iovisor/bcc
 perf record -e branch-misses,
                branch-references,
                cache-misses,
-               cache-references 
+               cache-references
             -o perf.data -- ./a.out
 ```
 
@@ -749,7 +749,7 @@ perf plot -- perf.data
 ```json
 # config.json
 {
-  "branch": 
+  "branch":
       "default": "unpredcitable",
       "rdi", "unpredictable",
       [TODO] list example address
@@ -770,14 +770,17 @@ perf plot -- perf.data
       }
   }
 }
+# per-address overrides (branch @ 0x115b, L1d for buffer @ 0x10000000)
+# --config.branch[0x115b]=predictable
+# --config.cache.L1d[0x10000000]=hit_rate:50
 ```
 <!-- .element: style="text-align:left; font-size:16px" -->
 
 ```json
 # data.json
 {
-    [TODO] list example data and example memory addresses matches config
-    "arg0": [1,3,5]
+  "rdi": 15,
+  "0x10000000:": [1, 3, 5]
 }
 ```
 <!-- .element: style="text-align:left; font-size:16px" -->
@@ -785,13 +788,21 @@ perf plot -- perf.data
 ----
 
 ```cpp
-perf bench func fizz_buzz --exec a.out 
-    --data data.json 
-    --config config.json
+perf bench func fizz_buzz --exec a.out
+    --data data.json
+    --config config.json -o data/fizz
+perf plot -t ecdf -e cycles -o images/fizz_ecdf.png -- data/fizz
 ```
 
+```
+file      name                stat cycles branch-misses
+fizz      fizz-predictable      p50   1.00   0.00
+fizz      fizz-unpredictable    p50   2.00   1.00
+```
 
-[TODO] ecdf chart with example output 
+<p align="left">
+<img src="images/fizz_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+</p>
 
 ----
 
@@ -1040,17 +1051,19 @@ for addr, size in state["mem_read"] + state["mem_write"]:
 ---
 
 ```python
-[TODO] make that a diagram for slides
-#{setup} per address, sampled per iteration (hit_rate)
-mov rax, [addr]          # L1d hit: load + mfence
-clflushopt [addr]; mfence; prefetcht1 [addr]  # L2
-clflushopt [addr]; mfence; prefetcht2 [addr]  # L3 (or cldemote)
-clflushopt [addr]; mfence                     # RAM (DRAM miss)
-pause x16; ...           # settle
-{start}
-{code}
-{stop}
-{teardown}
+# {setup} per address, sampled per iteration (hit_rate)
+# L1d hit: load + mfence
+# L2 hit:  clflushopt + mfence + prefetcht1, then settle
+# L3 hit:  clflushopt + mfence + prefetcht2 (or cldemote)
+# DRAM:    clflushopt + mfence (miss), then settle
+```
+
+```
+┌─────────┐   ┌──────────────────┐   ┌─────────┐   ┌──────────┐
+│ explore │ → │ setup per addr   │ → │ harness │ → │ teardown │
+│ addrs   │   │ sample hit_rate  │   │ start/  │   │ settle   │
+└─────────┘   └──────────────────┘   │ code/stop│   └──────────┘
+                                     └─────────┘
 ```
 
 https://www.akkadia.org/drepper/cpumemory.pdf
@@ -1089,8 +1102,10 @@ perf bench asm 'add r11, [rax]'
 
 ```cpp
 perf bench asm 'add r11, [rax]' --mode latency -e cycles
-    --config.memory=hot    # L1d hit:   ~0.6 cycles
-    --config.memory=cold   # DRAM miss: ~6 cycles
+    --config.memory=hot -n add-hot -o data/cache      # L1d hit:   ~0.4 cycles
+perf bench asm 'add r11, [rax]' --mode latency -e cycles
+    --config.memory=cold -n add-cold -o data/cache    # DRAM miss: ~5.0 cycles
+perf plot -t ecdf -e cycles -o images/cache_lat.png -- data/cache
 ```
 
 <p align="left">
@@ -1153,6 +1168,11 @@ perf bench func scan --exec a.out --mode latency -e cycles
 ##### Branch effects [measured]
 <!-- .element: style="text-align:left" -->
 
+```
+perf bench func fizz_buzz --exec fizz --mode latency -e branch-misses -o data/fizz
+perf plot -t ecdf -e branch-misses -o images/branch_miss.png -- data/fizz
+```
+
 <p align="left">
 <img src="images/branch_miss.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
 </p>
@@ -1204,8 +1224,12 @@ perf bench func hot_func --exec codegen.o --mode latency
 
 ```cpp
 cycles med:   align=16  align=64
-sequential    17        18
-random        19        21
+sequential    21        22
+random        18        18
+```
+
+```
+perf plot -t ecdf -e cycles -o images/codegen_ecdf.png -- data/codegen
 ```
 
 <p align="left">
@@ -1238,24 +1262,21 @@ Layout is a controlled variable, not noise — ±4 cycles even on a tiny loop
 
 ----
 
-[TODO] fixup example example 
+##### `JIT Code Generation` — isolated object for linking
+<!-- .element: style="text-align:left" -->
 
 ```sh
 perf bench func fizz_buzz --exec a.out --data.rdi=15 -c fizz_buzz_bench.o
 ```
 
 ```cpp
+// driver.c
 int fizz_buzz_bench(int n);
-int main() { return bench(256); }
+int main(void) { return fizz_buzz_bench(15); }
 ```
 
 ```sh
-g++ driver.c bench.o -o bench_run .out
-```
-
-```cpp
-# run on server
-./bench_run.out
+g++ driver.c fizz_buzz_bench.o -o bench_run && ./bench_run
 ```
 
 ----
@@ -1470,11 +1491,16 @@ clang++ -O3 -std=c++23 backend_bound/process.cpp -o process_clang_O3.out
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
 ```cpp
-perf bench func process --exec process_O3.out --mode latency
-    -e cycles -o data/  # median ~750 cycles hot, ~1200-1360 cold
+perf bench func process --exec process.o --mode latency -e cycles
+    --data.arg0=0x10000000 --data.arg1=256 --data[0x10000000:]=[...] -o data/backend
+perf plot -t ecdf -e cycles -o images/backend_ecdf.png -- data/backend
 ```
 
-[TODO] add ecdf chart
+```
+name            p50 cycles
+process-hot       753.00
+process-cold     1023.00
+```
 
 ----
 
@@ -1482,13 +1508,12 @@ perf bench func process --exec process_O3.out --mode latency
 <!-- .element: style="text-align:left" -->
 
 ```
-perf bench func process --exec memory.out | perf plot -t ecdf
+perf bench func process --exec process.o --mode latency -e cycles -o data/backend
+perf plot -t ecdf -e cycles -o images/backend_ecdf.png -- data/backend
 ```
 
-[TODO] fix ecdf chart
-
 <p align="left">
-<img src="images/ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+<img src="images/backend_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
 </p>
 
 Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
@@ -1536,7 +1561,9 @@ clang -O2     562   975
 clang -O3     561   927
 ```
 
-[TODO] add ECDF chart
+```
+perf plot -t ecdf -e cycles -o images/backend_ecdf.png -- data/backend
+```
 
 ----
 
@@ -1581,8 +1608,8 @@ cycles ~1 both — tiny function; see scan (branch slide) for the amplified effe
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```
-perf view -- data/fizz_buzz
-perf plot -t ecdf -e branch-misses -- data/fizz_buzz
+perf view -- data/fizz
+perf plot -t ecdf -e branch-misses -o images/branch_miss.png -- data/fizz
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
@@ -1652,9 +1679,20 @@ perf bench region hot_begin..hot_end -e cycles/instructions --exec a.out | \
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```
-[TODO] add results of the above commands
-[TODO] add ecdf of instructions/cycles
+perf bench region hot_begin..hot_end --exec a.out --mode latency \
+    -e cycles,instructions -o data/chain
+perf plot -t ecdf -e cycles,instructions -o images/chain_ecdf.png -- data/chain
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+```
+name    stat cycles instructions cycles/instructions
+chain   p50  174.00   390.00       0.45
+```
+
+<p align="left">
+<img src="images/chain_ecdf.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+</p>
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
@@ -1693,15 +1731,24 @@ jitter
 <img src="images/hashing.png" style="width: 35%; background:white; border:none; box-shadow:none;" />
 </p>
 
-[TODO] show how mph works (c++ code)
-
-```asm
-[TODO] fix assembly
-mph_find: mov eax, 0x1ff; pext edi, edi, eax  # BMI2: compress key bits
-          mov eax, [rax + rdi*4]               # one load, no branches
+```cpp
+// mph: branchless perfect hash (pext + one table load, no branches)
+int mph_find(uint64_t k) { return mph::lookup<pairs>(k); }
 ```
 
-[TODO] show how scan works (c++ code)
+```asm
+mph_find: mov eax, 0x1ff; pext edi, edi, eax
+          mov eax, [rax + rdi*4]; ret
+```
+
+```cpp
+// scan: linear search over 128 pairs (branch + loop)
+int scan_find(uint64_t k) {
+    for (unsigned i = 0; i < 128; ++i)
+        if (pairs[i].first == k) return pairs[i].second;
+    return -1;
+}
+```
 
 ----
 
@@ -1722,9 +1769,15 @@ int scan_find(uint64_t k) { for (...) if (pairs[i].first == k) return ...; }
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-cycles med:            pred.hot  unpred.hot  unpred.cold
-mph_find (pext+lut)    1-5       1-5         1-5
-scan_find (loop)       4         10-16       250-310
+cycles med:            pred.hot  unpred.cold
+mph_find (pext+lut)    1         1
+scan_find (loop)       4         266
+```
+
+```
+perf bench func mph_find --exec mph.o --mode latency -e cycles -o data/mph
+perf bench func scan_find --exec mph.o --mode latency -e cycles -o data/mph
+perf plot -t ecdf -e cycles -o images/mph_ecdf.png -- data/mph
 ```
 
 <p align="left">
