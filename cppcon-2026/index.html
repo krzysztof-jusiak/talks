@@ -369,13 +369,15 @@ perf record \
     --filter 'filter func @ ./a.out' \
     --pid=$(pidof a.out) \
     --mmap-pages 512,4096
+    # --snapshot # magic-trace
 ```
 
 ```
-perf script --itrace=i --insn-trace=disasm -F+ipc
+perf script --itrace=i --insn-trace=disasm -F+ipc # IPC - instructions/cycles
 ```
 
 ```
+[TODO] use intel asm and more accurate and mark ipc
 push   %rbp                          —
 mov    %rsp,%rbp                     —
 sub    $0x20,%rsp                   1.00
