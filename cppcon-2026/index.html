@@ -665,8 +665,16 @@ rdi: 1,  2,  4 // else
 <!-- .element: style="text-align:left" -->
 
 ```
-b.attach_uprobe(name="a.out", sym="fizz_buzz")
-...
+BPF_PROGRAM = r"""
+int trace(struct pt_regs *ctx) {
+    return 0;
+}
+"""
+```
+
+```cpp
+b = BPF(text=BPF_PROGRAM)
+b.attach_uprobe(name="a.out", sym="fizz_buzz", fn_name="trace")
 ```
 
 ```cpp
@@ -745,19 +753,42 @@ start:    stop:
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```
-add eax, 42             add eax, 42
-add eax, 42             add eax, 42
-add eax, 42             add eax, 42
-add eax, 42             add eax, 42
-add eax, 42      -      add eax, 42
-add eax, 42             add eax, 42
-add eax, 42
-add eax, 42
-add eax, 42
-add eax, 42
+imul eax, 42             imul eax, 42
+imul eax, 42             imul eax, 42
+imul eax, 42             imul eax, 42
+imul eax, 42             imul eax, 42
+imul eax, 42      -      imul eax, 42
+imul eax, 42             imul eax, 42
+imul eax, 42
+imul eax, 42
+imul eax, 42
+imul eax, 42
 ```
 
----
+----
+
+```cpp
+perf bench 'imul eax, 42'
+    --mode latency
+    --event cycles,instructions
+    --backend unroll
+```
+
+```cpp
+        name    mode   stat cycles instructions
+imul eax, 42 latency    min   2.80         1.00
+imul eax, 42 latency    p10   3.00         1.00
+imul eax, 42 latency    p50   3.00         1.00
+imul eax, 42 latency    p90   3.00         1.00
+imul eax, 42 latency    p99   3.00         1.00
+imul eax, 42 latency    max   3.00         1.00
+```
+
+<p align="left">
+<img src="images/imul.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+</p>
+
+----
 
 `backend: repeat # (substract overhead)`
 <!-- .element: style="text-align:left; font-size:16px;" -->
@@ -770,6 +801,29 @@ jmp .loop
 
 https://github.com/andreas-abel/nanoBench
 <!-- .element: style="text-align:left; font-size:16px;" -->
+
+----
+
+```cpp
+perf bench asm 'cdq; idiv ecx'
+    --mode latency
+    --event cycles,instructions
+    --backend repeat
+```
+
+```cpp
+          name    mode   stat cycles instructions
+cdq; idiv ecx; latency    min  12.00         2.00
+cdq; idiv ecx; latency    p10  12.00         2.00
+cdq; idiv ecx; latency    p50  12.00         2.00
+cdq; idiv ecx; latency    p90  12.00         2.00
+cdq; idiv ecx; latency    p99  12.00         2.00
+cdq; idiv ecx; latency    max  12.00         2.00
+```
+
+<p align="left">
+<img src="images/idiv.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
+</p>
 
 ----
 
@@ -892,6 +946,32 @@ https://www.akkadia.org/drepper/cpumemory.pdf
 
 ----
 
+```cpp
+lut[i] += 1; // add r11, [rax]
+```
+
+---
+
+```cpp
+perf bench asm 'add r11, [rax]'
+    --config.memory.cache.L1d=hit_rate:100
+```
+
+```cpp
+perf bench asm 'add r11, [rax]'
+    --config.memory.cache.L1d=hit_rate:0
+    --config.memory.cache.L2d=hit_rate:100
+```
+
+```cpp
+perf bench asm 'add r11, [rax]'
+    --config.memory.cache.L1d=hit_rate:0
+    --config.memory.cache.L2d=hit_rate:0
+    --config.memory.cache.L3d=hit_rate:100
+```
+
+----
+
 ##### Branch effects
 <!-- .element: style="text-align:left" -->
 
@@ -922,17 +1002,34 @@ for solution in solutions:
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-auto value = lut[i];
+perf bench func fizz_buzz --exec fizz_buzz.o
+    --config.branch=unpredictable
 ```
 
 ```cpp
-perf bench asm 'add r11, [rax]'
-  --march sapphirerapids
-  --config.memory.cache.dL1=100
-  --data.r11=0
-  --data.rax=0x4000
-  --data.memory.0x4000=1234
-  --branch=predictable
+perf bench func fizz_buzz --exec fizz_buzz.o
+    --config.branch=predictable
+```
+
+```cpp
+perf bench func fizz_buzz --exec fizz_buzz.o
+    --data.arg0=3
+```
+
+```cpp
+perf bench func fizz_buzz --exec fizz_buzz.o
+    --data.arg0=5
+```
+
+```cpp
+perf bench func fizz_buzz --exec fizz_buzz.o
+    --data.arg0=15
+```
+
+```cpp
+perf bench func fizz_buzz --exec fizz_buzz.o
+    --config.branch=predictable
+    --data.arg0=[1,2,3]
 ```
 
 ----
@@ -954,6 +1051,7 @@ void hot_func(const int* v, int n) {
 
 ```sh
 perf bench func hot_func --exec a.out
+    --config.func.order=random
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -1041,35 +1139,57 @@ perf bench asm 'rdtsc' | perf plot -t bar
 
 ----
 
-##### Sanity-Checks [measured vs. documented]
+##### Sanity-Checks [spec vs. measured]
 <!-- .element: style="text-align:left" -->
 
-<!--```cpp-->
-<!--Measured vs. Spec-->
-<!--- instructions latency/rthroughput/...-->
-<!--- dL1/dL2/dL3 load/store latency/bandwidth-->
-<!--- branch misprediction penalty-->
-<!--- max(µops/cycle) vs. dispatch width-->
- <!--...-->
-<!--```-->
-
 ```cpp
-perf bench asm 'imul eax, 0' --mode latency -e cycles
-perf bench asm 'add  eax, 0' --mode latency -e cycles
-perf bench asm 'sub  eax, 0' --mode latency -e cycles
-perf bench asm 'cdq; idiv ecx;' --setup 'mov ecx, 2' --mode latency -e cycles
+perf bench asm 'imul eax, 0'    --mode latency -e cycles -o insn
+perf bench asm 'add  eax, 0'    --mode latency -e cycles -o insn
+perf bench asm 'sub  eax, 0'    --mode latency -e cycles -o insn
+perf bench asm 'cdq; idiv ecx;' --mode latency -e cycles -o insn
 ```
 <!-- .element: style="text-align:left; font-size: 15px;" -->
 
-<p align="left">
-<img src="images/cmp2.png" style="width: 50%; background:none; border:none; box-shadow:none;margin: 0 0;" />
-</p>
+```
+perf plot -t bar -- insn
+```
+<!-- .element: style="text-align:left; font-size: 15px;" -->
+
+<table>
+<tr>
+<td>
+<img src="images/cmp0.png" style="width: 90%; background:none; border:none; box-shadow:none;margin: 0 0;" />
+</td>
+<td>
+<pre style="font-size:16px">
+name           mode     stat cycles
+add  eax, 0    latency   max   1.00
+cdq; idiv ecx; latency   max  12.00
+imul eax, 0    latency   max   3.00
+sub  eax, 0    latency   max   1.00
+</pre>
+</td>
+</tr>
+</table>
 
 https://www.uops.info/instructions.xml
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-https://llvm.org/docs/CommandGuide/llvm-exegesis.html # vs llvm optimizer
-<!-- .element: style="text-align:left; font-size:20px; margin: 5px 0px;" -->
+---
+
+```cpp
+perf bench asm 'imul eax, 0' --mode latency -e cycles -S | llvm-mca
+```
+<!-- .element: style="text-align:left; font-size: 15px;" -->
+
+```cpp
+#uOps Latency  RThroughput       Instruction
+    1       3         1.00  imul eax, eax, 0
+```
+<!-- .element: style="text-align:left; font-size: 15px;" -->
+
+https://llvm.org/docs/CommandGuide/llvm-exegesis.html
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -1195,9 +1315,9 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
         "branch": "predictable",
         "memory": {
             "cache": {
-              "dL1": {"hit_rate": hit_rate},
-              "dL2": {"hit_rate": 100},
-              "dL3": {"hit_rate": 100}
+              "L1d": {"hit_rate": hit_rate},
+              "L2d": {"hit_rate": 100},
+              "L3d": {"hit_rate": 100}
             }
         }
     }
@@ -1318,25 +1438,34 @@ perf bench region hot_begin..hot_end -e cycles/instructions --exec a.out | \
 
 ----
 
+```cpp
+perf bench func sort --name sort-64-seq -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=64 "--data[0x10000000:]=[$(seq 64 -1 1)]" -o sort2
+perf bench func sort --name sort-64-shuf -m latency -x sort.so --data.arg0=0x10000000 --data.arg1=64 "--data[0x10000000:]=[$(shuf -i 1-64)]" -o sort2
+```
+
+```cpp
+perf plot -g '' -t line -x data.arg1 -- sort
+```
+
+----
+
 #### 'The Worst' Possible Execution
 <!-- .element: style="text-align:left" -->
 
 ```json
 {
-  "function": {
-    "order": "random",
-  },
   "branch": "unpredictable",
-  "heap": "random",
-  "stack": "random",
-  "cache": {
-    "dL1":  {"hit_rate":0},
-    "dL2":  {"hit_rate":0},
-    "dL3":  {"hit_rate":0},
-    "iL1":  {"hit_rate":0},
-    "iL2":  {"hit_rate":0},
-    "dTLB": {"hit_rate":0},
-    "iTLB": {"hit_rate":0},
+  "heap":   "random",
+  "stack":  "random",
+  "mem": {
+      "cache": {
+        "L1i":  {"hit_rate":0},
+        "L1d":  {"hit_rate":0},
+        "L2d":  {"hit_rate":0},
+        "L3d":  {"hit_rate":0},
+        "TLBi": {"hit_rate":0},
+        "TLBd": {"hit_rate":0},
+      }
   }
 }
 ```
