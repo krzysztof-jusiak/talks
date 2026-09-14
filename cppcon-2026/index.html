@@ -1135,7 +1135,14 @@ perf plot -t ecdf -e cycles -- codegen
 <!-- .element: style="text-align:left" -->
 
 ```
-ELF or asm
+asm
+  → mmap data pages
+      → assembly harness
+          → execute [object]
+```
+
+```
+exec
   → mmap (RWX/FIXED), copy segments [bss]
       → apply relocations
           → randomize layout
@@ -1164,13 +1171,15 @@ int main() {
 <!-- .element: style="text-align:left; font-size:22px" -->
 
 ```sh
-$CXX main.cpp bench.o && ./a.out
+[TODO] fix command
+$CXX main.cpp bench.o && ssh $server -c ./a.ou
 ```
 <!-- .element: style="text-align:left; font-size:22px" -->
 
 ----
 
 `meta-perf`
+<!-- .element: style="text-align:left" -->
 
 ```sh
 perf record
@@ -1207,7 +1216,7 @@ DWARF -> fields
 ```
 
 [.jitdata] /tmp/perf-PID.map
-<!-- .element: style="text-align:right; font-size:34px" -->
+<!-- .element: style="text-align:right; font-size:20px" -->
 
 ----
 
@@ -1270,7 +1279,7 @@ perf plot -t ecdf -e cycles -- perf.data
 ```
 
 <p align="left">
-<img src="images/perf_data.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
+<img src="images/perf_data.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
@@ -1310,7 +1319,7 @@ perf plot -t ecdf -e cycles -- perf.data
 ----
 
 ```cpp
-perf bench regoin hot_path_begin..hot_path_end --exec a.out
+perf bench region hot_path_begin..hot_path_end --exec a.out
     --data data.json
     --config config.json
     --output hot_path
@@ -1321,7 +1330,7 @@ perf plot -t ecdf -e cycles -- hot_path
 ```
 
 <p align="left">
-<img src="images/fizz_ecdf.png" style="width: 65%; background:white; border:none; box-shadow:none;" />
+<img src="images/fizz_ecdf.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
@@ -1500,7 +1509,7 @@ perf info metadata --exec a.out --kind label # objdump -sj .perf.label a.out
 
 ```
 file  kind  label      addr
-a.out label hot_begin  0x401154 # inlined  first time
+a.out label hot_begin  0x401154 # inlined first time
 a.out label hot_begin  0x401184 # inlined second time
 a.out label hot_end    0x401169
 a.out label hot_end    0x40119c
@@ -1640,7 +1649,7 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 <!-- .element: style="text-align:left" -->
 
 ```sh
-for n in 1 4 8 16 32 64 128; do
+for n in 1 4 8 16 32 64 128; do                                    # sh
   perf bench func std::sort --name sort-$n
     --mode latency
     --exec libstdc++.so
@@ -1676,7 +1685,7 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
 <!-- .element: style="text-align:left" -->
 
 <p align="left">
-<img src="images/range2.jpeg" style="width: 35%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+<img src="images/range2.jpeg" style="width: 40%; background:white; border:none; box-shadow:none; margin: 0 0;" />
 </p>
 
 ----
