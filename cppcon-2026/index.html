@@ -1658,6 +1658,17 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 <!-- .element: style="text-align:left" -->
 
 ```sh
+[TODO] rewrite to python with all 4 multiple
+    --config.branch=predictable
+    --config.branch=unpredictable
+    --config.cache=hot
+    --config.cache=cold
+    per 1, 4, 8, 16, 32, 64, 128 sizes
+    and
+    --event cycles,instrucions
+    --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
+    then generate error bars charts
+
 for n in 1 4 8 16 32 64 128; do                                            # sh
   perf bench func std::sort --name sort-$n
     --mode latency
@@ -1669,10 +1680,6 @@ for n in 1 4 8 16 32 64 128; do                                            # sh
     --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
     --output sort
 
-    --config.branch=predictable
-    --config.branch=unpredictable
-    --config.cache=hot
-    --config.cache=cold
 
   perf bench func std::sort --name sort-$n
     --mode latency
@@ -1690,10 +1697,12 @@ done
 ----
 
 ```sh
+TODO error bars
 perf plot -g '' -t scatter -x data.arg1 -- sort
 ```
 
 <p align="left">
+TODO multiple charts instructions/cycles  and topdown
 <img src="images/sort.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
 </p>
 
@@ -1816,8 +1825,7 @@ constexpr auto symbols = array{
 auto find(const string_like auto symbol) noexcept;
 ```
 
-TODO assembly
--- always compare assemlby
+[TODO] for scan, mp, mph, simd show declaration and a few parts of assembly which are important
 
 ----
 
@@ -1835,7 +1843,7 @@ real  = {"branch": "unpredictable", "cache": "warm"}
 worst = {"branch": "unpredictable", "cache": "cold", "func": {"order": "random"}}
 
 for cxx in ("gcc", "clang"):
-    for func in ("scan", "map", "mph"):
+    for func in ("scan", "map", "ph", "mph", "simd"):
         for tag, config in (("best", best), ("read", real), ("worst", worst)):
             perf.bench(
                 name=f"{cxx}-{func}-{tag}"
