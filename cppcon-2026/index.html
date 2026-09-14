@@ -1428,7 +1428,7 @@ https://www.uops.info/instructions.xml
 ---
 
 ```cpp
-perf bench asm 'imul eax, 0' --mode latency -e cycles -S | llvm-mca
+perf bench asm 'imul eax, 0' --mode latency -S | llvm-mca
 ```
 <!-- .element: style="text-align:left; font-size: 15px;" -->
 
@@ -1456,7 +1456,7 @@ perf bench func ".*" --mode latency --exec a.out
   -e cycles,instructions                                                 # seperate run
   -e topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound # seperate run
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```cpp
 func      retiring  bad-spec  fe-bound  be-bound    → section
@@ -1465,7 +1465,7 @@ branchy   26%       13%       37%       24%         → bad speculation
 hot_func  86%       7%        7%        1%          → retiring
 chain     58%       0%        40%       2%          → retiring (dep chain)
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
 
@@ -1523,41 +1523,12 @@ int process(int n) {
     int sum = 0;
     for (int i = 0; i < n; ++i) {
         int val = arr[i & 63];         // cache access
-        sum += (val & 1) ? val : -val; // branch
+        sum += (val & 1) ? val : -val;
     }
     return sum;
 }
 ```
-<!-- .element: style="text-align:left; font-size:15px;" -->
-
-```cpp
-g++ -O3 -std=c++23 backend_bound/process.cpp -o process_O3.out
-g++ -O2 -std=c++23 backend_bound/process.cpp -o process_O2.out
-clang++ -O2 -std=c++23 backend_bound/process.cpp -o process_clang_O2.out
-clang++ -O3 -std=c++23 backend_bound/process.cpp -o process_clang_O3.out
-```
-<!-- .element: style="text-align:left; font-size:15px;" -->
-
-```cpp
-perf bench func process --exec process.o --mode latency -e cycles
-    --data.arg0=0x10000000 --data.arg1=256 --data[0x10000000:]=[...] -o backend
-perf plot -t ecdf -e cycles -- backend
-```
-<!-- .element: style="text-align:left; font-size:15px;" -->
-
-----
-
-##### Backend bound
-<!-- .element: style="text-align:left" -->
-
-```sh
-perf bench func process --exec process.o --mode latency -e cycles | perf plot
-```
-<!-- .element: style="text-align:left; font-size: 20px;" -->
-
-<p align="left">
-<img src="images/backend_ecdf.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
-</p>
+<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ----
 
@@ -1582,41 +1553,26 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
         func="process",
         mode="latency",
         setup="init",
-        config=config, event="cycles"
+        config=config,
+        event="cycles"
     )
+
+    ...
 ```
 <!-- .element: style="text-align:left; font-size: 22px;" -->
 
 ----
 
-##### Backend bound [cache effects]
+##### Backend bound
 <!-- .element: style="text-align:left" -->
 
-```cpp
-g++ -O2 -std=c++23 -c process.cpp -o process_gcc_02.o
-g++ -O3 -std=c++23 -c process.cpp -o process_gcc_03.o
-clang++ -O2 -std=c++23 -c process.cpp -o process_clang_02.o
-clang++ -O3 -std=c++23 -c process.cpp -o process_clang_03.o
+```sh
+perf plot -t ecdf -- backend_bound
 ```
-
-```cpp
-perf bench func process --exec <target> --mode latency -e cycles --config.cache=hot -o backend
-perf bench func process --exec <target> --mode latency -e cycles --config.cache=cold -o backend
-```
-<!-- .element: style="text-align:left; font-size: 16px;" -->
-
-----
-
-##### Backend bound [cache effects]
-<!-- .element: style="text-align:left" -->
-
-```
-perf plot -t ecdf -e cycles -- backend
-```
-<!-- .element: style="text-align:left; font-size: 16px;" -->
+<!-- .element: style="text-align:left; font-size: 20px;" -->
 
 <p align="left">
-<img src="images/backend_ecdf.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
+<img src="images/backend_ecdf.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
@@ -1755,7 +1711,7 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
     "branch": "predictable"
 }
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
 
@@ -1790,7 +1746,7 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
     "branch": "unpredictable"
 }
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 jitter
 <!-- .element: style="text-align:right; font-size:16px;" -->
@@ -1887,7 +1843,7 @@ perf plot -t ecdf -e cycles -- mph
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 <p align="left">
-<img src="images/mph_ecdf.png" style="width: 60%; background:white; border:none; box-shadow:none;" />
+<img src="images/mph_ecdf.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
