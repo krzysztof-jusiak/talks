@@ -1011,7 +1011,7 @@ perf plot -t ecdf -e cycles -- cache # sixel - to plot in terminal
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 <p align="left">
-<img src="images/cache_lat.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
+<img src="images/cache_lat.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
 </p>
 
 Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
@@ -1019,7 +1019,7 @@ Empirical Cumulative Distribution Function (ECDF) shows the entire distribution 
 
 ----
 
-##### Branch effects [prediction]
+##### Branch effects [bad speculation]
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -1082,7 +1082,7 @@ perf plot -t ecdf -e branch-misses -- fizz
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 <p align="left">
-<img src="images/branch_miss.png" style="width: 55%; background:white; border:none; box-shadow:none;" />
+<img src="images/branch_miss.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
@@ -1126,7 +1126,7 @@ perf plot -t ecdf -e cycles -- codegen
 ```
 
 <p align="left">
-<img src="images/codegen_ecdf.png" style="width: 65%; background:white; border:none; box-shadow:none;" />
+<img src="images/codegen_ecdf.png" style="width: 85%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
