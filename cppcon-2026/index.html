@@ -368,31 +368,34 @@ func:
 ```
 perf probe --exec a.out --add func # INT3
 ```
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```sh
 perf record
     --event intel_pt/tsc,cyc=1/u
-    --filter 'filter func @ ./a.out' # in-hardware (region)
+    --filter 'filter func @ ./a.out' # in-hardware
     --pid=$(pidof a.out)
     --mmap-pages 512,4096
   # --snapshot # magic-trace
 ```
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```
 perf script --itrace=i --insn-trace=disasm,intel -F+ipc
 ```
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```
-Instruction          IPC (instructions / cycle)
+Instruction          IPC (instructions/cycle)
 push   rbp           —
 mov    rbp, rsp      —
 sub    rsp, 0x20     1.00
-mov    rax, [rdi]    0.50  ← data miss halves IPC
-imul   rax, rcx      0.33  ← 3-cycle latency chain
+mov    rax, [rdi]    0.50
+imul   rax, rcx      0.33
 add    rdx, rax      —
-leave                1.00
-ret                  —
+...
 ```
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 Requires Intel-PT or ARM ETM (CoreSight)
 <!-- .element: style="text-align:right; font-size:16px;" -->
@@ -408,7 +411,10 @@ echo 'add eax, 42; imul eax, eax, 42' | llvm-mca --mcpu=sapphirerapids --summary
 [1] [2] [3]  [4] [5] [6]   Instructions:
  1   1  0.20               add  eax, 42
  1   3  1.00               imul eax, eax, 42
+```
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
+```asm
 [1]: #uOps    [2]: Latency   [3]: RThroughput
 [4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
@@ -420,13 +426,13 @@ echo 'add eax, 42; imul eax, eax, 42' | llvm-mca --mcpu=sapphirerapids --resourc
 Resource pressure per iteration:
 [0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    [8]    [9]    [10]   [11]   [12]
 0.25   1.00    -      -      -     0.25   0.25    -      -      -      -     0.25    -
-
-Resources:
-[0] SPRPort00   [1] SPRPort01  ...  [N] SPRPortN
-
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
+```asm
+[0] SPRPort00   [1] SPRPort01  ...  [N] SPRPortN
+```
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
 ```
 echo 'add eax, 42; imul eax, eax, 42' | llvm-mca --mcpu=sapphirerapids --timeline -iterations 2
@@ -435,7 +441,10 @@ echo 'add eax, 42; imul eax, eax, 42' | llvm-mca --mcpu=sapphirerapids --timelin
 [0,1]     D=eeeER   .   imul eax, eax, 42
 [1,0]     D====eER  .   add  eax, 42
 [1,1]     D=====eeeER   imul eax, eax, 42
+```
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
+```asm
 D=dispatched, e=executing, E=executed, R=retired
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
@@ -457,7 +466,7 @@ valgrind --tool=callgrind       # 5x-100x overhead
        # --instr-atstart=no     # CALLGRIND_{START,STOP}_INSTRUMENTATION
        -- ./a.out
 ```
-<!-- .element: style="text-align:left; font-size:20px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```cpp
 callgrind_annotate callgrind.out.*
@@ -465,13 +474,20 @@ callgrind_annotate callgrind.out.*
 file:funcion  Ir          I1mr    D1mr    D1mw    Bc         Bcm       Bi       Bim
 a.out:main    1,523,401   12543   3421    1876    382,100    12,430    91,200   3,421
 a.out:func    842,100     6210    1987    921     201,300    6,210     42,100   1,201
-
-Ir   instructions retired  I1mr L1-I miss reads
-D1mr L1-D miss reads       D1mw L1-D miss writes
-Bc   conditional branches  Bcm mispredicted cond branches
-Bi   indirect branches     Bim mispredicted indirect branches
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+```asm
+Ir   — Instructions retired
+I1mr — L1 instruction cache misses
+D1mr — L1 data cache read misses
+D1mw — L1 data cache write misses
+Bc   — Conditional branches
+Bcm  — Mispredicted conditional branches
+Bi   — Indirect branches
+Bim  — Mispredicted indirect branches
+```
+<!-- .element: style="text-align:left; font-size:14px;" -->
 
 ----
 
@@ -546,16 +562,16 @@ What if ...?</code></pre>
 
 ```python
 Machine Code
-  → Symbolic Exploration        # VEX-IR
-      → Data Synthesis          # SMT-solver
-          → Native Execution    # JIT-controlled
+  → Symbolic Exploration              # VEX-IR
+      → Data Synthesis                # SMT-solver
+          → Native Execution          # JIT-controlled
 ```
-<!-- .element: style="text-align:left; font-size:22px;" -->
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 &nbsp;→
 <!-- .element: style="text-align:left; font-size:22px;" -->
 
-```
+```python
 mov eax, [r11]                        # Machine Code (Asm,C++/Rust/Zig/...)
 add eax, [r11+4]
   → {reg: r11}, {mem: [r11]+4}        # Sybmolic Exploration
@@ -1163,7 +1179,7 @@ exec
 <!-- .element: style="text-align:left" -->
 
 ```sh
-perf bench func fizz_buzz --exec a.out -c -o bench.o # see examples/jit.sh
+perf bench func fizz_buzz --exec a.out -c -o bench.o
 ```
 <!-- .element: style="text-align:left; font-size:22px" -->
 
