@@ -370,10 +370,10 @@ perf probe --exec a.out --add func # INT3
 ```
 
 ```sh
-perf record \
-    --event intel_pt/tsc,cyc=1/u \
-    --filter 'filter func @ ./a.out' \
-    --pid=$(pidof a.out) \
+perf record
+    --event intel_pt/tsc,cyc=1/u
+    --filter 'filter func @ ./a.out' # in-hardware (region)
+    --pid=$(pidof a.out)
     --mmap-pages 512,4096
   # --snapshot # magic-trace
 ```
@@ -549,6 +549,7 @@ Machine Code
 <!-- .element: style="text-align:left; font-size:22px;" -->
 
 ```
+[TODO] remove frames use indented → with new line
 ┌──────────────────┐   ┌─────────────────┐   ┌───────────────┐   ┌────────────────┐
 │ mov eax, [r11]   │ → │ {reg: r11}      │ → │ r11 = [0,3,5] │ → │ mmap / jit     │
 │ add eax, [r11+4] │   │ {mem: [r11]+4}  │   │ [r11] = [1,3] │   │ [cache/branch] │
@@ -574,6 +575,7 @@ Machine Code
        if (n % 15 == 0) { return "FizzBuzz"; }
   else if (n % 3  == 0) { return "Fizz";     }
   else if (n % 5  == 0) { return "Buzz";     }
+  TODO return global
   return "Unknown";
 }
 </pre></code>
@@ -635,6 +637,7 @@ machine code → VEX IR → blank state [symbolic regs, memory]
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```asm
+[TODO] remove frames use indented → with new line
 ┌────────────┐   ┌──────────────┐   ┌──────────────────┐   ┌───────────────────┐
 │ fizz_buzz  │ → │ blank_state  │ → │ fork on branch   │ → │ solutions         │
 │ machine    │   │ rdi=symbolic │   │ track            │   │ [state, mem, reg] │
@@ -1140,6 +1143,7 @@ perf plot -t ecdf -e cycles -- codegen
 <!-- .element: style="text-align:left" -->
 
 ```
+[TODO] remove frames use indented → with new line
 ┌──────┐   ┌─────────────────────┐   ┌─────────────┐
 │ ELF  │ → │ mmap (RWX/FIXED)    │ → │ apply       │ →
 │ or   │   │ copy segments [bss] │   │ relocations │
@@ -1177,6 +1181,19 @@ int main() {
 $CXX main.cpp bench.o && ./a.out
 ```
 <!-- .element: style="text-align:left; font-size:22px" -->
+
+----
+
+TODO
+```
+perf record intel_pt -- perf benchmark
+instructions
+perf bench -S --data.rdi=1
+```
+
+```
+DWARF -> data
+```
 
 ----
 
@@ -1649,13 +1666,8 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 
 ----
 
-##### Retiring [scaling]
+##### `libstdc++.so`
 <!-- .element: style="text-align:left" -->
-
-```sh
-$CXX -O3 -shared -fPIC -o sort.so sort.cpp
-```
-<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ```sh
 for n in 1 4 8 16 32 64 128; do
@@ -1699,11 +1711,45 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
 
 ----
 
+#### 'The Best' Possible Execution
+<!-- .element: style="text-align:left" -->
+
+```json
+{
+    "code": {
+        "align": 16,
+    },
+    "func": {
+        "align": 16,
+        "order": "hot",
+    },
+    "cache": {
+        "L1d":  {"hit_rate": 100},
+        "L1i":  {"hit_rate": 100},
+        "L2":   {"hit_rate": 100},
+        "L3":   {"hit_rate": 100},
+        "TLBi": {"hit_rate": 100},
+        "TLBd": {"hit_rate": 100},
+    },
+    "stack": {
+        "align": "aligned"
+    },
+    "branch": "predictable"
+}
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+----
+
 #### 'The Worst' Possible Execution
 <!-- .element: style="text-align:left" -->
 
 ```json
 {
+    "thread" : {
+        "affinity": "",
+        "priority": "lowest",
+    },
     "code": {
         "align": "unaligned",
     },
@@ -1733,7 +1779,7 @@ jitter
 
 ----
 
-#### Example / [Minimal] Perfect Hashing
+#### [Minimal] Perfect Hashing
 <!-- .element: style="text-align:left" -->
 
 <p align="left">
