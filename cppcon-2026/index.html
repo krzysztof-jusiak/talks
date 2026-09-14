@@ -1793,7 +1793,7 @@ jitter
 <!-- .element: style="text-align:left" -->
 
 <p align="left">
-<img src="images/hashing.png" style="width: 55%; background:white; border:none; box-shadow:none;" />
+<img src="images/hashing.png" style="width: 55%; background:white; border:none; box-shadow:none; margin: 0 0;" />
 </p>
 
 ```cpp
@@ -1810,6 +1810,29 @@ https://github.com/qlibs/mph
 ----
 
 ```cpp
+g++     -std=c++26 -O3 -mbmi2 -c mph.cpp -o find_gcc.o
+clang++ -std=c++26 -O3 -mbmi2 -c mph.cpp -o find_clang.o
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+```cpp
+auto find_scan(const string_like auto symbol) noexcept:
+  mov edx, [rcx + rax*8]
+  cmp rdx, rdi
+  jne .Lnext
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+```cpp
+auto find_mph(const string_like auto symbol) noexcept:
+  pext edi, edi, eax
+  mov  eax, [rax + rdi*4]
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+----
+
+```cpp
 constexpr auto symbols = array{
   pair{"AMZN    "sv, 1},
   pair{"AAPL    "sv, 2},
@@ -1821,19 +1844,7 @@ constexpr auto symbols = array{
 };
 ```
 
-```cpp
-auto find(const string_like auto symbol) noexcept;
-```
-
-[TODO] for scan, mp, mph, simd show declaration and a few parts of assembly which are important
-
 ----
-
-```cpp
-g++     -std=c++26 -O3 -mbmi2 -c mph.cpp -o mph_gcc.o
-clang++ -std=c++26 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```python
 import perf
@@ -1847,7 +1858,7 @@ for cxx in ("gcc", "clang"):
         for tag, config in (("best", best), ("read", real), ("worst", worst)):
             perf.bench(
                 name=f"{cxx}-{func}-{tag}"
-                exec=f"mph_{cxx}.o",
+                exec=f"find_{cxx}.o",
                 func=func,
                 mode="latency",
                 event=["cycles", "instructions"],
