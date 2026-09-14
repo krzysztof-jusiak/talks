@@ -400,46 +400,46 @@ Requires Intel-PT or ARM ETM (CoreSight)
 ##### Machine Code Analysis [[llvm-mca](https://llvm.org/docs/commandguide/llvm-mca.html), [uica](https://uica.uops.info), ...]
 <!-- .element: style="text-align:left;" -->
 
-`-summary`
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
 ```
-echo 'add eax, 42; imul eax, eax, 42' | llvm-mca -mcpu=sapphirerapids
-
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+echo 'add eax, 42; imul eax, eax, 42' | llvm-mca --mcpu=sapphirerapids --summary-view
 
 [1] [2] [3]  [4] [5] [6]   Instructions:
  1   1  0.20               add  eax, 42
  1   3  1.00               imul eax, eax, 42
+
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
 ```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-`-resource-pressure`
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-```
-echo 'add eax, 42; imul eax, eax, 42' | llvm-mca -mcpu=sapphirerapids -resource_pressure
-
-per iteration: [0] 0.25 [1] 1.00 [5] 0.25 [6] 0.25 [11] 0.25
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-`-timeline`
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
 ```
-echo 'add eax, 42; imul eax, eax, 42' | llvm-mca -mcpu=sapphirerapids -timeline --iterations=2
+echo 'add eax, 42; imul eax, eax, 42' | llvm-mca --mcpu=sapphirerapids --resource-pressure
+
+Resource pressure per iteration:
+[0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    [8]    [9]    [10]   [11]   [12]
+0.25   1.00    -      -      -     0.25   0.25    -      -      -      -     0.25    -
+
+Resources:
+[0] SPRPort00   [1] SPRPort01  ...  [N] SPRPortN
+
+```
+<!-- .element: style="text-align:left; font-size:15px;" -->
+
+
+```
+echo 'add eax, 42; imul eax, eax, 42' | llvm-mca --mcpu=sapphirerapids --timeline -iterations 2
+
+[0,0]     DeER .    .   add  eax, 42
+[0,1]     D=eeeER   .   imul eax, eax, 42
+[1,0]     D====eER  .   add  eax, 42
+[1,1]     D=====eeeER   imul eax, eax, 42
 
 D=dispatched, e=executing, E=executed, R=retired
-
-[0,0] DeER    add  eax, 42
-[0,1] D=eeeER imul eax, eax, 42
 ```
-<!-- .element: style="text-align:left; font-size:14px;" -->
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
 https://github.com/llvm/llvm-project/tree/main/llvm/lib/Target
-<!-- .element: style="text-align:left; font-size:16px; margin: 0px 0px;" -->
+<!-- .element: style="text-align:left; font-size:15px; margin: 0px 0px;" -->
 
 ----
 
@@ -457,17 +457,12 @@ valgrind --tool=callgrind       # 5x-100x overhead
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
----
-
 ```cpp
 callgrind_annotate callgrind.out.*
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
 
-```asm
-file:funcion  Ir        I1mr  D1mr  D1mw  Bc       Bcm     Bi     Bim
-a.out:main    1,523,401 12543 3421  1876  382,100  12,430  91,200 3,421
-a.out:func    842,100   6210  1987  921  201,300   6,210   42,100 1,201
+file:funcion  Ir          I1mr    D1mr    D1mw    Bc         Bcm       Bi       Bim
+a.out:main    1,523,401   12543   3421    1876    382,100    12,430    91,200   3,421
+a.out:func    842,100     6210    1987    921     201,300    6,210     42,100   1,201
 
 Ir   instructions retired  I1mr L1-I miss reads
 D1mr L1-D miss reads       D1mw L1-D miss writes
@@ -1683,7 +1678,7 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
 <!-- .element: style="text-align:left" -->
 
 <p align="left">
-<img src="images/range2.jpeg" style="width: 40%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+<img src="images/range3.png" style="width: 78%; background:white; border:none; box-shadow:none; margin: 0 0;" />
 </p>
 
 ----
@@ -1768,10 +1763,9 @@ jitter
 </p>
 
 ```cpp
-find (scan - if/else)
-find (map  - hash map)
-find (mph  - pext lookup table)
-...
+find (scan - if/else)  → branch effecs
+find (map  - hash map) → branch/cache effects
+find (mph  - pext + lookup table) → cache effects
 ```
 
 https://github.com/qlibs/mph
@@ -1798,8 +1792,8 @@ auto find(const string_like auto symbol) noexcept;
 ----
 
 ```cpp
-g++     -std=c++20 -O3 -mbmi2 -c mph.cpp -o mph_gcc.o
-clang++ -std=c++20 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
+g++     -std=c++26 -O3 -mbmi2 -c mph.cpp -o mph_gcc.o
+clang++ -std=c++26 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
