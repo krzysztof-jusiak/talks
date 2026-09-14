@@ -1179,8 +1179,7 @@ int main() {
 <!-- .element: style="text-align:left; font-size:22px" -->
 
 ```sh
-$CXX main.cpp bench.o -o a.out -Wl,--allow-multiple-definition && ./a.out
-scp a.out $server: && ssh $server ./a.out
+$CXX main.cpp bench.o -o a.out && ssh $server ./a.out
 ```
 <!-- .element: style="text-align:left; font-size:22px" -->
 
