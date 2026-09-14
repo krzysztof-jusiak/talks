@@ -208,7 +208,7 @@ https://makelinux.github.io/kernel/map
 
 ----
 
-#### Modern CPUs are `primarily` bottlenecked by
+#### Modern CPUs are primarily bottlenecked by
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -770,19 +770,23 @@ perf bench 'imul eax, 42'
     --backend unroll
 ```
 
-```cpp
-        name    mode   stat cycles instructions
-imul eax, 42 latency    min   2.80         1.00
-imul eax, 42 latency    p10   3.00         1.00
-imul eax, 42 latency    p50   3.00         1.00
-imul eax, 42 latency    p90   3.00         1.00
-imul eax, 42 latency    p99   3.00         1.00
-imul eax, 42 latency    max   3.00         1.00
-```
-
-<p align="left">
-<img src="images/imul.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
-</p>
+<table>
+<tr>
+<td>
+<img src="images/imul.png" style="width: 100%; background:none; border:none; box-shadow:none; margin: 0 0;" />
+</td>
+<td>
+<pre style="font-size:20px; margin: 0 0;">stat cycles instructions
+min    2.80         1.00
+p10    3.00         1.00
+p50    3.00         1.00
+p90    3.00         1.00
+p99    3.00         1.00
+max    3.00         1.00
+</pre>
+</td>
+</tr>
+</table>
 
 ----
 
@@ -811,19 +815,25 @@ perf bench asm 'cdq; idiv ecx'
     --backend repeat
 ```
 
-```cpp
-stat cycles instructions
- min  12.00         2.00
- p10  12.00         2.00
- p50  12.00         2.00
- p90  12.00         2.00
- p99  12.00         2.00
- max  12.00         2.00
-```
-
 <p align="left">
-<img src="images/idiv.png" style="width: 80%; background:none; border:none; box-shadow:none;" />
 </p>
+<table>
+<tr>
+<td>
+<img src="images/idiv.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+</td>
+<td>
+<pre style="font-size:20px; margin: 0 0;">stat cycles instructions
+min   12.00         2.00
+p10   12.00         2.00
+p50   12.00         2.00
+90    12.00         2.00
+p99   12.00         2.00
+max   12.00         2.00
+</pre>
+</td>
+</tr>
+</table>
 
 ----
 
