@@ -400,38 +400,46 @@ Requires Intel-PT or ARM ETM (CoreSight)
 ##### Machine Code Analysis [[llvm-mca](https://llvm.org/docs/commandguide/llvm-mca.html), [uica](https://uica.uops.info), ...]
 <!-- .element: style="text-align:left;" -->
 
-```
-llvm-mca -mcpu=sapphirerapids snippet.asm
-```
-
-```cpp
-[TODO] shorter example of 3 mani outputs
-[1] [2] [3]  [4] [5] [6]   Instructions:
- 1   1  0.50               shl  edi, 3
- 2   5  0.50  *            bzhi eax, dword ptr [rsi], edi
- 1   3  1.00               imul eax, eax, 2893426669
- 1   1  0.50               shr  eax, 29
- 1   1  0.50               mov  ecx, 0b001100000010011
- 1   1  0.50               shrx eax, ecx, eax
- 1   1  0.25               and  eax, 0b111
- 1   5  0.50          U    ret
-
-[1]: #uOps    [2]: Latency   [3]: RThroughput
-[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
-```
+`-summary`
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```
-llvm-mca -resource-pressure   # port usage:       [0] 1.50 [1] 0.50 [5] 1.00 ...
-llvm-mca -timeline            # pipeline diagram: D=dispatched, e=executing, E=executed, R=retired
+echo 'add eax, 42; imul eax, eax, 42' | llvm-mca -mcpu=sapphirerapids
+
+[1]: #uOps    [2]: Latency   [3]: RThroughput
+[4]: MayLoad  [5]: MayStore  [6]: HasSideEffects (U)
+
+[1] [2] [3]  [4] [5] [6]   Instructions:
+ 1   1  0.20               add  eax, 42
+ 1   3  1.00               imul eax, eax, 42
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+`-resource-pressure`
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```
+echo 'add eax, 42; imul eax, eax, 42' | llvm-mca -mcpu=sapphirerapids -resource_pressure
+
+per iteration: [0] 0.25 [1] 1.00 [5] 0.25 [6] 0.25 [11] 0.25
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+`-timeline`
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```
+echo 'add eax, 42; imul eax, eax, 42' | llvm-mca -mcpu=sapphirerapids -timeline --iterations=2
+
+D=dispatched, e=executing, E=executed, R=retired
+
+[0,0] DeER    add  eax, 42
+[0,1] D=eeeER imul eax, eax, 42
 ```
 <!-- .element: style="text-align:left; font-size:14px;" -->
 
-Scheduling Models - https://github.com/llvm/llvm-project/tree/main/llvm/lib/Target
-<!-- .element: style="text-align:left; font-size:16px; margin: 5px 0px;" -->
-
-Latency, Throughput, and Port Usage Information - https://uops.info/table.html
-<!-- .element: style="text-align:left; font-size: 16px; margin: 5px 0px;" -->
+https://github.com/llvm/llvm-project/tree/main/llvm/lib/Target
+<!-- .element: style="text-align:left; font-size:16px; margin: 0px 0px;" -->
 
 ----
 
@@ -541,9 +549,9 @@ What if ...?</code></pre>
 
 ```python
 Machine Code
-  → Symbolic Exploration
-      → Data Synthesis
-          → Native Execution
+  → Symbolic Exploration        # VEX-IR
+      → Data Synthesis          # SMT-solver
+          → Native Execution    # JIT-controlled
 ```
 <!-- .element: style="text-align:left; font-size:22px;" -->
 
@@ -1146,7 +1154,7 @@ exec
   → mmap (RWX/FIXED), copy segments [bss]
       → apply relocations
           → randomize layout
-              → [.jitdata] /tmp/perf-PID.map
+              → /tmp/perf-PID.map [.jitdata]
                   → mmap data pages
                       → assembly harness
                           → execute [object]
@@ -1158,21 +1166,21 @@ exec
 <!-- .element: style="text-align:left" -->
 
 ```sh
-perf bench func fizz_buzz --exec a.out -c bench.o
+perf bench func fizz_buzz --exec a.out -c -o bench.o # see examples/jit.sh
 ```
 <!-- .element: style="text-align:left; font-size:22px" -->
 
 ```cpp
-int bench();
+const char* fizz_buzz(int);
 int main() {
-    return bench();
+    return fizz_buzz(15) == nullptr;
 }
 ```
 <!-- .element: style="text-align:left; font-size:22px" -->
 
 ```sh
-[TODO] fix command
-$CXX main.cpp bench.o && ssh $server -c ./a.ou
+$CXX main.cpp bench.o -o a.out -Wl,--allow-multiple-definition && ./a.out
+scp a.out $server: && ssh $server ./a.out
 ```
 <!-- .element: style="text-align:left; font-size:22px" -->
 
@@ -1182,40 +1190,31 @@ $CXX main.cpp bench.o && ssh $server -c ./a.ou
 <!-- .element: style="text-align:left" -->
 
 ```sh
-perf record
-    --event intel_pt/tsc,cyc=1/u
-    --filter 'filter fizz_buzz @ ./fizz'
-    --output pt.data --
-        perf bench func fizz_buzz
-            --exec a.out
-            --mode latency
-            --data.rdi=5
-            --event cycles
+perf record --event intel_pt/tsc,cyc=1/u --filter 'filter fizz_buzz @ ./a.out' --
+    perf bench func fizz_buzz --exec a.out --mode latency --data.rdi=5 --event cycles
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
-[TODO] add example output
-
-perf script -i pt.data --itrace=i --insn-trace=disasm,intel -F+ipc | head -20
-# cross-check: harness asm must match the PT disasm (Buzz path, rdi=5)
-perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=5 -S | head -20
+```asm
+imul eax, edi, 0xeeeeeeef
+lea rdx, [rip + 0xeb3]
+add eax, 0x8888888
+cmp eax, 0x11111110
+jbe .L40119a
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
+
+---
 
 ```sh
-perf record
-    --event mem-loads,mem-stores
-    --output mem.data -- perf bench func process --exec a.out --mode latency --data.arg0=256 -e cycles
-
-perf script -i mem.data -F ip,addr,sym | head -20 # ip -> insn, addr -> data address
-pahole ./a.out # Order { int64_t id; /* +0 */ int64_t qty; /* +8 */ int64_t price; /* +16 */ }
-perf bench func process --exec a.out --mode latency --data.arg0=256 -S | grep -E 'rdi\+(0|8|16)' # [rdi+8] -> qty
+perf mem record -- perf bench func process --exec a.out --mode throughput
+# DWARF
+field.a
+field.b
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-```cpp
-DWARF -> fields
-```
-
-[.jitdata] /tmp/perf-PID.map
+/tmp/perf-PID.map [.jitdata]
 <!-- .element: style="text-align:right; font-size:20px" -->
 
 ----
@@ -1431,8 +1430,8 @@ cdq; idiv ecx; latency   max  12.00
 </tr>
 </table>
 
-https://www.uops.info/instructions.xml
-<!-- .element: style="text-align:left; font-size:16px;" -->
+Latency, Throughput, and Port Usage Information - https://uops.info/{table.html,instructions.xml}
+<!-- .element: style="text-align:left; font-size: 18px; margin: 5px 0px;" -->
 
 ---
 
