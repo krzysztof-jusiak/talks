@@ -956,12 +956,12 @@ https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
 
 ```cpp
 template<Level level>
-auto refresh(const void* addr) {
+auto refresh(const void* addr) {                    // can be optimized for range
     if constexpr (level == Level::L1) {
         load(addr);                                 // L1d
         fence();
     } else if constexpr (level == Level::L2) {
-        flush(addr);                                // RAM
+        flush(addr);                                // DRAM
         fence();
         settle();
         prefetch<Level>(addr);                      // prefetcht1 hint
@@ -969,7 +969,7 @@ auto refresh(const void* addr) {
         load(addr);                                 // L1d
         demote(addr);                               // cldemote hint
     } else {
-        flush(addr);                                // RAM
+        flush(addr);                                // DRAM
         fence();
     }
     settle();
