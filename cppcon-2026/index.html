@@ -1642,13 +1642,15 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 <!-- .element: style="text-align:left" -->
 
 ```sh
-for n in 1 4 8 16 32 64 128; do                                    # sh
+for n in 1 4 8 16 32 64 128; do                                            # sh
   perf bench func std::sort --name sort-$n
     --mode latency
     --exec libstdc++.so
     --data.arg0=0x10000000
     --data.arg1=$n
     --data[0x10000000:]=[$(seq $n -1 1)]
+    --event duration_time
+    --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
     --output sort
 
   perf bench func std::sort --name sort-$n
@@ -1657,10 +1659,12 @@ for n in 1 4 8 16 32 64 128; do                                    # sh
     --data.arg0=0x10000000
     --data.arg1=$n
     --data[0x10000000:]=[$(shuf -i 1-$n)]
+    --event duration_time
+    --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
     --output sort
 done
 ```
-<!-- .element: style="text-align:left; font-size:22px;" -->
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 ----
 
