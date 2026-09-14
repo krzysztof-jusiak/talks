@@ -973,15 +973,15 @@ for addr, size in state["mem_read"] + state["mem_write"]:
 ```
 
 ```jso
-"cache": {
-  "L1d":  {
+"dcache": {
+  "L1":  {
       "default":  {"hit_rate":100},
       "0x32212":  {"hit_rate":50},
       "0x231121": {"hit_rate":25},
       ...
   },
-  "L2d":  {"hit_rate":50},
-  "L3d":  {"hit_rate":100},
+  "L2":  {"hit_rate":50},
+  "L3":  {"hit_rate":100},
 }
 ```
 
@@ -1168,8 +1168,18 @@ $CXX main.cpp bench.o && ./a.out
 `meta-perf`
 
 ```sh
-perf record -e intel_pt/tsc,cyc=1/u --filter 'filter fizz_buzz @ ./fizz'
-            -o pt.data -- perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=5 -e cycles -o fizz_pt
+perf record
+    --event intel_pt/tsc,cyc=1/u
+    --filter 'filter fizz_buzz @ ./fizz'
+    --output pt.data --
+        perf bench func fizz_buzz
+            --exec a.out
+            --mode latency
+            --data.rdi=5
+            --event cycles
+
+[TODO] add example output
+
 perf script -i pt.data --itrace=i --insn-trace=disasm,intel -F+ipc | head -20
 # cross-check: harness asm must match the PT disasm (Buzz path, rdi=5)
 perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=5 -S | head -20
@@ -1177,12 +1187,19 @@ perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=5 -S | head -20
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```sh
-perf record -e mem-loads,mem-stores -o mem.data -- perf bench func process --exec a.out --mode latency --data.arg0=256 -e cycles
+perf record
+    --event mem-loads,mem-stores
+    --output mem.data -- perf bench func process --exec a.out --mode latency --data.arg0=256 -e cycles
+
 perf script -i mem.data -F ip,addr,sym | head -20 # ip -> insn, addr -> data address
 pahole ./a.out # Order { int64_t id; /* +0 */ int64_t qty; /* +8 */ int64_t price; /* +16 */ }
 perf bench func process --exec a.out --mode latency --data.arg0=256 -S | grep -E 'rdi\+(0|8|16)' # [rdi+8] -> qty
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
+
+```cpp
+DWARF -> fields
+```
 
 [.jitdata] /tmp/perf-PID.map
 <!-- .element: style="text-align:right; font-size:34px" -->
@@ -1277,8 +1294,8 @@ perf plot -t ecdf -e cycles -- perf.data
         "default":   {"hit_rate": 100}, # perf.data
       # "0x1321321": {"hit_rate": 50},
     },
-    "L2d":  {"hit_rate": 100},
-    "L3d":  {"hit_rate": 100},
+    "L2": {"hit_rate": 100},
+    "L3": {"hit_rate": 100},
     ...
   }
 }
@@ -1547,10 +1564,10 @@ import perf                                                    # python
 
 for hit_rate in [100, 50, 0]:  # hot → warm → cold
     config = {
-        "cache": {
-          "L1d": {"hit_rate": hit_rate},
-          "L2d": {"hit_rate": 100},
-          "L3d": {"hit_rate": 100}
+        "dcache": {
+          "L1": {"hit_rate": hit_rate},
+          "L2": {"hit_rate": 100},
+          "L3": {"hit_rate": 100}
         },
         "branch": "predictable",
     }
@@ -1712,6 +1729,9 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
         "affinity": "pinned",
         "priority": "highest",
     },
+    "stack": {
+        "align": "aligned"
+    },
     "code": {
         "align": 16,
     },
@@ -1727,13 +1747,10 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
         "TLBi": {"hit_rate": 100},
         "TLBd": {"hit_rate": 100},
     },
-    "stack": {
-        "align": "aligned"
-    },
     "branch": "predictable"
 }
 ```
-<!-- .element: style="text-align:left; font-size:20px;" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -1745,6 +1762,10 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
     "thread" : {
         "affinity": "none",
         "priority": "lowest",
+    },
+    "stack": {
+        "size":  "random",
+        "align": "unaligned"
     },
     "code": {
         "align": "unaligned",
@@ -1761,17 +1782,13 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
         "TLBi": {"hit_rate": 0},
         "TLBd": {"hit_rate": 0},
     },
-    "stack": {
-        "size":  "random",
-        "align": "unaligned"
-    },
     "branch": "unpredictable"
 }
 ```
-<!-- .element: style="text-align:left; font-size:20px;" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 jitter
-<!-- .element: style="text-align:right; font-size:20px;" -->
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
