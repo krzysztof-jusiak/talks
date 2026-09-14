@@ -446,6 +446,7 @@ valgrind --tool=callgrind       # 5x-100x overhead
          --collect-jumps=yes
          --dump-instr=yes
        # --instr-atstart=no     # CALLGRIND_{START,STOP}_INSTRUMENTATION
+       -- ./a.out
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -454,12 +455,12 @@ valgrind --tool=callgrind       # 5x-100x overhead
 ```cpp
 callgrind_annotate callgrind.out.*
 ```
-<!-- .element: style="text-align:left; font-size:20px;" -->
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```asm
 file:funcion  Ir        I1mr  D1mr  D1mw  Bc       Bcm     Bi     Bim
-./a.out:main  1,523,401 12543 3421  1876  382,100  12,430  91,200 3,421
-./a.out:func    842,100  6210 1987   921  201,300   6,210  42,100 1,201
+a.out:main    1,523,401 12543 3421  1876  382,100  12,430  91,200 3,421
+a.out:func    842,100   6210  1987  921  201,300   6,210   42,100 1,201
 
 Ir   instructions retired  I1mr L1-I miss reads
 D1mr L1-D miss reads       D1mw L1-D miss writes
@@ -1679,29 +1680,38 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
 
 ----
 
+#### 'The Best' / 'The Worst' Possible Execution
+<!-- .element: style="text-align:left" -->
+
+<p align="left">
+<img src="images/range2.jpeg" style="width: 35%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+</p>
+
+----
+
 #### 'The Worst' Possible Execution
 <!-- .element: style="text-align:left" -->
 
 ```json
 {
     "code": {
-        "align": "random", # 16
+        "align": "unaligned",
     },
     "func": {
-        "align": "random", # 16
-        "order": "random"  # as-is
+        "align": "unaligned",
+        "order": "cold"
     },
     "cache": {
         "L1d":  {"hit_rate": 0},
-        "L1i":  {"hit_rate": 0}, # 100
+        "L1i":  {"hit_rate": 0},
         "L2":   {"hit_rate": 0},
         "L3":   {"hit_rate": 0},
-        "TLBi": {"hit_rate": 0}, # 100
-        "TLBd": {"hit_rate": 0}, # 100
+        "TLBi": {"hit_rate": 0},
+        "TLBd": {"hit_rate": 0},
     },
     "stack": {
-        "size": "random",
-        "align": "random"
+        "size":  "random",
+        "align": "unaligned"
     },
     "branch": "unpredictable"
 }
@@ -1759,13 +1769,13 @@ clang++ -std=c++20 -O3 -mbmi2 -c mph.cpp -o mph_clang.o
 ```python
 import perf
 
-hot   = {"branch": "predictable",   "cache": "hot"}
+best  = {"branch": "predictable",   "cache": "hot"}
 real  = {"branch": "unpredictable", "cache": "warm"}
 worst = {"branch": "unpredictable", "cache": "cold", "func": {"order": "random"}}
 
 for cxx in ("gcc", "clang"):
-    for func in ("scan_find", "mph_find"):
-        for tag, config in (("hot", hot), ("read", real), ("worst", worst)):
+    for func in ("scan", "map", "mph"):
+        for tag, config in (("best", best), ("read", real), ("worst", worst)):
             perf.bench(
                 name=f"{cxx}-{func}-{tag}"
                 exec=f"mph_{cxx}.o",
