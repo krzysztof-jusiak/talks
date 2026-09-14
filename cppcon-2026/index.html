@@ -575,7 +575,7 @@ Machine Code
        if (n % 15 == 0) { return "FizzBuzz"; }
   else if (n % 3  == 0) { return "Fizz";     }
   else if (n % 5  == 0) { return "Buzz";     }
-  TODO return global
+  [TODO] return global value instead that will have a state
   return "Unknown";
 }
 </pre></code>
@@ -1716,6 +1716,10 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
 
 ```json
 {
+    "thread" : {
+        "affinity": "pinned",
+        "priority": "highest",
+    },
     "code": {
         "align": 16,
     },
@@ -1724,8 +1728,8 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
         "order": "hot",
     },
     "cache": {
-        "L1d":  {"hit_rate": 100},
         "L1i":  {"hit_rate": 100},
+        "L1d":  {"hit_rate": 100},
         "L2":   {"hit_rate": 100},
         "L3":   {"hit_rate": 100},
         "TLBi": {"hit_rate": 100},
@@ -1747,7 +1751,7 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
 ```json
 {
     "thread" : {
-        "affinity": "",
+        "affinity": "none",
         "priority": "lowest",
     },
     "code": {
@@ -1758,8 +1762,8 @@ perf plot -g '' -t scatter -x data.arg1 -- sort
         "order": "cold"
     },
     "cache": {
-        "L1d":  {"hit_rate": 0},
         "L1i":  {"hit_rate": 0},
+        "L1d":  {"hit_rate": 0},
         "L2":   {"hit_rate": 0},
         "L3":   {"hit_rate": 0},
         "TLBi": {"hit_rate": 0},
