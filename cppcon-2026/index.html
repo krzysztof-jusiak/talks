@@ -570,12 +570,12 @@ add eax, [r11+4]
 <table>
 <tr>
 <td><pre style="font-size:19px;"><code>
-const char* unknown = "Unknown";
+const auto unknown = "Unknown";
 [[gnu::optimize("O3")]] auto fizz_buzz(int n) {
        if (n % 15 == 0) { return "FizzBuzz"; }
   else if (n % 3  == 0) { return "Fizz";     }
   else if (n % 5  == 0) { return "Buzz";     }
-  return unknown; // global load -> symbolic mem_read
+  return unknown; // global
 }
 </pre></code>
 <pre><code>n % 15 -> FizzBuzz
@@ -629,19 +629,12 @@ def explore(project, start, end):                                      # python
 ---
 
 ```asm
-machine code → VEX IR → blank state [symbolic regs, memory]
-    → step basic blocks [fork at each branch]
-        → solution [found, active, deadended]
+machine code → VEX IR
+  → blank state [symbolic registers, memory loads, writes]
+      → step basic blocks [fork at each branch]
+          → solution [found, active, deadended]
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
-
-```asm
-fizz_buzz machine code
-  → blank_state rdi=symbolic
-      → fork on branch, track mem_{load,store}
-          → solutions [state, mem, reg]
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -654,12 +647,39 @@ explore(project, fizz_buzz, fizz_buzz+size)
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```asm
-{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []} # n % 15 == 0 -> FizzBuzz
-{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []} # n % 3 == 0  -> Fizz
-{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []} # n % 5 == 0  -> Buzz
-{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [(0x404028, 8)], 'mem_write': []} # else -> unknown global load
+# n % 15 == 0 -> FizzBuzz
+{
+    'state': <SimState @ 0x40119d>,
+    'reg': {'rdi': <BV64 rdi_12_64>},
+    'mem_read': [],
+    'mem_write': []
+}
+
+# n % 3 == 0  -> Fizz
+{
+    'state': <SimState @ 0x40119d>,
+    'reg': {'rdi': <BV64 rdi_12_64>},
+    'mem_read': [],
+    'mem_write': []
+}
+
+# n % 5 == 0  -> Buzz
+{
+    'state': <SimState @ 0x40119d>,
+    'reg': {'rdi': <BV64 rdi_12_64>},
+    'mem_read': [],
+    'mem_write': []
+}
+
+# else -> &unknown
+{
+    'state': <SimState @ 0x40119d>,
+    'reg': {'rdi': <BV64 rdi_12_64>},
+    'mem_read': [(0x404028, 8)],
+    'mem_write': []
+}
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+<!-- .element: style="text-align:left; font-size:13px;" -->
 
 https://docs.angr.io/en/latest/core-concepts/symbolic.html
 <!-- .element: style="text-align:left; font-size:20px;" -->
@@ -738,29 +758,16 @@ rdi: 1,  2,  4 // else
 ##### Latency [backend:unroll]
 <!-- .element: style="text-align:left" -->
 
-`unroll - (2N × code - N × code) / N`
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
 ```
-imul eax, 42             imul eax, 42
-imul eax, 42             imul eax, 42
-imul eax, 42             imul eax, 42
+# unroll - (2N × code - N × code) / N
 imul eax, 42             imul eax, 42
 imul eax, 42      -      imul eax, 42
-imul eax, 42             imul eax, 42
-imul eax, 42
-imul eax, 42
 imul eax, 42
 imul eax, 42
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
-https://github.com/andreas-abel/nanoBench
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-[Note] Branch-prediction
-<!-- .element: style="text-align:right; font-size:16px;" -->
-
-----
+---
 
 ```cpp
 perf bench 'imul eax, 42'
@@ -768,6 +775,7 @@ perf bench 'imul eax, 42'
     --event cycles,instructions
     --backend unroll
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 <table>
 <tr>
@@ -787,16 +795,19 @@ max    3.00         1.00
 </tr>
 </table>
 
+https://github.com/andreas-abel/nanoBench
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+[Note] Branch-prediction
+<!-- .element: style="text-align:right; font-size:16px;" -->
+
 ----
 
 ##### Latency [backend:loop]
 <!-- .element: style="text-align:left" -->
 
-`loop - subtract overhead`
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-```cpp
-loop: one snippet per iteration (subtract overhead)
+```
+# loop - subtract overhead (per iteration)
 loop:             loop:
   {start}           {start}
   {code}       -
@@ -804,8 +815,9 @@ loop:             loop:
   dec <reg>         dec <reg>
   jnz loop          jnz loop
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
-----
+---
 
 ```cpp
 perf bench asm 'cdq; idiv ecx'
@@ -813,6 +825,7 @@ perf bench asm 'cdq; idiv ecx'
     --event cycles,instructions
     --backend repeat
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 <p align="left">
 </p>
@@ -955,7 +968,7 @@ CLDEMOTE    Hint into more distant level (Sapphire Rapids / Xeon, ...)
 
 ----
 
-##### Cache effects [mem_read,mem_write]
+##### Cache effects [mem_load, mem_store]
 <!-- .element: style="text-align:left" -->
 
 ```python
@@ -964,13 +977,6 @@ for addr, size in state["mem_read"] + state["mem_write"]:
 ```
 
 ---
-
-```
-┌──────────────────┐   ┌────────────────┐   ┌────────┐
-│ track            │ → │ refresh        │ → │ settle │
-│ mem_{load,store} │   │ level, address │   └────────┘
-└──────────────────┘   └────────────────┘
-```
 
 ```jso
 "cache": {
