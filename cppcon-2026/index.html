@@ -1048,15 +1048,6 @@ for solution in solutions: # per iteration
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-```
-┌─────────────┐   ┌────────────────┐   ┌───────────────┐   ┌────────────────┐
-│ solutions   │ → │ config.branch  │ → │ data synthesis│ → │ native execute │
-│ per-path    │   │ predictable /  │   │ pinned vs     │   │ mmap / jit     │
-│ constraints │   │ unpredictable  │   │ shuffled      │   │ [cache/branch] │
-└─────────────┘   └────────────────┘   └───────────────┘   └────────────────┘
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
 ----
 
 ##### Branch effects
