@@ -973,8 +973,8 @@ for addr, size in state["mem_read"] + state["mem_write"]:
 ```
 
 ```jso
-"dcache": {
-  "L1":  {
+"cache": {
+  "L1d":  {
       "default":  {"hit_rate":100},
       "0x32212":  {"hit_rate":50},
       "0x231121": {"hit_rate":25},
@@ -1564,10 +1564,10 @@ import perf                                                    # python
 
 for hit_rate in [100, 50, 0]:  # hot → warm → cold
     config = {
-        "dcache": {
-          "L1": {"hit_rate": hit_rate},
-          "L2": {"hit_rate": 100},
-          "L3": {"hit_rate": 100}
+        "cache": {
+          "L1d": {"hit_rate": hit_rate},
+          "L2d": {"hit_rate": 100},
+          "L3d": {"hit_rate": 100}
         },
         "branch": "predictable",
     }
