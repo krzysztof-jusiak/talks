@@ -549,12 +549,11 @@ Machine Code
 <!-- .element: style="text-align:left; font-size:22px;" -->
 
 ```
-[TODO] remove frames use indented → with new line
-┌──────────────────┐   ┌─────────────────┐   ┌───────────────┐   ┌────────────────┐
-│ mov eax, [r11]   │ → │ {reg: r11}      │ → │ r11 = [0,3,5] │ → │ mmap / jit     │
-│ add eax, [r11+4] │   │ {mem: [r11]+4}  │   │ [r11] = [1,3] │   │ [cache/branch] │
-└──────────────────┘   └─────────────────┘   └───────────────┘   └────────────────┘
- asm/cpp/rust/zig/...   exploration           data synthesis      native execution
+mov eax, [r11]   # asm/cpp/rust/zig/...
+add eax, [r11+4]
+  → {reg: r11}, {mem: [r11]+4}        # exploration
+      → r11 = [0,3,5], [r11] = [1,3]  # data synthesis
+          → mmap / jit [cache/branch] # native execution
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
@@ -571,12 +570,12 @@ Machine Code
 <table>
 <tr>
 <td><pre style="font-size:19px;"><code>
+const char* unknown = "Unknown";
 [[gnu::optimize("O3")]] auto fizz_buzz(int n) {
        if (n % 15 == 0) { return "FizzBuzz"; }
   else if (n % 3  == 0) { return "Fizz";     }
   else if (n % 5  == 0) { return "Buzz";     }
-  [TODO] return global value instead that will have a state
-  return "Unknown";
+  return unknown; // global load -> symbolic mem_read
 }
 </pre></code>
 <pre><code>n % 15 -> FizzBuzz
@@ -597,7 +596,7 @@ n % 5  -> Buzz
   jbe     .L1
   imul    edi, edi, -858993459
   mov     edx, OFFSET FLAT:.LC2
-  mov     eax, OFFSET FLAT:.LC3
+  mov     rax, QWORD PTR unknown[rip] # global load
   add     edi, 429496729
   cmp     edi, 858993459
   cmovnb  rdx, rax
@@ -637,12 +636,10 @@ machine code → VEX IR → blank state [symbolic regs, memory]
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```asm
-[TODO] remove frames use indented → with new line
-┌────────────┐   ┌──────────────┐   ┌──────────────────┐   ┌───────────────────┐
-│ fizz_buzz  │ → │ blank_state  │ → │ fork on branch   │ → │ solutions         │
-│ machine    │   │ rdi=symbolic │   │ track            │   │ [state, mem, reg] │
-│ code       │   │              │   │ mem_{load,store} │   │                   │
-└────────────┘   └──────────────┘   └──────────────────┘   └───────────────────┘
+fizz_buzz machine code
+  → blank_state rdi=symbolic
+      → fork on branch, track mem_{load,store}
+          → solutions [state, mem, reg]
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -657,11 +654,10 @@ explore(project, fizz_buzz, fizz_buzz+size)
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```asm
-[TODO] there should be memory read with unknown 
-{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
-{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
-{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
-{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
+{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []} # n % 15 == 0 -> FizzBuzz
+{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []} # n % 3 == 0  -> Fizz
+{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []} # n % 5 == 0  -> Buzz
+{'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [(0x404028, 8)], 'mem_write': []} # else -> unknown global load
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1143,20 +1139,14 @@ perf plot -t ecdf -e cycles -- codegen
 <!-- .element: style="text-align:left" -->
 
 ```
-[TODO] remove frames use indented → with new line
-┌──────┐   ┌─────────────────────┐   ┌─────────────┐
-│ ELF  │ → │ mmap (RWX/FIXED)    │ → │ apply       │ →
-│ or   │   │ copy segments [bss] │   │ relocations │
-│ asm  │   │ (bss)               │   │             │
-└──────┘   └─────────────────────┘   └─────────────┘
-   ┌────────────┐   ┌───────────────────┐
-   │ randomize  │ → │ [.jitdata]        │ →
-   │ layout     │   │ /tmp/perf-PID.map │
-   └────────────┘   └───────────────────┘
-┌────────────┐   ┌───────────┐   ┌──────────┐
-│ mmap       │ → │ assembly  │ → │ execute  │
-│ data pages │   │ harness   │   │ [object] │
-└────────────┘   └───────────┘   └──────────┘
+ELF or asm
+  → mmap (RWX/FIXED), copy segments [bss]
+      → apply relocations
+          → randomize layout
+              → [.jitdata] /tmp/perf-PID.map
+                  → mmap data pages
+                      → assembly harness
+                          → execute [object]
 ```
 
 ----
@@ -1186,13 +1176,22 @@ $CXX main.cpp bench.o && ./a.out
 
 `meta-perf`
 
+```sh
+perf record -e intel_pt/tsc,cyc=1/u --filter 'filter fizz_buzz @ ./fizz'
+            -o pt.data -- perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=5 -e cycles -o fizz_pt
+perf script -i pt.data --itrace=i --insn-trace=disasm,intel -F+ipc | head -20
+# cross-check: harness asm must match the PT disasm (Buzz path, rdi=5)
+perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=5 -S | head -20
 ```
-[TODO] command to execute perf record intel pt -- perf bench to collect instructions, also add follow-up example with bench -S to match intel pt results (use fizz_buzz with --data.rdi=5)
-```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
+```sh
+perf record -e mem-loads,mem-stores -o mem.data -- perf bench func process --exec a.out --mode latency --data.arg0=256 -e cycles
+perf script -i mem.data -F ip,addr,sym | head -20 # ip -> insn, addr -> data address
+pahole ./a.out # Order { int64_t id; /* +0 */ int64_t qty; /* +8 */ int64_t price; /* +16 */ }
+perf bench func process --exec a.out --mode latency --data.arg0=256 -S | grep -E 'rdi\+(0|8|16)' # [rdi+8] -> qty
 ```
-[TODO] use perf recored mem_load, mem_stores -- perf bench and show how use that to get struct fields by combing DWARF and instructinos
-```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 [.jitdata] /tmp/perf-PID.map
 <!-- .element: style="text-align:right; font-size:34px" -->
