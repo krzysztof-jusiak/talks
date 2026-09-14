@@ -57,7 +57,7 @@ Powered by linux-perf + perf-labs/perf
 ```
 
 <p align="left">
-<img src="images/cpu_fpga_gpu_tpu.jpg" style="width: 49%; background:none; border:none; box-shadow:none;" />
+<img src="images/cpu_fpga_gpu_tpu.jpg" style="width: 49%; background:none; border:none; box-shadow:none; margin: 0px 0px;" />
 </p>
 
 ##### - Intel - https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
@@ -67,6 +67,8 @@ Powered by linux-perf + perf-labs/perf
 ##### - ARM - https://developer.arm.com/documentation/ddi0487/latest
 <!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
 ##### - Apple - https://developer.apple.com/documentation/apple-silicon/cpu-optimization-guide
+<!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
+##### - Software Optimization Resources - https://www.agner.org/optimize
 <!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
 
 ---
@@ -1237,8 +1239,6 @@ b.attach_uprobe(name="./a.out", sym="fizz_buzz", fn_name="trace")
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
----
-
 ```asm
 {
     "fizz_buzz": 15,
@@ -1649,9 +1649,14 @@ for n in 1 4 8 16 32 64 128; do                                            # sh
     --data.arg0=0x10000000
     --data.arg1=$n
     --data[0x10000000:]=[$(seq $n -1 1)]
-    --event duration_time
+    --event cycles,instrucions
     --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
     --output sort
+
+    --config.branch=predictable
+    --config.branch=unpredictable
+    --config.cache=hot
+    --config.cache=cold
 
   perf bench func std::sort --name sort-$n
     --mode latency
@@ -1659,7 +1664,7 @@ for n in 1 4 8 16 32 64 128; do                                            # sh
     --data.arg0=0x10000000
     --data.arg1=$n
     --data[0x10000000:]=[$(shuf -i 1-$n)]
-    --event duration_time
+    --event cycles,instrucions
     --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
     --output sort
 done
@@ -1767,9 +1772,11 @@ jitter
 </p>
 
 ```cpp
-find (scan - if/else)  → branch effecs
-find (map  - hash map) → branch/cache effects
-find (mph  - pext + lookup table) → cache effects
+find (scan  - if/else)  → branch effecs
+find (map   - hash map) → branch/cache effects
+find (ph    - pext + cmov + lookup table) → cache effects
+find (mph   - hash table in a register)
+find (simd  - N at the same time)
 ```
 
 https://github.com/qlibs/mph
@@ -1792,6 +1799,9 @@ constexpr auto symbols = array{
 ```cpp
 auto find(const string_like auto symbol) noexcept;
 ```
+
+TODO assembly
+-- always compare assemlby
 
 ----
 
@@ -1875,6 +1885,8 @@ https://jupyter.org
 ##### - ARM - https://developer.arm.com/documentation/ddi0487/latest
 <!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
 ##### - Apple - https://developer.apple.com/documentation/apple-silicon/cpu-optimization-guide
+<!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
+##### - Software Optimization Resources - https://www.agner.org/optimize
 <!-- .element: style="text-align:left; margin: 5px 0; font-size:22px" -->
 
 ```asm
