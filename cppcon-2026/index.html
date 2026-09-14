@@ -656,8 +656,8 @@ explore(project, fizz_buzz, fizz_buzz+size)
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
-
 ```asm
+[TODO] there should be memory read with unknown 
 {'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
 {'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
 {'state': <SimState @ 0x40119d>, 'reg': {'rdi': <BV64 rdi_12_64>}, 'mem_read': [], 'mem_write': []}
@@ -1184,16 +1184,18 @@ $CXX main.cpp bench.o && ./a.out
 
 ----
 
-TODO
+`meta-perf`
+
 ```
-perf record intel_pt -- perf benchmark
-instructions
-perf bench -S --data.rdi=1
+[TODO] command to execute perf record intel pt -- perf bench to collect instructions, also add follow-up example with bench -S to match intel pt results (use fizz_buzz with --data.rdi=5)
 ```
 
 ```
-DWARF -> data
+[TODO] use perf recored mem_load, mem_stores -- perf bench and show how use that to get struct fields by combing DWARF and instructinos
 ```
+
+[.jitdata] /tmp/perf-PID.map
+<!-- .element: style="text-align:right; font-size:34px" -->
 
 ----
 
