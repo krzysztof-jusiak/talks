@@ -151,22 +151,22 @@ Does it matter, and if so, why and how much?
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-code                       asm                  encoding            address
+code                       asm                  address encoding
 
-void unused(int);                                                    401080  // layout (.text)
+void unused(int);                               401080                       // layout (.text)
 
-void func(int value) {     push rbp             55                   401100  // align (16b), icache
-  int var = ...;           mov rbp,rsp          48 89 e5             401101  // stack (frame)
-  for (...) {              nop                  66 0f 1f 44 00 00    401104  // alignment
-    int i = table[value];  mov eax,[rdi*4+0x20] 8B 04 BD 00 20 40 00 40110a  // dcache
-    if (i == var) {        cmp eax,ecx          39 c8                401111
-      ...                  je 0x40111d          74 08                401113  // branch predictor
-  }                        pop rbp              5d                   401115  // stack (unwind)
-}                          ret                  c3                   401116
+void func(int value) {     push rbp             401100  55                   // align (16b), icache
+  int var = ...;           mov rbp,rsp          401101  48 89 e5             // stack (frame)
+  for (...) {              nop                  401104  66 0f 1f 44 00 00    // alignment
+    int i = table[value];  mov eax,[rdi*4+0x20] 40110a  8B 04 BD 00 20 40 00 // dcache
+    if (i == var) {        cmp eax,ecx          401111  39 c8
+      ...                  je 0x40111d          401113  74 08                // branch predictor
+  }                        pop rbp              401115  5d                   // stack (unwind)
+}                          ret                  401116  c3
 
-table:                                                               402000  // layout (.rodata)
- .long 42                                       20 00 00 00          402000
- .long 123                                      41 01 00 00          402004
+table:                                          402000                       // layout (.rodata)
+ .long 42                                       402000  20 00 00 00
+ .long 123                                      402004  41 01 00 00
                               ...
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
@@ -329,7 +329,7 @@ main;render 7
 ```
 <!-- .element: style="text-align:left; font-size:10px;" -->
 
-<img src="images/flamegraph.png" style="width: 100%; background:none; border:none; box-shadow:none; margin: 0px 0px;" />
+<img src="images/flamegraph.png" style="width: 100%; background:none; border:none; box-shadow:none; margin: 0 0;" />
 
 https://github.com/brendangregg/FlameGraph
 <!-- .element: style="text-align:left; font-size:16px;" -->
@@ -412,11 +412,14 @@ func:
   </td>
 </tr>
 </table>
-
 <!-- .element: style="text-align:left; font-size:14px;" -->
+
 <p align="left">
-<img src="images/metrics.png" style="width: 100%; height: 300px; background:white; border:none; box-shadow:none;" />
+<img src="images/metrics.png" style="width: 100%; height: 300px; background:white; border:none; box-shadow:none; margin: 0 0;" />
 </p>
+
+https://llvm.org/docs/XRay.html
+<!-- .element: style="text-align:left; font-size:14px;" -->
 
 ----
 
@@ -455,6 +458,9 @@ imul   rax, rcx      0.33
 add    rdx, rax      —
 ...
 ```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+https://perfwiki.github.io/main/perf-tools-support-for-intel-processor-trace
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
 Requires Intel-PT or ARM ETM (CoreSight)
@@ -514,6 +520,9 @@ D=dispatched, e=executing, E=executed, R=retired
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
+https://uops.info/table.html
+<!-- .element: style="text-align:left; font-size: 18px;" -->
+
 ----
 
 ##### Simulation [[callgrind](https://valgrind.org/docs/manual/cl-manual.html), [gem5](https://www.gem5.org), ...]
@@ -552,6 +561,9 @@ Bi   — Indirect branches
 Bim  — Mispredicted indirect branches
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
+
+https://valgrind.org/docs/manual/cl-manual.html
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
 ----
 
@@ -602,6 +614,7 @@ What if ...?</code></pre>
 </td>
 </tr>
 </table>
+<!-- .element: class="fragment" -->
 
 <table>
 <tr>
@@ -693,7 +706,7 @@ bench:
 
 ----
 
-##### `latency / unroll`
+##### `Latency vs Throughput`
 <!-- .element: style="text-align:left" -->
 
 ```
@@ -704,29 +717,6 @@ imul eax, 42
 imul eax, 42
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
-
-```cpp
-perf bench asm 'imul eax, 42'
-    --mode latency
-    --event cycles,instructions
-    --backend unroll
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
-<p align="left">
-<img src="images/imul.png" style="width: 60%; background:none; border:none; box-shadow:none; margin: 0 0;" />
-</p>
-
-https://github.com/andreas-abel/nanoBench
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-Branch?
-<!-- .element: style="text-align:right; font-size:16px;" -->
-
-----
-
-##### `latency / loop`
-<!-- .element: style="text-align:left" -->
 
 ```
 # loop - subtract overhead (per iteration)
@@ -739,99 +729,29 @@ loop:             loop:
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
----
-
-```cpp
-perf bench asm 'cdq; idiv ecx'
-    --mode latency
-    --event cycles,instructions
-    --backend loop
+```
+loop:             loop:
+  {start}           {start}
+  {code}       -
+  {stop}            {stop}
+  dec <reg>         dec <reg>
+  jnz loop          jnz loop
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
-<p align="left">
-</p>
-<table>
-<tr>
-<td>
-<img src="images/idiv.png" style="width: 100%; background:none; border:none; box-shadow:none; margin: 0 0;" />
-</td>
-<td>
-<pre style="font-size:20px; margin: 0 0;">stat cycles instructions
-min   12.00         2.00
-p10   12.00         2.00
-p50   12.00         2.00
-90    12.00         2.00
-p99   12.00         2.00
-max   12.00         2.00
-</pre>
-</td>
-</tr>
-</table>
+https://github.com/andreas-abel/nanoBench
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
-
-
-##### `latency`
-<!-- .element: style="text-align:left" -->
-
-```cpp
-perf bench asm 'imul eax, 42' --mode latency --event cycles,instructions --backend unroll
-```
-<!-- .element: style="text-align:left; font-size:17px;" -->
-
-```
-# unroll - (2N × code - N × code) / N
-imul eax, 42             imul eax, 42
-imul eax, 42      -      imul eax, 42
-imul eax, 42
-imul eax, 42
-```
-<!-- .element: style="text-align:left; font-size:17px;" -->
-
-<div style="margin: 50px 0px;" />
-
-```cpp
-perf bench asm 'cdq; idiv ecx' --mode latency --event cycles,instructions --backend loop
-```
-<!-- .element: style="text-align:left; font-size:17px;" -->
-
-```
-# loop - subtract overhead
-loop:             loop:
-  {start}           {start}
-  {code}       -
-  {stop}            {stop}
-  dec <reg>         dec <reg>
-  jnz loop          jnz loop
-```
-<!-- .element: style="text-align:left; font-size:17px;" -->
 
 ----
-
-##### `throughput`
-<!-- .element: style="text-align:left" -->
-
-```cpp
-perf bench asm 'imul eax, 42;' --mode throughput --event cycles,instructions
-```
-<!-- .element: style="text-align:left; font-size:17px;" -->
-
-```
-loop:             loop:
-  {start}           {start}
-  {code}       -
-  {stop}            {stop}
-  dec <reg>         dec <reg>
-  jnz loop          jnz loop
-```
-
-----
-
 
 #### `Symbolic Exploration`
 <!-- .element: style="text-align:left" -->
 
 ----
+
+##### `Explore`
+<!-- .element: style="text-align:left" -->
 
 <table>
 <tr>
@@ -878,7 +798,7 @@ n % 5  -> Buzz
 ```python
 def explore(project, start, end):                                      # python
     state = project.factory.blank_state(addr=start)
-    setup(state) # known data
+    # state.solver.add(rdi <= 5 and rdi > 100)
 
     state.inspect.b("mem_read",  when=angr.BP_AFTER, action=on_mem_read)
     state.inspect.b("mem_write", when=angr.BP_AFTER, action=on_mem_write)
@@ -982,14 +902,8 @@ Problem-space reduction?
 
 ----
 
-##### `branch`
+##### `setup data`
 <!-- .element: style="text-align:left" -->
-
-```cpp
-je 0x40111d
-```
-
-----
 
 ```python
 for solution in solutions: # per iteration
@@ -1020,46 +934,8 @@ data.rdi=[11,2,3,32]  # read (trace.data)
 
 ----
 
-#### `Native Execution`
-<!-- .element: style="text-align:left" -->
-
-----
-
-##### `JIT Code Generation`
-<!-- .element: style="text-align:left" -->
-
----
-
-```
-asm
-  → [mmap data]
-      → [cache eviction]
-          → benchmarking harness
-              → execute
-```
-<!-- .element: class="fragment" -->
-
-```
-exec
-  → [mmap process]
-      → [apply relocations]
-          → [randomize layout]
-              → [/tmp/perf-PID.{map,dump}]
-                  → [mmap data]
-                      → [cache eviction]
-                          → benchmarking harness
-                              → execute
-```
-<!-- .element: class="fragment" -->
-
-----
-
 #### `cache eviction`
 <!-- .element: style="text-align:left;" -->
-
-```cpp
-add r11, [rax]
-```
 
 https://www.akkadia.org/drepper/cpumemory.pdf
 <!-- .element: style="text-align:left; font-size:22px;" -->
@@ -1067,8 +943,9 @@ https://www.akkadia.org/drepper/cpumemory.pdf
 ----
 
 ```python
-for addr, size in state["mem_read"] + state["mem_write"]:
-    refresh(level, addr)
+setup:
+    for addr in cache_lines(state["mem_read"] + state["mem_write"]):
+        refresh(level, addr)
 ```
 
 ```asm
@@ -1106,49 +983,33 @@ https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.h
 
 ----
 
-```cpp
-perf bench asm 'add r11, [rax]'           perf bench asm 'add r11, [rax]'
-    --mode latency                            --mode latency
-    --event cycles                            --event cycles
-    --config.cache.L1d=hit_rate:100           --config.cache.L1d=hit_rate:0
-    --name add-hot                            --name add-cold
-    --output cache                            --output cache
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-```cpp
-perf plot -t ecdf -e cycles -- cache
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-<p align="left">
-<img src="images/cache_lat.png" style="width: 90%; background:white; border:none; box-shadow:none; margin: 0 0;" />
-</p>
-
-Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
-<!-- .element: style="text-align:right; font-size:14px;" -->
-
-<div style="margin: 50px 0px;" />
-
-```asm
-[TODO] provide more accurate example base on the code
-mov eax, [r11]
-cflushopt
-lfence
-cldemote [r11]
-pause
-pause
-```
-<!-- .element: style="text-align:left; font-size:15px;" -->
+#### `Native Execution`
+<!-- .element: style="text-align:left" -->
 
 ----
 
+```cpp
+asm
+  → setup data
+      → cache eviction
+          → benchmarking harness
+              → execute
+```
 
-##### `layout`
-<!-- .element: style="text-align:left" -->
+```cpp
+func/region
+  → setup process
+      → apply relocations
+          → randomize layout
+              → /tmp/perf-PID.{map,dump}
+                  → setup data
+                      → cache eviction
+                          → benchmarking harness
+                              → execute
+```
 
-perf bench asm '.align 7; .loop "
-perf bench asm '.align 16; "
+https://github.com/perf-labs/perf.git
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
 
@@ -1160,8 +1021,6 @@ perf bench asm '.align 16; "
 ##### `cpu-info`
 <!-- .element: style="text-align:left" -->
 
-----
-
 ```
 lstopo
 ```
@@ -1171,46 +1030,22 @@ lstopo
 </p>
 <!-- .element: style="text-align:left;font-size:14px" -->
 
-----
-
-```
-perf info cpu -c cpu,numa,arch,model,family,stepping,freq,L1i,L1d,L2,L3
-```
-<!-- .element: style="text-align:left;font-size:20px" -->
-
-```sh
-cpu  numa  arch    model  family  stepping  freq    L1i   L1d   L2      L3
-  0     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  1     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  2     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  3     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  4     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  5     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  6     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
-  7     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
-  8     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
-  9     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
-```
-<!-- .element: style="text-align:left;font-size:18px" -->
-
 ##### https://en.wikichip.org / cpuid{family:6, model:154, stepping:3}
 <!-- .element: style="text-align:left;font-size:20px" -->
 
 ----
 
+##### `cpu-info`
+<!-- .element: style="text-align:left" -->
+
 ```cpp
 def AlderlakePModel : SchedMachineModel {
-  // Alderlake-P core can allocate 6 uops per cycle.
-  let IssueWidth = 6; // Based on allocator width.
-  let MicroOpBufferSize = 512; // Based on the reorder buffer.
+  let IssueWidth = 6;
+  let MicroOpBufferSize = 512;
   let LoadLatency = 5;
   let MispredictPenalty = 14;
-
-  // Latency for microcoded instructions or instructions without latency info.
-  int MaxLatency = 100;
-
-  // Based on the LSD (loop-stream detector) queue size (ST).
   let LoopMicroOpBufferSize = 72;
+  ...
 }
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
@@ -1219,9 +1054,6 @@ https://github.com/llvm/llvm-project/tree/main/llvm/lib/Target
 <!-- .element: style="text-align:left; font-size: 18px; margin: 5px 0px;" -->
 
 https://github.com/gcc-mirror/gcc/tree/master/gcc/config
-<!-- .element: style="text-align:left; font-size: 18px; margin: 5px 0px;" -->
-
-https://uops.info/table.html
 <!-- .element: style="text-align:left; font-size: 18px; margin: 5px 0px;" -->
 
 ----
@@ -1243,6 +1075,11 @@ perf bench asm 'rdtsc' --mode latency | perf plot -t box
 ----
 
 ##### `sanity checks`
+<!-- .element: style="text-align:left" -->
+
+----
+
+###### `Instruction latency`
 <!-- .element: style="text-align:left" -->
 
 ```cpp
@@ -1287,14 +1124,128 @@ perf bench asm 'imul eax, 0;cdq; idiv ecx;' -S | llvm-mca
 ```
 <!-- .element: style="text-align:left; font-size: 15px;" -->
 
-----
-
-#### `Real-data distrubutions`
-<!-- .element: style="text-align:left; font-size:34px" -->
+https://llvm.org/docs/CommandGuide/llvm-exegesis.html
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
 ----
 
-##### `trace.data`
+###### `Cache eviction`
+<!-- .element: style="text-align:left" -->
+
+```cpp
+perf bench asm 'add r11, [rax]'           perf bench asm 'add r11, [rax]'
+    --mode latency                            --mode latency
+    --event cycles                            --event cycles
+    --config.cache.L1d=hit_rate:100           --config.cache.L1d=hit_rate:0
+    --name add-hot                            --name add-cold
+    --output cache                            --output cache
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+```cpp
+perf plot -t ecdf -e cycles -- cache
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+<p align="left">
+<img src="images/cache_lat.png" style="width: 100%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+</p>
+
+----
+
+###### `Latency vs Throughput`
+<!-- .element: style="text-align:left" -->
+
+```sh
+perf bench func fizz_buzz --exec a.out --mode latency -o data/
+perf bench func fizz_buzz --exec a.out --mode throughput -o data/
+perf view -e duration_time/operations -- data/
+```
+
+<p align="left">
+<img src="images/lat_thr.png" style="width: 100%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+</p>
+
+----
+
+#### `profile → ...`
+<!-- .element: style="text-align:left; font-size: 32px;" -->
+
+----
+
+<!--#### 'The Best, The Worst, The Real' Execution-->
+<!--[> .element: style="text-align:left" <]-->
+
+<!--<p align="left">-->
+<!--<img src="images/range3.png" style="width: 58%; background:white; border:none; box-shadow:none; margin: 0 0;" />-->
+<!--</p>-->
+
+<!-------->
+
+#### 'The Best' Execution → happy path
+<!-- .element: style="text-align:left" -->
+
+```json
+{
+    "stack": {
+        "align": "aligned"
+    },
+    "code": {
+        "align": 16,
+    },
+    "func": {
+        "align": 16,
+        "order": "hot",
+    },
+    "cache": {
+        "L1i":  {"hit_rate": 100},
+        "L1d":  {"hit_rate": 100},
+        "TLBi": {"hit_rate": 100},
+        "TLBd": {"hit_rate": 100},
+    },
+    "branch": "predictable"
+}
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+----
+
+#### 'The Worst' Execution → 'what if'
+<!-- .element: style="text-align:left" -->
+
+```json
+{
+    "stack": {
+        "size":  "random",
+        "align": "unaligned"
+    },
+    "code": {
+        "align": "unaligned",
+    },
+    "func": {
+        "align": "unaligned",
+        "order": "cold"
+    },
+    "cache": {
+        "L1i":  {"hit_rate": 0},
+        "L1d":  {"hit_rate": 0},
+        "L2d":  {"hit_rate": 0},
+        "L3d":  {"hit_rate": 0},
+        "DRAM": {"hit_rate": 100},
+        "TLBi": {"hit_rate": 0},
+        "TLBd": {"hit_rate": 0},
+    },
+    "branch": "unpredictable"
+}
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+jitter
+<!-- .element: style="text-align:right; font-size:20px;" -->
+
+----
+
+#### 'The Real' Execution
 <!-- .element: style="text-align:left" -->
 
 ```python
@@ -1309,7 +1260,7 @@ int trace(struct pt_regs *ctx) {
 
 ```cpp
 b = BPF(text=BPF_PROGRAM)
-b.attach_uprobe(name="./a.out", sym="fizz_buzz", fn_name="trace")
+b.attach_uprobe(name="./a.out", sym=".*", fn_name="trace")
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -1328,25 +1279,20 @@ https://github.com/iovisor/bcc
 
 ----
 
-##### `perf.data`
-<!-- .element: style="text-align:left" -->
-
 ```cpp
-perf record -e branch-misses,
-               branch-references,
-               cache-misses,
-               cache-references
-            -o perf.data -- ./a.out
+perf record
+    --event branch-misses,branch-references,cache-misses,cache-references
+    --output perf.data -- ./a.out
 ```
-
----
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```cpp
 perf plot -t ecdf -e cycles -- perf.data
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 <p align="left">
-<img src="images/perf_data.png" style="width: 80%; background:white; border:none; box-shadow:none;" />
+<img src="images/perf_data.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
@@ -1358,6 +1304,7 @@ perf plot -t ecdf -e cycles -- perf.data
 # data.json
 {
   "rdi": [1,3,15,7,9,...] # trace.data
+  ...
 }
 ```
 <!-- .element: style="text-align:left; font-size:20px" -->
@@ -1366,16 +1313,18 @@ perf plot -t ecdf -e cycles -- perf.data
 # config.json
 {
   "branch": {
-      "default": "unpredcitable",
-    # "0x1321321": "predictable",
+      "default":   "unpredcitable",
+      "0x1321321": "predictable",
+      ...
   },
   "cache": {
     "L1d":  {
-        "default":   {"hit_rate": 100}, # perf.data
-      # "0x1321321": {"hit_rate": 50},
+        "default":   {"hit_rate": 100},
+        "0x1321321": {"hit_rate": 50}, # perf.data
+        ...
     },
-    "L2": {"hit_rate": 100},
-    "L3": {"hit_rate": 100},
+    "L2d": {"hit_rate": 100},
+    "L3d": {"hit_rate": 100},
     ...
   }
 }
@@ -1384,101 +1333,41 @@ perf plot -t ecdf -e cycles -- perf.data
 
 ----
 
-###### `regions`
-<!-- .element: style="text-align:left;" -->
-
-```cpp
-hot_begin..hot_end
-```
-
-----
-
-```cpp
-#define PERF_LABEL(name) // "global" label
-    asm volatile(
-        ".pushsection perf.label, \"aw?\", @progbits\n"
-        ".quad 0f\n"
-        ".asciz \"" #name "\"\n"
-        ".popsection\n"
-        "0:\n"
-    ); name:
-```
-<!-- .element: style="text-align:left;font-size:20px" -->
-
-```cpp
-PERF_LABEL(hot_begin);
-...
-PERF_LABEL(hot_end);
-```
-<!-- .element: style="text-align:left;font-size:20px" -->
-
-----
-
-```sh
-perf info metadata --exec a.out --kind label # objdump -sj .perf.label a.out
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
-```sh
-file  kind  label      address
-a.out label hot_begin  0x401154 # inlined first time
-a.out label hot_begin  0x401184 # inlined second time
-a.out label hot_end    0x401169
-a.out label hot_end    0x40119c
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
-C++, Rust, Zig, ...
-<!-- .element: style="text-align:right; font-size:16px;" -->
-
-----
-
-##### `latency vs throughput`
-<!-- .element: style="text-align:left" -->
-
-----
-
-```sh
-perf bench func fizz_buzz --exec a.out --mode latency -o data/
-perf bench func fizz_buzz --exec a.out --mode throughput -o data/
-perf view -e duration_time/operations -- data/
-```
-
-<p align="left">
-<img src="images/lat_thr.png" style="width: 90%; background:white; border:none; box-shadow:none; margin: 0 0;" />
-</p>
-
-----
-
 #### `profile → benchmark`
 <!-- .element: style="text-align:left; font-size: 32px;" -->
 
 ----
 
-<p align="left">
-<img src="images/td1.png" style="width: 80%; background:none; border:none; box-shadow:none;margin: 0 0;" />
-</p>
+```python
+import perf                                                # python
 
-```cpp
-perf bench {func,region} ".*" --mode latency --exec a.out
-  -e duration_time                                                       # seperate run
-  -e cycles,instructions                                                 # seperate run
-  -e topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound # seperate run
+for config in (best, real, worst):
+     perf.bench(
+        exec="a.out",
+        func=".*", # region
+        mode="latency",
+        config=config,
+        event=[
+            ["duration_time"],
+            ["cycles", "instructions"],
+            ["topdown-retiring",
+             "topdown-bad-spec",
+             "topdown-fe-bound",
+             "topdown-be-bound"]
+        ]
+    )
 ```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-```cpp
-func      retiring  bad-spec  fe-bound  be-bound    → section
-process   61%       0%        1%        38%         → backend bound
-branchy   26%       13%       37%       24%         → bad speculation
-hot_func  86%       7%        7%        1%          → retiring
-chain     58%       0%        40%       2%          → retiring (dep chain)
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
+<!-- .element: style="text-align:left;" -->
 
 ----
 
-##### Backend bound → Memory Bound
+<p align="left">
+<img src="images/td1.png" style="width: 50%; background:none; border:none; box-shadow:none;margin: 0 0;" />
+</p>
+
+----
+
+##### Backend bound [Memory Bound]
 <!-- .element: style="text-align:left" -->
 
 ```python
@@ -1498,12 +1387,9 @@ for hit_rate in [100, 50, 0]:  # hot → warm → cold
         exec="memory.out",
         func="process",
         mode="latency",
-        setup="init",
         config=config,
         event="cycles"
     )
-
-    ...
 ```
 <!-- .element: style="text-align:left; font-size: 22px;" -->
 
@@ -1525,16 +1411,6 @@ perf plot -t ecdf -- backend_bound
 
 ##### Bad Speculation [Branch Mispredicts]
 <!-- .element: style="text-align:left" -->
-
-```cpp
-[[gnu::optimize("O3")]] auto fizz_buzz(int n) {
-       if (n % 15 == 0) { return "FizzBuzz"; }
-  else if (n % 3  == 0) { return "Fizz";     }
-  else if (n % 5  == 0) { return "Buzz";     }
-  return unknown;
-}
-```
-<!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```sh
 perf bench func fizz_buzz --exec a.out --mode latency -e branch-misses --config.branch=predictable
@@ -1591,24 +1467,18 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 ```python
 import perf                                                           # python
 
-for size in (1, 4, 8, 16, 32, 64, 128):
-    for cache in ("hot", "cold"):
+hot  = { "L1d": {"hit_rate":100} }
+cold = { "L1d": {"hit_rate":0}, ... }
+
+for size in range(1, 1024, 2):
+    for cache in ("hot", "warm", "cool", "cold"):
         for branch in ("predictable", "unpredictable"):
             perf.bench(
                 exec="libstdc++.so",
                 func="std::sort",
                 mode="latency",
-                config={
-                    "branch": branch,
-                    "cache": cache
-                },
-                event=[
-                    ["cycles", "instructions"],
-                    ["topdown-retiring",
-                     "topdown-bad-spec",
-                     "topdown-fe-bound",
-                     "topdown-be-bound"],
-                ],
+                config={"branch": branch, "cache": cache},
+                event=["cycles", "instructions"],
             )
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
@@ -1623,98 +1493,6 @@ perf plot -x data.arg1 -e instructions/cycles -- sort
 <p align="left">
 <img src="images/sort_ipc.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
 </p>
-
-----
-
-```sh
-perf plot -t line,scatter -x data.arg1 -- sort
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
-<p align="left">
-<img src="images/sort_topdown.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
-</p>
-
-----
-
-#### 'The Best' / 'The Worst' Possible Execution
-<!-- .element: style="text-align:left" -->
-
-<p align="left">
-<img src="images/range3.png" style="width: 78%; background:white; border:none; box-shadow:none; margin: 0 0;" />
-</p>
-
-----
-
-#### 'The Best' Possible Execution
-<!-- .element: style="text-align:left" -->
-
-```json
-{
-    "thread" : {
-        "affinity": "pinned",
-        "priority": "highest",
-    },
-    "stack": {
-        "align": "aligned"
-    },
-    "code": {
-        "align": 16,
-    },
-    "func": {
-        "align": 16,
-        "order": "hot",
-    },
-    "cache": {
-        "L1i":  {"hit_rate": 100},
-        "L1d":  {"hit_rate": 100},
-        "L2":   {"hit_rate": 100},
-        "L3":   {"hit_rate": 100},
-        "TLBi": {"hit_rate": 100},
-        "TLBd": {"hit_rate": 100},
-    },
-    "branch": "predictable"
-}
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-----
-
-#### 'The Worst' Possible Execution
-<!-- .element: style="text-align:left" -->
-
-```json
-{
-    "thread" : {
-        "affinity": "none",
-        "priority": "lowest",
-    },
-    "stack": {
-        "size":  "random",
-        "align": "unaligned"
-    },
-    "code": {
-        "align": "unaligned",
-    },
-    "func": {
-        "align": "unaligned",
-        "order": "cold"
-    },
-    "cache": {
-        "L1i":  {"hit_rate": 0},
-        "L1d":  {"hit_rate": 0},
-        "L2":   {"hit_rate": 0},
-        "L3":   {"hit_rate": 0},
-        "TLBi": {"hit_rate": 0},
-        "TLBd": {"hit_rate": 0},
-    },
-    "branch": "unpredictable"
-}
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-jitter
-<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1762,14 +1540,14 @@ auto find_mph(const string_like auto symbol) noexcept:
 ----
 
 ```cpp
-constexpr auto symbols = array{
-  pair{"AMZN    "sv, 1},
-  pair{"AAPL    "sv, 2},
-  pair{"GOOGL   "sv, 3},
-  pair{"META    "sv, 4},
-  pair{"MSFT    "sv, 5},
-  pair{"NVDA    "sv, 6},
-  pair{"TSLA    "sv, 7},
+constexpr auto symbols = std::array{
+  std::pair{"AMZN    "sv, 1},
+  std::pair{"AAPL    "sv, 2},
+  std::pair{"GOOGL   "sv, 3},
+  std::pair{"META    "sv, 4},
+  std::pair{"MSFT    "sv, 5},
+  std::pair{"NVDA    "sv, 6},
+  std::pair{"TSLA    "sv, 7},
 };
 ```
 
@@ -1778,10 +1556,6 @@ constexpr auto symbols = array{
 ```python
 import perf                                                    # python
 
-real  = { "branch": "unpredictable", "cache": "warm" }
-best  = { ... }
-worst = { ... }
-
 for cxx in ("g++-16", "clang++-22"):
     for func in ("scan", "map", "ph", "mph", "simd"):
         for config in (best, real, worst):
@@ -1789,8 +1563,8 @@ for cxx in ("g++-16", "clang++-22"):
                 exec=f"find_{cxx}.o",
                 func=func,
                 mode="latency",
+                config={"branch": "unpredictable", "cache": "warm"},
                 event=["cycles", "instructions"],
-                config=config,
             )
 ```
 <!-- .element: style="text-align:left; font-size:22px;" -->
