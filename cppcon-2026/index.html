@@ -1657,53 +1657,34 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 ##### `libstdc++.so`
 <!-- .element: style="text-align:left" -->
 
-```sh
-[TODO] rewrite to python with all 4 multiple
-    --config.branch=predictable
-    --config.branch=unpredictable
-    --config.cache=hot
-    --config.cache=cold
-    per 1, 4, 8, 16, 32, 64, 128 sizes
-    and
-    --event cycles,instrucions
-    --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
-    then generate error bars charts
+```python
+import perf
+[TODO] write to python with the following combinations
+    for 1, 4, 8, 16, 32, 64, 128
+    perf bench func std::sort --name sort-$n
+        --config.branch=predictable
+        --config.branch=unpredictable
+        --config.cache=hot
+        --config.cache=cold
+        --event cycles,instrucions
+        --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
+        --mode latency
+        --exec libstdc++.so
+        --output sort
 
-for n in 1 4 8 16 32 64 128; do                                            # sh
-  perf bench func std::sort --name sort-$n
-    --mode latency
-    --exec libstdc++.so
-    --data.arg0=0x10000000
-    --data.arg1=$n
-    --data[0x10000000:]=[$(seq $n -1 1)]
-    --event cycles,instrucions
-    --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
-    --output sort
-
-
-  perf bench func std::sort --name sort-$n
-    --mode latency
-    --exec libstdc++.so
-    --data.arg0=0x10000000
-    --data.arg1=$n
-    --data[0x10000000:]=[$(shuf -i 1-$n)]
-    --event cycles,instrucions
-    --event topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound
-    --output sort
-done
+[TODO] generate sort_ipc and sort_topdown
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ----
 
 ```sh
-TODO error bars
-perf plot -g '' -t scatter -x data.arg1 -- sort
+perf plot -g '' -t line,scatter -x data.arg1 -- sort
 ```
 
 <p align="left">
-TODO multiple charts instructions/cycles  and topdown
-<img src="images/sort.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
+<img src="images/sort_ipc.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
+<img src="images/sort_topdown.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
 </p>
 
 ----
@@ -1810,8 +1791,8 @@ https://github.com/qlibs/mph
 ----
 
 ```cpp
-g++     -std=c++26 -O3 -mbmi2 -c mph.cpp -o find_gcc.o
-clang++ -std=c++26 -O3 -mbmi2 -c mph.cpp -o find_clang.o
+g++     -std=c++26 -O3 -mbmi2 -c find.cpp -o find_gcc.o
+clang++ -std=c++26 -O3 -mbmi2 -c find.cpp -o find_clang.o
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
