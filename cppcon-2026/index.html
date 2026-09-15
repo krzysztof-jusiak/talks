@@ -435,7 +435,7 @@ uOps Latency  RThroughput  MayLoad MayStore HasSideEffects   Instructions:
 echo 'add eax, 42; imul eax, eax, 42' | llvm-mca --mcpu=sapphirerapids --resource-pressure
 
 SPRPort00   SPRPort01  ...  SPRPort05  SPRPort06 ... SPRPort11 ... # per iteration
-     0.25        1.00            0.25       0.25          0.25 
+     0.25        1.00            0.25       0.25          0.25
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
@@ -1215,7 +1215,7 @@ $CXX main.cpp bench.o -o a.out && ssh $server ./a.out
 
 `/tmp/perf-$PID.{map,dump}`
 <!-- .element: style="text-align:left; font-size:22px;" -->
-  
+
 ```
 #START       SIZE SYMBOL
 7f1234000000 120 foo
@@ -1512,7 +1512,7 @@ chain     58%       0%        40%       2%          → retiring (dep chain)
 <!-- .element: style="text-align:left;" -->
 
 ```cpp
-#define PERF_LABEL(name) // global label
+#define PERF_LABEL(name) // "global" label
     asm volatile(
         ".pushsection perf.label, \"aw?\", @progbits\n"
         ".quad 0f\n"
@@ -1530,15 +1530,15 @@ PERF_LABEL(hot_end);
 ```
 <!-- .element: style="text-align:left;font-size:20px" -->
 
----
+<div style="margin: 50px 0px;" />
 
-```
+```sh
 perf info metadata --exec a.out --kind label # objdump -sj .perf.label a.out
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
-```
-file  kind  label      addr
+```sh
+file  kind  label      address
 a.out label hot_begin  0x401154 # inlined first time
 a.out label hot_begin  0x401184 # inlined second time
 a.out label hot_end    0x401169
