@@ -81,6 +81,48 @@ pip install git+https://github.com/perf-labs/perf.git
 
 ----
 
+##### `cpu-info`
+<!-- .element: style="text-align:left" -->
+
+```
+lstopo
+```
+
+<p align="left">
+<img src="images/lstopo.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+</p>
+<!-- .element: style="text-align:left;font-size:14px" -->
+
+----
+
+##### `cpu-info`
+<!-- .element: style="text-align:left" -->
+
+```
+perf info cpu -c cpu,numa,arch,model,family,stepping,freq,L1i,L1d,L2,L3
+```
+<!-- .element: style="text-align:left;font-size:18px" -->
+
+```sh
+cpu  numa  arch    model  family  stepping  freq    L1i   L1d   L2      L3
+  0     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  1     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  2     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  3     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  4     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  5     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
+  6     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
+  7     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
+  8     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
+  9     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
+```
+<!-- .element: style="text-align:left;font-size:18px" -->
+
+##### https://en.wikichip.org / cpuid{family:6, model:154, stepping:3}
+<!-- .element: style="text-align:left;font-size:20px" -->
+
+----
+
 ### Motivation
 <!-- .element: style="text-align:left" -->
 
@@ -116,7 +158,7 @@ Does it matter, and if so, why and how much?
 
 ----
 
-#### Microprocessor trends
+#### Nanosecond count
 <!-- .element: style="text-align:left" -->
 
 <table style="margin:0; padding:0; border-collapse:collapse; width:100%;">
@@ -145,30 +187,68 @@ https://github.com/karlrupp/microprocessor-trend-data
 
 
 4Ghz CPU from 2006 != 4Ghz CPU from 2026
-<!-- .element: style="text-align:left; margin: 5px 0px; font-size:20px;" -->
+<!-- .element: style="text-align:right; margin: 5px 0px; font-size:18px;" -->
 
 ----
 
 #### Hardware effects
 <!-- .element: style="text-align:left" -->
 
-<img src="images/zen52.jpg" style="width: 15%; background:none; border:none; box-shadow:none;" />
-<img src="images/zen5.png" style="width: 79%; background:none; border:none; box-shadow:none;" />
+```cpp
+address encoding             code                       asm
 
-https://chipsandcheese.com
-<!-- .element: style="text-align:left; margin: 0px 0px; font-size:22px;" -->
+401080                       void unused(int);                               // layout (.text)
+
+401100  55                   void func(int value) {     push rbp             // align (16b), icache
+401101  48 89 e5               int var = ...;           mov rbp,rsp          // stack (frame)
+401104  66 0f 1f 44 00 00      for (...) {              nop                  // [[code::align]]
+40110a  8B 04 BD 00 20 40 00     int i = table[value];  mov eax,[rdi*4+0x20] // dcache
+401111  39 c8                    if (i == var) {        cmp eax,ecx
+401113  74 08                      ...                  je 0x40111d          // branch predictor
+401115  5d                     }                        pop rbp              // stack (unwind)
+401116  c3                   }                          ret
+
+402000                       table:                                          // layout (.rodata)
+402000  20 00 00 00           .long 42
+402004  41 01 00 00           .long 123
+                              ...
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
 
-#### System effects <img src="images/htop.png" style="width: 50%; background:none; border:none; box-shadow:none; margin: -15px 20px;" />
-<!-- .element: style="text-align:left" -->
+#### CPU
+<!-- .element: style="text-align:left; " -->
 
-<p align="left">
-<img src="images/linux.png" style="width: 75%; background:none; border:none; box-shadow:none; margin: 0 0;" />
-</p>
+<img src="images/zen52.jpg" style="width: 15%; background:none; border:none; box-shadow:none; margin: 0 0;" />
+<img src="images/zen5.png" style="width: 84%; background:none; border:none; box-shadow:none; margin: 0 0;" />
+
+https://chipsandcheese.com
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+----
+
+#### Operating System
+<!-- .element: style="text-align:left; " -->
+
+<table>
+<tr>
+  <td>
+ <pre><code>int main() {
+  // ...
+}</code></pre>
+  </td>
+  <td>
+  <img src="images/linux.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+  </td>
+  </tr>
+</table>
 
 https://makelinux.github.io/kernel/map
-<!-- .element: style="text-align:left; margin: 0px 0px; font-size:22px;" -->
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
 
@@ -218,6 +298,20 @@ https://makelinux.github.io/kernel/map
 - Branch prediction
 - Instruction supply
 ```
+
+<div style="margin: 50px 0px;" />
+
+```cpp
+ name                   cycles  cycles/4Ghz[ns] variability
+ -------------------- --------  --------------- -----------
+ 1 cycle execution      1 ± 00      0.25 ± 0.00 ▏
+ L1d hit                3 ± 01      0.75 ± 0.25 █░
+ branch misprediction  14 ± 10      3.50 ± 2.50 ███░░░
+ L2d hit               12 ± 03      3.00 ± 0.75 ███░░
+ L3d hit               50 ± 05     10.00 ± 1.25 █████████░░░
+ DRAM access          350 ± 20     70.00 ± 5.00 ████████████████████████████████████████████░░░░░
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
 
 ----
 
@@ -556,7 +650,7 @@ What if ...?</code></pre>
 <table>
 <tr>
 <td>
-<img src="images/range2.jpeg" style="width: 95%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+<img src="images/range2.jpeg" style="width: 94%; background:white; border:none; box-shadow:none; margin: 0 0;" />
 </td>
 <td>
 <pre><code>What if we could answer "what if?"         </code></pre>
@@ -569,23 +663,24 @@ What if ...?</code></pre>
 #### Symbolic Benchmarking
 <!-- .element: style="text-align:left" -->
 
+----
+
 ```python
 Machine Code
-  → Symbolic Exploration              # VEX-IR
-      → Data Synthesis                # SMT-solver
-          → Native Execution          # JIT-controlled
+  → Symbolic Exploration                  # Intermediate Representation (IR)
+      → Data Synthesis                    # SMT Solver
+          → Native Execution              # Just-In-Time Execution
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
-&nbsp;→
-<!-- .element: style="text-align:left; font-size:22px;" -->
+<div style="margin: 50px 0px;" />
 
 ```python
-mov eax, [r11]                        # Machine Code (Asm,C++/Rust/Zig/...)
-add eax, [r11+4]
-  → {reg: r11}, {mem: [r11]+4}        # Sybmolic Exploration
-      → r11 = [0,3,5], [r11] = [1,3]  # Data Synthesis
-          → mmap / jit                # Native Execution
+Asm, C++, Rust, Zig, ...
+  → mov eax, [r11]; add eax, [r11+4]      # Machine Code
+      → {reg: r11}, {mem: [r11]+4}        # Sybmolic Exploration
+          → r11 = [0,3,5], [r11] = [1,3]  # Data Synthesis
+              → jit [mmap]                # Native Execution
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -595,9 +690,6 @@ add eax, [r11+4]
 <!-- .element: style="text-align:left" -->
 
 ----
-
-##### Explore
-<!-- .element: style="text-align:left" -->
 
 <table>
 <tr>
@@ -641,9 +733,6 @@ n % 5  -> Buzz
 
 ----
 
-##### Explore
-<!-- .element: style="text-align:left" -->
-
 ```python
 def explore(project, start, end):                                      # python
     state = project.factory.blank_state(addr=start)
@@ -661,11 +750,14 @@ def explore(project, start, end):                                      # python
 <div style="margin: 50px 0px;" />
 
 ```asm
-machine code → [intermediate representation]
-  → blank state [symbolic registers, memory loads, stores]
-      → step basic blocks [fork at each branch]
-          → solution [found, active, deadended]
+machine code
+  → blank state
+      → basic blocks
+          → solutions
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+https://docs.angr.io/en/latest/core-concepts/symbolic.html
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ----
@@ -710,18 +802,12 @@ explore(project, fizz_buzz, fizz_buzz+size)
 ```
 <!-- .element: style="text-align:left; font-size:14px;" -->
 
-https://docs.angr.io/en/latest/core-concepts/symbolic.html
-<!-- .element: style="text-align:left; font-size:20px;" -->
-
 ----
 
 #### `Data Synthesis`
 <!-- .element: style="text-align:left" -->
 
 ----
-
-##### `Solutions`
-<!-- .element: style="text-align:left" -->
 
 ```python
 solutions = explore(project, fizz_buzz, fizz_buzz+size)         # python
@@ -742,6 +828,18 @@ rdi: 3,  6,  9 // rdi % 3  == 0
 rdi: 5, 10, 20 // rdi % 5  == 0
 rdi: 1,  2,  4 // else
 ```
+
+----
+
+```json
+data = {
+    "rdi": [1, 15, 3, 5],
+    "rsi": 0,
+  # "0x42000000000": 100,
+  # "0x42000000001": 101,
+}
+```
+
 ----
 
 #### `Native Execution`
@@ -749,7 +847,56 @@ rdi: 1,  2,  4 // else
 
 ----
 
-##### `Latency vs. Throughput`
+##### `JIT Code Generation`
+<!-- .element: style="text-align:left" -->
+
+```
+asm
+  → mmap data pages
+      → benchmarking harness
+          → execute
+```
+<!-- .element: class="fragment" -->
+
+```
+exec
+  → copy segments
+      → apply relocations
+          → randomize layout
+              → /tmp/perf-PID.{map,dump}
+                  → mmap data pages
+                      → benchmarking harness
+                          → execute
+```
+<!-- .element: class="fragment" -->
+
+----
+
+#### Benchmarking Harness
+<!-- .element: style="text-align:left" -->
+
+```
+- duration time (RDTSC/RTDSCP)
+- performance counters (RPDMC)
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+```cpp
+bench:
+  {setup}     # mmap / cache/branch eviction
+  {start}     # rdtsc / rdpmc
+  {code}      # mode(latency/throughput) / backend (unroll/loop) / machine-code
+  {stop}      # rdtscp / rdpmc
+  {teardown}  # unmap
+```
+<!-- .element: style="text-align:left; font-size:20px;" -->
+
+`echo 2 | sudo tee /sys/devices/cpu_core/rdpmc`
+<!-- .element: style="text-align:right; font-size:18px;" -->
+
+----
+
+##### `latency vs. throughput`
 <!-- .element: style="text-align:left" -->
 
 <table>
@@ -788,7 +935,7 @@ rdi: 1,  2,  4 // else
 
 ----
 
-##### Latency [backend:unroll]
+##### `latency / unroll`
 <!-- .element: style="text-align:left" -->
 
 ```
@@ -803,7 +950,7 @@ imul eax, 42
 ---
 
 ```cpp
-perf bench 'imul eax, 42'
+perf bench asm 'imul eax, 42'
     --mode latency
     --event cycles,instructions
     --backend unroll
@@ -836,7 +983,7 @@ https://github.com/andreas-abel/nanoBench
 
 ----
 
-##### Latency [backend:loop]
+##### `latency / loop`
 <!-- .element: style="text-align:left" -->
 
 ```
@@ -882,90 +1029,119 @@ max   12.00         2.00
 
 ----
 
-##### Benchmarking [harness]
-<!-- .element: style="text-align:left" -->
-
-```
-- duration time (RDTSC/RTDSCP)
-- performance counters (RPDMC)
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-```
-bench:
-  {setup}     # mmap (data, page), prime cache/branch state
-  {start}     # rdtsc/rdpmc
-  {code}      # backend (unroll/loop) + mode(latency/throughput) + bench-code
-  {stop}      # rdtscp/rdpmc
-  {teardown}  # unmap (data, page)
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-`echo 2 | sudo tee /sys/devices/cpu_core/rdpmc`
-<!-- .element: style="text-align:right; font-size:14px;" -->
-
-----
-
-##### `Latency vs. Throughput`
-<!-- .element: style="text-align:left" -->
-
-```sh
-perf bench func fizz_buzz --exec a.out --mode latency -o data/
-perf bench func fizz_buzz --exec a.out --mode latency -o data/
-perf view -e duration_time/operations -- data/
-```
-
-<p align="left">
-<img src="images/lat_thr.png" style="width: 90%; background:white; border:none; box-shadow:none; margin: 0 0;" />
-</p>
-
-Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
-<!-- .element: style="text-align:right; font-size:14px;" -->
-
-----
-
-##### Hardware effects
+##### `sanity checks`
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-address encoding              code                       asm                       notes
+perf bench asm 'add  eax, 0'    --mode latency -e cycles -o insn
+perf bench asm 'sub  eax, 0'    --mode latency -e cycles -o insn
+perf bench asm 'imul eax, 0'    --mode latency -e cycles -o insn
+perf bench asm 'cdq; idiv ecx;' --mode latency -e cycles -o insn
+```
+<!-- .element: style="text-align:left; font-size: 15px;" -->
 
-401080                        void unused(int);                                    // layout (.text)
+```
+perf plot -t bar -- insn
+```
+<!-- .element: style="text-align:left; font-size: 15px;" -->
 
-401100  55                    void func(int value) {     push rbp                  // align (16b), icache
-401101  48 89 e5                int var = ...;           mov rbp,rsp               // stack (frame)
-401104  66 0f 1f 44 00 00       for (...) {              nop                       // [[code::align]]
-40110a  8B 04 BD 00 20 40 00      int i = table[value];  mov eax,[rdi*4+0x402000]  // dcache
-401111  39 c8                     if (i == var) {        cmp eax,ecx
-401113  74 08                       ...                  je 0x40111d               // branch predictor
-401115  5d                      }                        pop rbp                   // stack (unwind)
-401116  c3                    }                          ret
+<table>
+<tr>
+<td>
+<img src="images/cmp0.png" style="width: 90%; background:none; border:none; box-shadow:none;margin: 0 0;" />
+</td>
+<td>
+<pre style="font-size:14px"><code>name           mode     stat cycles
+add  eax, 0    latency   max   1.00
+sub  eax, 0    latency   max   1.00
+imul eax, 0    latency   max   3.00
+cdq; idiv ecx; latency   max  12.00
+</code></pre>
+</td>
+</tr>
+</table>
 
-402000                        table:                                               // layout (.rodata)
-402000  20 00 00 00            .long 42
-402004  41 01 00 00            .long 123
-                               ...
+Latency, Throughput, and Port Usage Information - https://uops.info/{table.html,instructions.xml}
+<!-- .element: style="text-align:left; font-size: 18px; margin: 5px 0px;" -->
+
+---
+
+```cpp
+perf bench asm 'imul eax, 0' --mode latency -S | llvm-mca
+```
+<!-- .element: style="text-align:left; font-size: 15px;" -->
+
+```cpp
+#uOps Latency  RThroughput       Instruction
+    1       3         1.00  imul eax, eax, 0
+```
+<!-- .element: style="text-align:left; font-size: 15px;" -->
+
+https://llvm.org/docs/CommandGuide/llvm-exegesis.html
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+----
+
+#### `cache effects`
+<!-- .element: style="text-align:left;" -->
+
+```cpp
+add r11, [rax]
+```
+
+----
+
+##### `cache effects`
+<!-- .element: style="text-align:left" -->
+
+```cpp
+perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=hot  --name add-hot  -o cache
+perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=cold --name add-cold -o cache
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
-https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
-<!-- .element: style="text-align:left; font-size:18px;" -->
+```cpp
+perf plot -t ecdf -e cycles -- cache
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+<p align="left">
+<img src="images/cache_lat.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
+</p>
+
+[Sixel](https://en.wikipedia.org/wiki/Sixel) - to plot in terminal
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
-##### Cache effects
+##### `cache effects`
 <!-- .element: style="text-align:left" -->
 
-```cpp
- name                   cycles  cycles/4Ghz[ns] variability
- -------------------- --------  --------------- -----------
- 1 cycle execution      1 ± 00      0.25 ± 0.00 ▏
- L1d hit                3 ± 01      0.75 ± 0.25 █░
- L2d hit               12 ± 03      3.00 ± 0.75 ███░░
- L3d hit               50 ± 05     10.00 ± 1.25 █████████░░░
- DRAM access          350 ± 20     70.00 ± 5.00 ████████████████████████████████████████████░░░░░
+```json
+hot = {
+  "L1d":  {"hit_rate":100},
+  "L2d":  {"hit_rate":100}, # implied from L1d
+  "L3d":  {"hit_rate":100}, # implied from L2d
+  "DRAM": {"hit_rate":100}, # always 100
+}
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
+
+```json
+cold = {
+  "L1d":  {"hit_rate":0},
+  "L2d":  {"hit_rate":0},
+  "L3d":  {"hit_rate":0},
+  "DRAM": {"hit_rate":100}, # always 100
+}
+```
+
+https://www.akkadia.org/drepper/cpumemory.pdf
+<!-- .element: style="text-align:left; font-size:22px;" -->
+
+----
+
+##### `cache effects`
+<!-- .element: style="text-align:left" -->
 
 ```cpp
 template<Level level>
@@ -991,11 +1167,11 @@ auto refresh(const void* addr) {
 <!-- .element: style="text-align:left; font-size:17px;" -->
 
 https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
-<!-- .element: style="text-align:left; font-size:15px;" -->
+<!-- .element: style="text-align:left; font-size:17px;" -->
 
 ----
 
-##### Cache effects
+##### `cache effects`
 <!-- .element: style="text-align:left" -->
 
 ```python
@@ -1005,66 +1181,25 @@ for addr, size in state["mem_read"] + state["mem_write"]:
 
 <div style="margin: 50px 0px;" />
 
-```json
-hot = {
-  "L1d":  {"hit_rate":100},
-  "L2d":  {"hit_rate":100}, # implied from L1d
-  "L3d":  {"hit_rate":100}, # implied from L2d
-  "DRAM": {"hit_rate":100}, # always 100
-}
-```
-
-```json
-cold = {
-  "L1d":  {"hit_rate":0},
-  "L2d":  {"hit_rate":0},
-  "L3d":  {"hit_rate":0},
-  "DRAM": {"hit_rate":100}, # always 100
-}
-```
-
-https://www.akkadia.org/drepper/cpumemory.pdf
-<!-- .element: style="text-align:left; font-size:22px;" -->
-
-----
-
-##### Cache effects [access]
-<!-- .element: style="text-align:left" -->
-
-```cpp
-perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=hot  --name add-hot  -o cache
-perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=cold --name add-cold -o cache
+```asm
+[TODO] provide more accurate example base on the code
+mov eax, [r11]
+cflushopt
+lfence
+cldemote [r11]
+pause
+pause
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
-```cpp
-perf plot -t ecdf -e cycles -- cache
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-<p align="left">
-<img src="images/cache_lat.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
-</p>
-
-[Sixel](https://en.wikipedia.org/wiki/Sixel) - to plot in terminal
-<!-- .element: style="text-align:right; font-size:16px;" -->
-
-----
-
-##### Branch effects [bad speculation]
+##### `branch effects`
 <!-- .element: style="text-align:left" -->
 
 ```cpp
- name                   cycles  cycles/4Ghz[ns] variability
- -------------------- --------  --------------- -----------
- 1 cycle execution      1 ± 00       0.25 ± 0.00 ▏
- branch misprediction  14 ± 10       3.50 ± 2.50 ███░░░
+je 0x40111d
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
 
-```cpp
-examples
-```
+----
 
 ```python
 for solution in solutions: # per iteration
@@ -1075,7 +1210,16 @@ for solution in solutions: # per iteration
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
+```cpp
+[TODO] fixup
+data.rdi=[3,5,15,1,3] # predictable
+data.rdi=[3,5,15,1,3] # unpredictable
+data.rdi=[11,2,3,32] # read (trace.data)
+```
+
 <div style="margin: 50px 0px;" />
+
+<!--<img src="images/cpu2.png" style="width: 70%; background:white; border:none; box-shadow:none;" />-->
 
 ```asm
 - modern branch predictions can - 10'000 x 1/0
@@ -1087,168 +1231,34 @@ for solution in solutions: # per iteration
 
 ----
 
-##### Branch effects
+##### `codegen effects`
 <!-- .element: style="text-align:left" -->
-
-```cpp
-[[gnu::optimize("O3")]] auto fizz_buzz(int n) {
-       if (n % 15 == 0) { return "FizzBuzz"; }
-  else if (n % 3  == 0) { return "Fizz";     }
-  else if (n % 5  == 0) { return "Buzz";     }
-  return "Unknown";
-}
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-```cpp
-perf bench func scan --exec a.out --mode latency -e branch-misses --config.branch=predictable
-perf bench func scan --exec a.out --mode latency -e branch-misses --config.branch=unpredictable
-perf bench func scan --exec a.out --mode latency -e cycles --data.arg0=<key>
-perf bench func fizz_buzz --exec fizz --mode latency -e branch-misses -o fizz
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-```
-perf plot -t ecdf -e branch-misses -- fizz
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-<p align="left">
-<img src="images/branch_miss.png" style="width: 70%; background:white; border:none; box-shadow:none;" />
-</p>
 
 ----
 
-##### Codegen effects [alignment]
+### Case Studies
 <!-- .element: style="text-align:left" -->
-
-```cpp
-void unused(int);
-
-[[gnu::aligned(64), gnu::hot]]
-void hot_func(const int* v, int n) {
-    [[clang::code_align(64)]] for (int i = 0; i < n; ++i) {
-        sum += table[v[i] & 63];
-    }
-    // ...
-}
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
 
 ----
 
-```
-perf bench func hot_func --exec codegen.o --mode latency -e cycles
-    --config.function.order=sequential
-    --config.function.order=random
-   #--config.function.order=hot
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
+##### [Performance Tuning Guide](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/performance_tuning_guide/index)
+<!-- .element: style="text-align:left" -->
 
-```
-perf bench func hot_func --exec codegen.o --mode latency
-    --config.function.alignment=16
-```
-<!-- .element: style="text-align:left; font-size:20px;" -->
 
----
-
-```
-perf plot -t ecdf -e cycles -- codegen
+```cpp
+perf bench asm 'rdtsc' --mode latency | perf plot -t box
 ```
 
 <p align="left">
-<img src="images/codegen_ecdf.png" style="width: 85%; background:white; border:none; box-shadow:none;" />
+<img src="images/tune.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
 </p>
 
-----
-
-##### `JIT Code Generation`
-<!-- .element: style="text-align:left" -->
-
-```
-asm
-  → mmap data pages
-      → assembly harness
-          → execute [object]
-```
-
-```
-exec
-  → mmap (RWX/FIXED), copy segments [bss]
-      → apply relocations
-          → randomize layout
-              → /tmp/perf-PID.{map,dump}
-                  → mmap data pages
-                      → assembly harness
-                          → execute [object]
-```
+`The benchmark should control the noise, not the noise control the benchmark`
+<!-- .element: style="text-align:right;font-size:16px" -->
 
 ----
 
-##### `JIT Code Generation` → assembly/object
-<!-- .element: style="text-align:left" -->
-
-```sh
-perf bench func fizz_buzz --exec a.out -c -o bench.o
-```
-<!-- .element: style="text-align:left; font-size:22px" -->
-
-```cpp
-const char* fizz_buzz(int);
-int main() {
-    return fizz_buzz(15) == nullptr;
-}
-```
-<!-- .element: style="text-align:left; font-size:22px" -->
-
-```sh
-$CXX main.cpp bench.o -o a.out && ssh $server ./a.out
-```
-<!-- .element: style="text-align:left; font-size:22px" -->
-
-----
-
-`/tmp/perf-$PID.{map,dump}`
-<!-- .element: style="text-align:left; font-size:22px;" -->
-
-```
-#START       SIZE SYMBOL
-7f1234000000 120 foo
-7f1234000120 80  bar
-7f12340001a0 250 baz
-```
-<!-- .element: style="text-align:left; font-size:22px;" -->
-
-```sh
-alias record="record --event intel_pt/tsc,cyc=1/u --filter 'filter fizz_buzz @ ./a.out'"
-alias bench="bench func fizz_buzz --exec a.out --mode latency --data.rdi=5 --event cycles"
-perf record -- perf bench
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-```asm
-imul eax, edi, 0xeeeeeeef
-lea rdx, [rip + 0xeb3]
-add eax, 0x8888888
-cmp eax, 0x11111110
-jbe .L40119a
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
----
-
-```sh
-perf mem record -t load,store -- perf bench func process --exec a.out --mode throughput
-# DWARF
-field.a
-field.b
-```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-----
-
-#### `Real-data distrubutions / Problem-space reduction`
+#### `Real-data distrubutions`
 <!-- .element: style="text-align:left; font-size:34px" -->
 
 ----
@@ -1321,7 +1331,6 @@ perf plot -t ecdf -e cycles -- perf.data
 ```
 <!-- .element: style="text-align:left; font-size:20px" -->
 
-
 ```json
 # config.json
 {
@@ -1344,168 +1353,10 @@ perf plot -t ecdf -e cycles -- perf.data
 
 ----
 
-```cpp
-perf bench region hot_path_begin..hot_path_end --exec a.out
-    --data data.json
-    --config config.json
-    --output hot_path
-```
-
-```cpp
-perf plot -t ecdf -e cycles -- hot_path
-```
-
-<p align="left">
-<img src="images/fizz_ecdf.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
-</p>
-
-----
-
-### Case Studies
-<!-- .element: style="text-align:left" -->
-
-----
-
-##### `cpu-info`
-<!-- .element: style="text-align:left" -->
-
-```
-lstopo
-```
-
-<p align="left">
-<img src="images/lstopo.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
-</p>
-<!-- .element: style="text-align:left;font-size:14px" -->
-
-----
-
-##### `cpu-info`
-<!-- .element: style="text-align:left" -->
-
-```
-perf info cpu -c cpu,numa,arch,model,family,stepping,freq,L1i,L1d,L2,L3
-```
-<!-- .element: style="text-align:left;font-size:18px" -->
-
-```sh
-cpu  numa  arch    model  family  stepping  freq    L1i   L1d   L2      L3
-  0     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  1     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  2     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  3     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  4     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  5     0  x86_64    154       6         3  2.6Ghz  32Kb  48Kb  1280Kb  24Mb
-  6     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
-  7     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
-  8     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
-  9     0  x86_64    154       6         3  2.6Ghz  64Kb  32Kb  2048Kb  24Mb
-```
-<!-- .element: style="text-align:left;font-size:18px" -->
-
-##### https://en.wikichip.org / cpuid{family:6, model:154, stepping:3}
-<!-- .element: style="text-align:left;font-size:18px" -->
-
-----
-
-##### `tuning` [[Performance Tuning Guide](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/performance_tuning_guide/index)]
-<!-- .element: style="text-align:left" -->
-
-
-```cpp
-perf bench asm 'rdtsc' | perf plot -t bar
-```
-
-<p align="left">
-<img src="images/tune.png" style="width: 100%; background:white; border:none; box-shadow:none;" />
-</p>
-
-`"The benchmark should control the noise, not the noise control the benchmark"`
-<!-- .element: style="text-align:right;font-size:14px" -->
-
-----
-
-##### `sanity checks`
-<!-- .element: style="text-align:left" -->
-
-```cpp
-perf bench asm 'add  eax, 0'    --mode latency -e cycles -o insn
-perf bench asm 'sub  eax, 0'    --mode latency -e cycles -o insn
-perf bench asm 'imul eax, 0'    --mode latency -e cycles -o insn
-perf bench asm 'cdq; idiv ecx;' --mode latency -e cycles -o insn
-```
-<!-- .element: style="text-align:left; font-size: 15px;" -->
-
-```
-perf plot -t bar -- insn
-```
-<!-- .element: style="text-align:left; font-size: 15px;" -->
-
-<table>
-<tr>
-<td>
-<img src="images/cmp0.png" style="width: 90%; background:none; border:none; box-shadow:none;margin: 0 0;" />
-</td>
-<td>
-<pre style="font-size:14px"><code>name           mode     stat cycles
-add  eax, 0    latency   max   1.00
-sub  eax, 0    latency   max   1.00
-imul eax, 0    latency   max   3.00
-cdq; idiv ecx; latency   max  12.00
-</code></pre>
-</td>
-</tr>
-</table>
-
-Latency, Throughput, and Port Usage Information - https://uops.info/{table.html,instructions.xml}
-<!-- .element: style="text-align:left; font-size: 18px; margin: 5px 0px;" -->
-
----
-
-```cpp
-perf bench asm 'imul eax, 0' --mode latency -S | llvm-mca
-```
-<!-- .element: style="text-align:left; font-size: 15px;" -->
-
-```cpp
-#uOps Latency  RThroughput       Instruction
-    1       3         1.00  imul eax, eax, 0
-```
-<!-- .element: style="text-align:left; font-size: 15px;" -->
-
-https://llvm.org/docs/CommandGuide/llvm-exegesis.html
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
-----
-
-#### `profile → benchmark`
-<!-- .element: style="text-align:left; font-size: 32px;" -->
-
-<p align="left">
-<img src="images/td1.png" style="width: 80%; background:none; border:none; box-shadow:none;margin: 0 0;" />
-</p>
-
-```cpp
-perf bench func ".*" --mode latency --exec a.out
-  -e duration_time                                                       # seperate run
-  -e cycles,instructions                                                 # seperate run
-  -e topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound # seperate run
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-```cpp
-func      retiring  bad-spec  fe-bound  be-bound    → section
-process   61%       0%        1%        38%         → backend bound
-branchy   26%       13%       37%       24%         → bad speculation
-hot_func  86%       7%        7%        1%          → retiring
-chain     58%       0%        40%       2%          → retiring (dep chain)
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-----
-
 ###### `perf label`
 <!-- .element: style="text-align:left;" -->
+
+----
 
 ```cpp
 #define PERF_LABEL(name) // "global" label
@@ -1526,12 +1377,12 @@ PERF_LABEL(hot_end);
 ```
 <!-- .element: style="text-align:left;font-size:20px" -->
 
-<div style="margin: 50px 0px;" />
+----
 
 ```sh
 perf info metadata --exec a.out --kind label # objdump -sj .perf.label a.out
 ```
-<!-- .element: style="text-align:left; font-size:18px;" -->
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 ```sh
 file  kind  label      address
@@ -1540,30 +1391,54 @@ a.out label hot_begin  0x401184 # inlined second time
 a.out label hot_end    0x401169
 a.out label hot_end    0x40119c
 ```
-<!-- .element: style="text-align:left; font-size:18px;" -->
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 C++, Rust, Zig, ...
 <!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
-##### Backend bound
+##### `latency vs. throughput`
 <!-- .element: style="text-align:left" -->
 
-```cpp
-int arr[64];
-void init() { for (int i = 0; i < 64; ++i) arr[i] = i * 37; }
-
-int process(int n) {
-    int sum = 0;
-    for (int i = 0; i < n; ++i) {
-        int val = arr[i & 63];         // cache access
-        sum += (val & 1) ? val : -val;
-    }
-    return sum;
-}
+```sh
+perf bench func fizz_buzz --exec a.out --mode latency -o data/
+perf bench func fizz_buzz --exec a.out --mode throughput -o data/
+perf view -e duration_time/operations -- data/
 ```
-<!-- .element: style="text-align:left; font-size:22px;" -->
+
+<p align="left">
+<img src="images/lat_thr.png" style="width: 90%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+</p>
+
+Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
+<!-- .element: style="text-align:right; font-size:14px;" -->
+
+----
+
+#### `profile → benchmark`
+<!-- .element: style="text-align:left; font-size: 32px;" -->
+
+<p align="left">
+<img src="images/td1.png" style="width: 80%; background:none; border:none; box-shadow:none;margin: 0 0;" />
+</p>
+
+```cpp
+perf bench {func,region} ".*" --mode latency --exec a.out
+  -e duration_time                                                       # seperate run
+  -e cycles,instructions                                                 # seperate run
+  -e topdown-retiring,topdown-bad-spec,topdown-fe-bound,topdown-be-bound # seperate run
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
+
+```cpp
+func      retiring  bad-spec  fe-bound  be-bound    → section
+process   61%       0%        1%        38%         → backend bound
+branchy   26%       13%       37%       24%         → bad speculation
+hot_func  86%       7%        7%        1%          → retiring
+chain     58%       0%        40%       2%          → retiring (dep chain)
+```
+<!-- .element: style="text-align:left; font-size:18px;" -->
 
 ----
 
@@ -1616,20 +1491,23 @@ perf plot -t ecdf -- backend_bound
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-constexpr auto fizz_buzz(int n) {
+[[gnu::optimize("O3")]] auto fizz_buzz(int n) {
        if (n % 15 == 0) { return "FizzBuzz"; }
   else if (n % 3  == 0) { return "Fizz";     }
   else if (n % 5  == 0) { return "Buzz";     }
-  return "Unknown";
+  return unknown;
 }
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
 ```sh
-perf bench func fizz_buzz --exec fizz --mode latency --config.branch=predictable
-perf bench func fizz_buzz --exec fizz --mode latency --config.branch=unpredictable -e branch-misses
-perf bench func fizz_buzz --exec fizz --mode latency --data.rdi=15   # pin FizzBuzz
-perf bench func fizz_buzz --exec fizz --mode latency -e cycles,instructions
+perf bench func fizz_buzz --exec a.out --mode latency -e branch-misses --config.branch=predictable
+perf bench func fizz_buzz --exec a.out --mode latency -e branch-misses --config.branch=unpredictable
+perf bench func fizz_buzz --exec a.out --mode latency -e cycles --data.arg0=1
+perf bench func fizz_buzz --exec a.out --mode latency -e cycles --data.arg0=3
+perf bench func fizz_buzz --exec a.out --mode latency -e cycles --data.arg0=5
+perf bench func fizz_buzz --exec a.out --mode latency -e cycles --data.arg0=`shuf 1-64`
+perf bench func fizz_buzz --exec fizz --mode latency -e branch-misses -o fizz
 ```
 <!-- .element: style="text-align:left; font-size: 16px;" -->
 
