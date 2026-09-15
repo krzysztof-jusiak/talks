@@ -612,7 +612,7 @@ add eax, [r11+4]
 <pre style="font-size:20px;"><code>n % 15 -> FizzBuzz
 n % 3  -> Fizz
 n % 5  -> Buzz
-     _ -> Unknown
+     _ -> Unknown (cmov)
 </pre></code></td>
 <td><pre style="font-size:15px;"><code>fizz_buzz(int):
   imul    eax, edi, -286331153
@@ -925,24 +925,25 @@ bench:
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-[TODO] fix address encoding, lookup table to be accurate
-address encoding code                               comment
-0x0080  03 32 11 void unused(int);                  // layout
+[TODO] add asm columnt after encoding and ensure all is accurate
+address    encoding             code                        comment
 
-0x0110           void func(auto value) {            // alignment
-0x0112             auto var = ...;                  // stack
-0x0114             for (...) {                      // alignment
-0x0118               auto i = lookup_table[value];  // memory
-0x011C               if (i == var) {                // branch
-0x0120                   ...
-0x0124               }
-0x0128             }
-0x0128           }                                  // stack
+0x401080   e8 00 00 00 00       void unused(int);           // layout (.text)
 
-0x1000           lookup_table:                      // layout
-0x1001             32
-0x1002             321
+0x401100   55                   void func(int value) {      // alignment
+0x401101   48 89 e5               int var = ...;            // stack
+0x401104   66 0f 1f 44 00 00      for (...) {               // alignment
+0x40110a   63 04 9d 00 20 40 00     int i = table[value];   // cache
+0x401111   39 c8                      if (i == var) {       // branch
+0x401113   74 08                        ...
+0x401115   5d                         }                     // stack
+0x401116   c3                   }
+
+0x402000                        table:                      // layout (.rodata)
+0x402000   20 00 00 00           [0] = 32
+0x402004   41 01 00 00           [1] = 321
 ```
+<!-- .element: style="text-align:left; font-size:20px;" -->
 
 https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
 <!-- .element: style="text-align:left; font-size:22px;" -->
