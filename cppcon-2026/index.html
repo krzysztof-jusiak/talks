@@ -585,7 +585,7 @@ mov eax, [r11]                        # Machine Code (Asm,C++/Rust/Zig/...)
 add eax, [r11+4]
   → {reg: r11}, {mem: [r11]+4}        # Sybmolic Exploration
       → r11 = [0,3,5], [r11] = [1,3]  # Data Synthesis
-          → jit / mmap                # Native Execution
+          → mmap / jit                # Native Execution
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -658,11 +658,11 @@ def explore(project, start, end):                                      # python
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
----
+<div style="margin: 50px 0px;" />
 
 ```asm
-machine code → VEX IR
-  → blank state [symbolic registers, memory loads, writes]
+machine code → [intermediate representation]
+  → blank state [symbolic registers, memory loads, stores]
       → step basic blocks [fork at each branch]
           → solution [found, active, deadended]
 ```
@@ -856,7 +856,7 @@ loop:             loop:
 perf bench asm 'cdq; idiv ecx'
     --mode latency
     --event cycles,instructions
-    --backend repeat
+    --backend loop
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -865,7 +865,7 @@ perf bench asm 'cdq; idiv ecx'
 <table>
 <tr>
 <td>
-<img src="images/idiv.png" style="width: 100%; background:none; border:none; box-shadow:none;" />
+<img src="images/idiv.png" style="width: 100%; background:none; border:none; box-shadow:none; margin: 0 0;" />
 </td>
 <td>
 <pre style="font-size:20px; margin: 0 0;">stat cycles instructions
@@ -886,34 +886,18 @@ max   12.00         2.00
 <!-- .element: style="text-align:left" -->
 
 ```
-# duration time (TSC)
-start:                       stop:
-  lfence                       rdtscp
-  rdtsc                        lfence
-  mov r11, rax                 sub rax, r11
-                               mov [r10], rax; add r10, 8
-```
-<!-- .element: style="text-align:left; font-size:18px;" -->
-
-```
-# performance counters (RPDMC)
-start:                        stop:
-  mov ecx, <idx>                mov ecx, <idx>
-  lfence                        lfence
-  rdpmc                         rdpmc
-  shl rdx, 32; or rax, rdx      shl rdx, 32; or rax, rdx
-  mov r11, rax                  sub rax, r11
-                                mov [r10], rax; add r10, 8
+- duration time (RDTSC/RTDSCP)
+- performance counters (RPDMC)
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
 ```
 bench:
-  {setup}     # mmap (data), prime cache/branch state
+  {setup}     # mmap (data, page), prime cache/branch state
   {start}     # rdtsc/rdpmc
-  {code}      # latency vs. throughput
+  {code}      # backend (unroll/loop) + mode(latency/throughput) + bench-code
   {stop}      # rdtscp/rdpmc
-  {teardown}  # unmap
+  {teardown}  # unmap (data, page)
 ```
 <!-- .element: style="text-align:left; font-size:18px;" -->
 
@@ -922,18 +906,36 @@ bench:
 
 ----
 
+##### `Latency vs. Throughput`
+<!-- .element: style="text-align:left" -->
+
+```sh
+perf bench func fizz_buzz --exec a.out --mode latency -o data/
+perf bench func fizz_buzz --exec a.out --mode latency -o data/
+perf view -e duration_time/operations -- data/
+```
+
+<p align="left">
+<img src="images/lat_thr.png" style="width: 90%; background:white; border:none; box-shadow:none; margin: 0 0;" />
+</p>
+
+Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
+<!-- .element: style="text-align:right; font-size:14px;" -->
+
+----
+
 ##### Hardware effects
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-address encoding              code                       asm                       comment
+address encoding              code                       asm                       notes
 
 401080                        void unused(int);                                    // layout (.text)
 
-401100  55                    void func(int value) {     push rbp                  // alignment (16b)
+401100  55                    void func(int value) {     push rbp                  // align (16b), icache
 401101  48 89 e5                int var = ...;           mov rbp,rsp               // stack (frame)
 401104  66 0f 1f 44 00 00       for (...) {              nop                       // [[code::align]]
-40110a  8B 04 BD 00 20 40 00      int i = table[value];  mov eax,[rdi*4+0x402000]  // d-cache
+40110a  8B 04 BD 00 20 40 00      int i = table[value];  mov eax,[rdi*4+0x402000]  // dcache
 401111  39 c8                     if (i == var) {        cmp eax,ecx
 401113  74 08                       ...                  je 0x40111d               // branch predictor
 401115  5d                      }                        pop rbp                   // stack (unwind)
@@ -965,68 +967,59 @@ https://people.cs.umass.edu/~emery/pubs/stabilizer-asplos13.pdf
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
-----
-
-##### Cache effects [access]
-<!-- .element: style="text-align:left" -->
-
 ```cpp
 template<Level level>
 auto refresh(const void* addr) {
     if constexpr (level == Level::L1) {
-        load(addr);                                 // L1d
+        load(addr);                              // L1d
         fence();
     } else if constexpr (level == Level::L2) {
-        flush(addr);                                // DRAM
+        flush(addr);                             // DRAM
         fence();
         settle();
-        prefetch<Level>(addr);                      // prefetcht1 hint
+        prefetch<Level>(addr);                   // PREFETCHT1 hint
     } else if constexpr (level == Level::L3) {
-        load(addr);                                 // L1d
-        demote(addr);                               // cldemote hint
+        load(addr);                              // L1d
+        demote(addr);                            // CLDEMOTE hint (Xeon, ...)
     } else {
-        flush(addr);                                // DRAM
+        flush(addr);                             // DRAM
         fence();
     }
     settle();
 }
 ```
-<!-- .element: style="text-align:left; font-size:20px;" -->
+<!-- .element: style="text-align:left; font-size:17px;" -->
 
-```asm
-PREFETCHNTA Non-temporal
-PREFETCHT0  Hint into all cache levels (L1 priority)
-PREFETCHT1  Hint into L2/L3, lower L1 priority
-PREFETCHT2  Hint into L2/L3 with even lower urgency
-CLDEMOTE    Hint into more distant level (Sapphire Rapids / Xeon, ...)
-```
-<!-- .element: style="text-align:left; font-size:12px;" -->
-
-`refresh(std::span<const void*>)`
-<!-- .element: style="text-align:right; font-size:15px;" -->
+https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+<!-- .element: style="text-align:left; font-size:15px;" -->
 
 ----
 
-##### Cache effects [mem_load, mem_store]
+##### Cache effects
 <!-- .element: style="text-align:left" -->
 
 ```python
 for addr, size in state["mem_read"] + state["mem_write"]:
-    refresh(level, addr)
+    refresh(level, addr) # refresh(std::span<const void*>)
 ```
 
----
+<div style="margin: 50px 0px;" />
 
-```jso
-"cache": {
-  "L1d":  {
-      "default":  {"hit_rate":100},
-      "0x32212":  {"hit_rate":50},
-      "0x231121": {"hit_rate":25},
-      ...
-  },
-  "L2":  {"hit_rate":50},
-  "L3":  {"hit_rate":100},
+```json
+hot = {
+  "L1d":  {"hit_rate":100},
+  "L2d":  {"hit_rate":100}, # implied from L1d
+  "L3d":  {"hit_rate":100}, # implied from L2d
+  "DRAM": {"hit_rate":100}, # always 100
+}
+```
+
+```json
+cold = {
+  "L1d":  {"hit_rate":0},
+  "L2d":  {"hit_rate":0},
+  "L3d":  {"hit_rate":0},
+  "DRAM": {"hit_rate":100}, # always 100
 }
 ```
 
@@ -1039,14 +1032,13 @@ https://www.akkadia.org/drepper/cpumemory.pdf
 <!-- .element: style="text-align:left" -->
 
 ```cpp
-perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=hot --name add-hot -o cache
+perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=hot  --name add-hot  -o cache
 perf bench asm 'add r11, [rax]' --mode latency -e cycles --config.cache=cold --name add-cold -o cache
-perf bench asm 'add r11, [rax]' --config.cache.L1d=hit_rate:100
 ```
 <!-- .element: style="text-align:left; font-size:15px;" -->
 
 ```cpp
-perf plot -t ecdf -e cycles -- cache # sixel - to plot in terminal
+perf plot -t ecdf -e cycles -- cache
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1054,8 +1046,8 @@ perf plot -t ecdf -e cycles -- cache # sixel - to plot in terminal
 <img src="images/cache_lat.png" style="width: 90%; background:white; border:none; box-shadow:none;" />
 </p>
 
-Empirical Cumulative Distribution Function (ECDF) shows the entire distribution without losing information
-<!-- .element: style="text-align:right; font-size:14px;" -->
+[Sixel](https://en.wikipedia.org/wiki/Sixel) - to plot in terminal
+<!-- .element: style="text-align:right; font-size:16px;" -->
 
 ----
 
@@ -1071,14 +1063,8 @@ Empirical Cumulative Distribution Function (ECDF) shows the entire distribution 
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
 ```cpp
-10'000 x 1/0
-branch aliasing
-cold: backward taken, forward not-taken
-never-taken: no BTB entry allocated
+examples
 ```
-<!-- .element: style="text-align:left; font-size:16px;" -->
-
----
 
 ```python
 for solution in solutions: # per iteration
@@ -1086,6 +1072,16 @@ for solution in solutions: # per iteration
         data[solution.address] = asm(state.solver.eval_up_to(n))
     else:
         data[solution.address] = asm(shuffle(state.solver.eval_up_to(n)))
+```
+<!-- .element: style="text-align:left; font-size:16px;" -->
+
+<div style="margin: 50px 0px;" />
+
+```asm
+- modern branch predictions can - 10'000 x 1/0
+- branch aliasing
+- cold: backward taken, forward not-taken
+- never-taken: no BTB entry allocated
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1182,7 +1178,7 @@ exec
   → mmap (RWX/FIXED), copy segments [bss]
       → apply relocations
           → randomize layout
-              → /tmp/perf-PID.map [.jitdata]
+              → /tmp/perf-PID.{map,dump}
                   → mmap data pages
                       → assembly harness
                           → execute [object]
@@ -1662,8 +1658,8 @@ void unused(int n) {
 ```
 
 ```sh
-g++ -O3 func.cpp -o a.out                         # order: hot, cold
-g++ -O3 func.cpp -o b.out -Wl,--sort-section=name # order: cold, hot
+g++16 -O3 func.cpp -o a.out                         # order: hot, cold
+g++16 -O3 func.cpp -o b.out -Wl,--sort-section=name # order: cold, hot
 ```
 <!-- .element: style="text-align:left; font-size:16px;" -->
 
@@ -1679,33 +1675,34 @@ perf bench func hot_func --exec shuffled.out --config.function.order=random
 <!-- .element: style="text-align:left" -->
 
 ```python
-import perf                                             # python
+import perf                                                           # python
 
-for n in (1, 4, 8, 16, 32, 64, 128):
-    for tag, payload, branch in (
-        ("rev",  list(range(n, 0, -1)), "predictable"),
-        ("shuf", random.Random(n).sample(range(1, n + 1), n), "unpredictable"),
-    ):
-        for cache in ("hot", "cold"):
-            for event in (
-                ["cycles", "instructions"],
-                ["topdown-retiring", "topdown-bad-spec", "topdown-fe-bound", "topdown-be-bound"],
-            ):
-                perf.bench(
-                    exec="std_sort.so", func="std_sort",
-                    label=f"sort-{tag}-{cache}-{n}",
-                    mode="latency",
-                    data={"arg0": 0x10000000, "arg1": n, hex(0x10000000) + ":": payload},
-                    config={"branch": branch, "cache": cache},
-                    event=event,
-                )
+for size in (1, 4, 8, 16, 32, 64, 128):
+    for cache in ("hot", "cold"):
+        for branch in ("predictable", "unpredictable"):
+            perf.bench(
+                exec="libstdc++.so",
+                func="std::sort",
+                mode="latency",
+                config={
+                    "branch": branch,
+                    "cache": cache
+                },
+                event=[
+                    ["cycles", "instructions"],
+                    ["topdown-retiring",
+                     "topdown-bad-spec",
+                     "topdown-fe-bound",
+                     "topdown-be-bound"],
+                ],
+            )
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
 ----
 
 ```sh
-perf plot -t line,scatter -x data.arg1 -e instructions/cycles -- sort
+perf plot -x data.arg1 -e instructions/cycles -- sort
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -1815,11 +1812,11 @@ jitter
 </p>
 
 ```cpp
-find (scan  - if/else)  → branch effecs
-find (map   - hash map) → branch/cache effects
-find (ph    - pext + cmov + lookup table) → cache effects
-find (mph   - hash table in a register)
-find (simd  - N at the same time)
+find (scan - if/else)  → branch effecs
+find (map  - hash map) → branch/cache effects
+find (ph   - pext + cmov + lookup table) → cache effects
+find (mph  - hash table in a register)
+find (simd - N at the same time)
 ```
 
 https://github.com/qlibs/mph
@@ -1828,8 +1825,8 @@ https://github.com/qlibs/mph
 ----
 
 ```cpp
-g++     -std=c++26 -O3 -mbmi2 -c find.cpp -o find_gcc.o
-clang++ -std=c++26 -O3 -mbmi2 -c find.cpp -o find_clang.o
+g++-16     -std=c++26 -O3 -mbmi2 -c find.cpp -o find_gcc.o
+clang++-22 -std=c++26 -O3 -mbmi2 -c find.cpp -o find_clang.o
 ```
 <!-- .element: style="text-align:left; font-size:20px;" -->
 
@@ -1865,17 +1862,16 @@ constexpr auto symbols = array{
 ----
 
 ```python
-import perf
+import perf                                                    # python
 
-best  = {"branch": "predictable",   "cache": "hot"}
-real  = {"branch": "unpredictable", "cache": "warm"}
-worst = {"branch": "unpredictable", "cache": "cold", "func": {"order": "random"}}
+real  = { "branch": "unpredictable", "cache": "warm" }
+best  = { ... }
+worst = { ... }
 
-for cxx in ("gcc", "clang"):
+for cxx in ("g++-16", "clang++-22"):
     for func in ("scan", "map", "ph", "mph", "simd"):
-        for tag, config in (("best", best), ("read", real), ("worst", worst)):
+        for config in (best, real, worst):
             perf.bench(
-                name=f"{cxx}-{func}-{tag}"
                 exec=f"find_{cxx}.o",
                 func=func,
                 mode="latency",
@@ -1883,7 +1879,7 @@ for cxx in ("gcc", "clang"):
                 config=config,
             )
 ```
-<!-- .element: style="text-align:left; font-size:18px;" -->
+<!-- .element: style="text-align:left; font-size:22px;" -->
 
 ----
 
