@@ -20,18 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <cstddef>
+#include <algorithm>
 #include <cstdint>
 
-int64_t sort(std::uint8_t* data, std::size_t n) {
-    for (std::size_t i = 1; i < n; ++i) {
-        auto key = data[i];
-        std::size_t j = i;
-        while (j > 0 && data[j - 1] > key) {
-            data[j] = data[j - 1];
-            --j;
-        }
-        data[j] = key;
-    }
-    return n ? data[n - 1] : 0;
+void sort(std::uint8_t* data, std::size_t size) {
+  std::sort(data, data + size);
 }
